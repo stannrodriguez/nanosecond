@@ -36,6 +36,11 @@ until verify.sh is green.**
    "the game teaches true things" and are load-bearing.
 
 ## Quality bar
+- **Explanations + visualizations are the product's center of gravity** (playtest-
+  confirmed: they're what players love). Every concept — core concepts, key
+  technologies, common patterns — teaches through a visualization the player can
+  poke; the prose annotates the viz, never the reverse. A wall of text is a bug.
+  Template: `docs/content-pipeline.md` §7.
 - Every displayed number is derivable: it must exist in `src/content/numbers.ts`
   with a `derivation`.
 - Every jargon word in player-facing copy is a `<Term>` with a glossary entry.
@@ -45,8 +50,10 @@ until verify.sh is green.**
 - Accessibility floor: visible keyboard focus, prefers-reduced-motion, 380px width.
 
 ## Definition of done (v1)
-Specs 000–080 done, verify green, and a human can: play 12 lab toys, read the field
-manual, answer 60 drills with spaced repetition, clear 6 builder scenarios, solve
+Specs 000–080 done, verify green, and a human can: play 12 lab toys, browse 27
+Concept Library sections (core concepts, key technologies, common patterns — each
+with an interactive visualization), answer 60 drills with spaced repetition, clear
+6 builder scenarios, solve
 12 flaw puzzles + 6 taste tests + 6 interrogations, win an On-Call run, see the
 Forge gate components behind toys, and export a pre-interview briefing from the
 Scar Journal.

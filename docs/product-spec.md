@@ -45,9 +45,23 @@ L8 **Requirements are extracted, not given.** At least one mode trains the
 Playable physics/mechanism toys. v1: 12 toys (4 exist). Each toy makes ONE number
 impossible to forget. Framework + catalog: `content-pipeline.md` §2.
 
-### 3.2 Field Manual + Glossary (reference: `docs/reference/builder-v0-3.jsx`)
-Plain-language concept briefings with small diagrams; the global glossary system.
-v1: 10 manual sections, ~60 glossary entries.
+### 3.2 Concept Library — Field Manual + Glossary (reference: `docs/reference/builder-v0-3.jsx`)
+**The explanation-and-visualization layer is the heart of the product** (pain points
+3–5): plain-language briefings where an interactive or animated diagram carries the
+explanation and the text annotates it. Organized on three shelves:
+- **Core Concepts** — networking essentials, API design, data modeling, database
+  indexing, caching, sharding, consistent hashing, CAP theorem.
+- **Key Technologies** — relational & NoSQL databases, blob storage, search-optimized
+  databases, API gateway, load balancer, queues, streams/event sourcing, distributed
+  locks, distributed caches, CDN.
+- **Common Patterns** — pushing realtime updates, managing long-running tasks,
+  dealing with contention, scaling reads, scaling writes, handling large blobs,
+  multi-step processes, proximity-based services, and how to pick between patterns.
+Every section carries at least one visualization the player can poke, cross-links to
+the Lab toy that proves its number, and ends with where the concept bites in the
+other modes. Plus the global glossary system. v1: 27 sections (spec 020 built the
+first 10; spec 047 grows and re-shelves them), ~60 glossary entries. Template:
+`content-pipeline.md` §7.
 
 ### 3.3 Drills (reference: `docs/reference/v0-ladder-drills-builder.jsx`, Drills tab)
 Order-of-magnitude estimation on a log slider, scored by log-distance (≤0.3 dead-on /

@@ -71,6 +71,19 @@ input[type='range']::-moz-range-thumb {
   cursor: pointer;
 }
 
+/* Concept Library: sidebar + content, collapsing to one column on narrow screens */
+.ns-lib-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .ns-lib-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @keyframes ns-pulse {
   0%,
   100% {

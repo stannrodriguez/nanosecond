@@ -12,6 +12,7 @@ import { PUZZLES } from '../src/content/puzzles'
 import { TASTES } from '../src/content/tastes'
 import { RUNGS } from '../src/content/ladder'
 import { PATTERNS } from '../src/content/oncall'
+import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 
 describe('schema: numbers database', () => {
   it('every number has a 3-step, non-empty derivation', () => {
@@ -177,6 +178,50 @@ describe('schema: taste tests (law L5)', () => {
       expect(t.whys.length, t.prompt).toBe(4)
       expect(t.flip.trim().length, t.prompt).toBeGreaterThan(40)
       expect(/\d/.test(t.prompt), `prompt needs numbers: ${t.prompt}`).toBe(true)
+    }
+  })
+})
+
+describe('schema: concept library (docs/content-pipeline.md §7)', () => {
+  it('has the v1 catalog of 27 sections across three shelves', () => {
+    expect(MANUAL.length).toBe(27)
+    expect(sectionsForShelf('concepts').length).toBe(8)
+    expect(sectionsForShelf('technologies').length).toBe(11)
+    expect(sectionsForShelf('patterns').length).toBe(8)
+    // every section lives on a declared shelf
+    const shelfIds = new Set(SHELVES.map((s) => s.id))
+    for (const m of MANUAL) expect(shelfIds.has(m.shelf), m.id).toBe(true)
+  })
+
+  it('section ids are unique and url-safe', () => {
+    const ids = MANUAL.map((m) => m.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const id of ids) expect(/^[a-z0-9-]+$/.test(id), id).toBe(true)
+  })
+
+  it('every section has a required viz and simplifies fine print', () => {
+    for (const m of MANUAL) {
+      expect(m.viz, `${m.id} needs a viz`).toBeTruthy()
+      expect(m.simplifies.trim().length, `${m.id} simplifies`).toBeGreaterThan(20)
+      expect(m.thesis.trim().length, `${m.id} thesis`).toBeGreaterThan(0)
+    }
+  })
+
+  it('related terms/toys/sections all resolve', () => {
+    const toyIds = new Set(TOYS.map((t) => t.id))
+    const sectionIds = new Set(MANUAL.map((m) => m.id))
+    for (const m of MANUAL) {
+      expect(m.related.terms.length, `${m.id} needs ≥1 term`).toBeGreaterThan(0)
+      for (const k of m.related.terms) expect(GLOSSARY[k], `${m.id} → term ${k}`).toBeDefined()
+      for (const t of m.related.toys ?? []) expect(toyIds.has(t), `${m.id} → toy ${t}`).toBe(true)
+      for (const s of m.related.sections ?? []) expect(sectionIds.has(s), `${m.id} → section ${s}`).toBe(true)
+    }
+  })
+
+  it('every section deep-links "where you\'ll feel this" into a real route', () => {
+    for (const m of MANUAL) {
+      expect(m.feltIn.to.startsWith('/'), `${m.id} feltIn.to`).toBe(true)
+      expect(m.feltIn.cta.trim().length, `${m.id} feltIn.cta`).toBeGreaterThan(0)
     }
   })
 })

@@ -13,7 +13,7 @@ import Journal from './modes/journal'
 // grows INSIDE modes (ADR 0004), so new concepts never add tabs here.
 export const MODES = [
   { path: '/lab', label: 'LAB', sub: 'mechanisms, not numbers' },
-  { path: '/manual', label: 'MANUAL', sub: 'learn the vocabulary' },
+  { path: '/manual', label: 'LIBRARY', sub: 'concepts · tech · patterns' },
   { path: '/drills', label: 'DRILLS', sub: 'prove you own them' },
   { path: '/builder', label: 'BUILDER', sub: 'story → numbers → system' },
   { path: '/review', label: 'REVIEW', sub: 'the judgment gym' },

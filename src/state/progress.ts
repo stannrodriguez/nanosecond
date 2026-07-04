@@ -9,6 +9,9 @@ interface ProgressState {
   /** toy id → completed (reached the punchline at least once) */
   toysCompleted: Record<string, boolean>
   completeToy: (id: string) => void
+  /** Concept Library section id → read (spec 047) */
+  sectionsRead: Record<string, boolean>
+  markSectionRead: (id: string) => void
 }
 
 export const useProgress = create<ProgressState>()(
@@ -17,6 +20,9 @@ export const useProgress = create<ProgressState>()(
       toysCompleted: {},
       completeToy: (id) =>
         set((s) => (s.toysCompleted[id] ? s : { toysCompleted: { ...s.toysCompleted, [id]: true } })),
+      sectionsRead: {},
+      markSectionRead: (id) =>
+        set((s) => (s.sectionsRead[id] ? s : { sectionsRead: { ...s.sectionsRead, [id]: true } })),
     }),
     { name: 'nanosecond-progress' },
   ),

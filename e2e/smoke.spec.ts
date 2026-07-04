@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 // Keep in sync with MODES in src/App.tsx.
 const ROUTES = [
   { hash: '#/lab', title: 'INTUITION LAB', shot: 'lab' },
-  { hash: '#/manual', title: 'FIELD MANUAL', shot: 'manual' },
+  { hash: '#/manual', title: 'CONCEPT LIBRARY', shot: 'manual' },
   { hash: '#/drills', title: 'DRILLS', shot: 'drills' },
   { hash: '#/builder', title: 'THE BUILDER', shot: 'builder' },
   { hash: '#/review', title: 'DESIGN REVIEW', shot: 'review' },

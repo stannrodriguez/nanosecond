@@ -7,7 +7,7 @@ import { DRILLS } from '../content/drills'
 import { DRILL_CATEGORIES, type DrillCategory } from '../content/drills'
 import type { AnswerRecord } from './drillProgress'
 
-export type ScarMode = 'drills' | 'flaw' | 'predict' | 'taste' | 'builder' | 'oncall'
+export type ScarMode = 'drills' | 'flaw' | 'predict' | 'taste' | 'builder' | 'oncall' | 'interrogation'
 
 export const SCAR_MODE_LABEL: Record<ScarMode, string> = {
   drills: 'Drills',
@@ -16,6 +16,7 @@ export const SCAR_MODE_LABEL: Record<ScarMode, string> = {
   taste: 'Taste Test',
   builder: 'The Builder',
   oncall: 'On-Call',
+  interrogation: 'Interrogation',
 }
 
 export interface Scar {

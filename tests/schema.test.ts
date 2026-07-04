@@ -12,6 +12,7 @@ import { PUZZLES } from '../src/content/puzzles'
 import { TASTES } from '../src/content/tastes'
 import { RUNGS } from '../src/content/ladder'
 import { PATTERNS } from '../src/content/oncall'
+import { INTERROGATIONS } from '../src/content/interrogations'
 import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 
 describe('schema: numbers database', () => {
@@ -222,6 +223,65 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
     for (const m of MANUAL) {
       expect(m.feltIn.to.startsWith('/'), `${m.id} feltIn.to`).toBe(true)
       expect(m.feltIn.cta.trim().length, `${m.id} feltIn.cta`).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('schema: interrogations (law L8)', () => {
+  it('has the v1 catalog of 6, with unique url-safe ids', () => {
+    expect(INTERROGATIONS.length).toBe(6)
+    const ids = INTERROGATIONS.map((iv) => iv.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const id of ids) expect(/^[a-z0-9-]+$/.test(id), id).toBe(true)
+  })
+
+  it('each has ~10 mixed-value questions and exactly one crucial trap', () => {
+    for (const iv of INTERROGATIONS) {
+      expect(iv.questions.length, iv.id).toBeGreaterThanOrEqual(8)
+      expect(iv.questions.length, iv.id).toBeLessThanOrEqual(12)
+      expect(iv.questions.filter((q) => q.crucial).length, `${iv.id} needs exactly one crucial`).toBe(1)
+      // mixed value: at least one low-signal and one high-signal question
+      const vals = iv.questions.map((q) => q.value)
+      expect(Math.min(...vals), `${iv.id} needs a low-value distractor`).toBeLessThanOrEqual(2)
+      expect(Math.max(...vals), `${iv.id} needs a high-value question`).toBeGreaterThanOrEqual(4)
+      // the crucial question is the most valuable one
+      const crucial = iv.questions.find((q) => q.crucial)!
+      expect(crucial.value, `${iv.id} crucial must be top-value`).toBe(Math.max(...vals))
+    }
+  })
+
+  it('costs are 0.5–1.5 and you cannot afford every question', () => {
+    for (const iv of INTERROGATIONS) {
+      expect(iv.budget, iv.id).toBeGreaterThan(0)
+      let sum = 0
+      for (const q of iv.questions) {
+        expect(q.cost, `${iv.id} cost`).toBeGreaterThanOrEqual(0.5)
+        expect(q.cost, `${iv.id} cost`).toBeLessThanOrEqual(1.5)
+        expect(q.value, `${iv.id} value`).toBeGreaterThanOrEqual(1)
+        expect(q.value, `${iv.id} value`).toBeLessThanOrEqual(5)
+        expect(q.reveals.trim().length, `${iv.id} reveals`).toBeGreaterThan(20)
+        expect(q.changes.trim().length, `${iv.id} changes`).toBeGreaterThan(20)
+        sum += q.cost
+      }
+      // forced prioritization: the full question list must exceed the budget
+      expect(sum, `${iv.id} budget must force choices`).toBeGreaterThan(iv.budget)
+    }
+  })
+
+  it('the trap and requirements matrix are wired to real questions', () => {
+    for (const iv of INTERROGATIONS) {
+      expect(iv.trapForUnasked.headline.trim().length, iv.id).toBeGreaterThan(0)
+      expect(iv.trapForUnasked.body.trim().length, iv.id).toBeGreaterThan(40)
+      expect(iv.trapForUnasked.lesson.trim().length, iv.id).toBeGreaterThan(40)
+      expect(iv.requirementsMatrix.length, iv.id).toBeGreaterThan(0)
+      const crucialIx = iv.questions.findIndex((q) => q.crucial)
+      for (const r of iv.requirementsMatrix) {
+        expect(r.req.trim().length, `${iv.id} req`).toBeGreaterThan(0)
+        expect(r.fromQ, `${iv.id} fromQ range`).toBeGreaterThanOrEqual(-1)
+        expect(r.fromQ, `${iv.id} fromQ range`).toBeLessThan(iv.questions.length)
+      }
+      // the crucial question must crystallize at least one requirement
+      expect(iv.requirementsMatrix.some((r) => r.fromQ === crucialIx), `${iv.id} crucial has no requirement`).toBe(true)
     }
   })
 })

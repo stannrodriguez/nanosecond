@@ -100,6 +100,24 @@ test('review: daily incident is one-shot and date-seeded with a share string', a
   await expect(page.getByText(/Come back tomorrow for Incident/)).toBeVisible()
 })
 
+test('review: interrogation extracts requirements and springs the unasked-question trap', async ({ page }) => {
+  test.setTimeout(60_000)
+  // deep link to a specific interrogation (ADR 0004 sub-content URL)
+  await page.goto('/#/review/interrogate/upload')
+  await expect(page.getByText('“Let users upload files”')).toBeVisible()
+  await expect(page.getByText('THE PITCH')).toBeVisible()
+  // buy a question that crystallizes a requirement, deliberately skipping the crucial one
+  await page.getByRole('button', { name: /per-user or per-project storage quotas/ }).click()
+  await expect(page.getByText(/REQUIREMENTS SO FAR/)).toBeVisible()
+  await page.getByRole('button', { name: /Lock requirements/ }).click()
+  // the crucial question fires as a mid-build trap + full ranked debrief
+  await expect(page.getByText(/IT FOUND YOU/)).toBeVisible()
+  await expect(page.getByText(/MISSED · CRUCIAL/)).toBeVisible()
+  await expect(page.getByText(/EVERY QUESTION, RANKED BY INFORMATION VALUE/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/review-interrogate.png', fullPage: true })
+})
+
 test('lab landing surfaces the Daily Incident card', async ({ page }) => {
   await page.goto('/#/lab')
   const card = page.getByRole('button', { name: 'Daily Incident' })

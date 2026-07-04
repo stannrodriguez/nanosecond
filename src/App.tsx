@@ -9,6 +9,8 @@ import Review from './modes/review'
 import OnCall from './modes/oncall'
 import Journal from './modes/journal'
 
+// The six learning modes — the game's verbs. This set is stable; content
+// grows INSIDE modes (ADR 0004), so new concepts never add tabs here.
 export const MODES = [
   { path: '/lab', label: 'LAB', sub: 'mechanisms, not numbers' },
   { path: '/manual', label: 'MANUAL', sub: 'learn the vocabulary' },
@@ -16,7 +18,6 @@ export const MODES = [
   { path: '/builder', label: 'BUILDER', sub: 'story → numbers → system' },
   { path: '/review', label: 'REVIEW', sub: 'the judgment gym' },
   { path: '/on-call', label: 'ON-CALL', sub: 'survive to IPO' },
-  { path: '/journal', label: 'JOURNAL', sub: 'misses, distilled' },
 ] as const
 
 export default function App() {
@@ -62,6 +63,24 @@ function AppShell() {
                 )}
               </NavLink>
             ))}
+            {/* Journal is reflection over your record, not a learning mode —
+                it sits apart from the six verbs, gold like the Forge. */}
+            <NavLink
+              to="/journal"
+              style={({ isActive }) => ({
+                marginLeft: 'auto',
+                alignSelf: 'flex-end',
+                padding: '10px 13px 12px',
+                borderBottom: `2px solid ${isActive ? C.gold : 'transparent'}`,
+                color: isActive ? C.gold : C.dim,
+                textDecoration: 'none',
+                fontFamily: FONT.mono,
+                fontSize: 12,
+                fontWeight: 600,
+              })}
+            >
+              ◈ JOURNAL
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -69,13 +88,16 @@ function AppShell() {
         <div style={{ maxWidth: 940, margin: '0 auto' }}>
           <Routes>
             <Route path="/" element={<Navigate to="/lab" replace />} />
-            <Route path="/lab" element={<Lab />} />
-            <Route path="/manual" element={<Manual />} />
-            <Route path="/drills" element={<Drills />} />
+            {/* Sub-content URL scheme is fixed by ADR 0004; modes validate
+                their own params and redirect unknown ids to their index. */}
+            <Route path="/lab/:toyId?" element={<Lab />} />
+            <Route path="/manual/:tab?/:sectionId?" element={<Manual />} />
+            <Route path="/drills/:tab?" element={<Drills />} />
             <Route path="/builder" element={<Builder />} />
-            <Route path="/review" element={<Review />} />
+            <Route path="/review/:tab?" element={<Review />} />
             <Route path="/on-call" element={<OnCall />} />
-            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/:tab?" element={<Journal />} />
+            <Route path="*" element={<Navigate to="/lab" replace />} />
           </Routes>
         </div>
       </main>

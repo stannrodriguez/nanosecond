@@ -22,7 +22,8 @@ test('manual: ladder tab opens a rung with physics', async ({ page }) => {
 })
 
 test('manual: glossary drawer opens from a dotted term', async ({ page }) => {
-  await page.goto('/#/manual')
+  // deep link straight to the open briefing (ADR 0004)
+  await page.goto('/#/manual/briefings/request')
   await page.getByRole('button', { name: 'request', exact: true }).first().click()
   await expect(page.getByRole('dialog')).toContainText('REQUEST')
   await page.screenshot({ path: 'e2e/shots/manual-glossary.png', fullPage: true })
@@ -112,15 +113,20 @@ test('lab: consensus toy commits a cross-region write', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/lab-consensus.png', fullPage: true })
 })
 
-test('lab at 380px: no horizontal overflow on new toys', async ({ page }) => {
+test('lab at 380px: no horizontal overflow on index or toys', async ({ page }) => {
   await page.setViewportSize({ width: 380, height: 900 })
-  await page.goto('/#/lab')
-  for (const name of [/07 · THE PIPE/, /10 · CONNECTION POOL/, /11 · BACKPRESSURE/]) {
-    await page.getByRole('button', { name }).click()
+  const noOverflow = async () => {
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )
     expect(overflow).toBe(false)
+  }
+  await page.goto('/#/lab')
+  await noOverflow()
+  for (const name of [/07 · THE PIPE/, /10 · CONNECTION POOL/, /11 · BACKPRESSURE/]) {
+    await page.goto('/#/lab')
+    await page.getByRole('button', { name }).click()
+    await noOverflow()
   }
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-380px.png', fullPage: true })

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C } from '../../theme'
 import { ModeHeader } from '../../ui/ModeHeader'
 import { TabNav } from '../../ui/TabNav'
@@ -37,10 +38,13 @@ function Empty() {
 }
 
 export default function Journal() {
-  const [tab, setTab] = useState('log')
+  const { tab } = useParams()
+  const navigate = useNavigate()
   const { scars, soundbites } = useScars()
   const { history } = useDrillProgress()
   const [copied, setCopied] = useState(false)
+
+  if (tab !== 'log' && tab !== 'themes' && tab !== 'brief') return <Navigate to="/journal/log" replace />
 
   const briefing = buildBriefing(scars, history, soundbites)
   const exportPack = async () => {
@@ -70,7 +74,7 @@ export default function Journal() {
             { id: 'brief', label: '03 · PRE-INTERVIEW BRIEFING', sub: 'the night-before page' },
           ]}
           active={tab}
-          onPick={setTab}
+          onPick={(id) => navigate(`/journal/${id}`)}
         />
       </ModeHeader>
 

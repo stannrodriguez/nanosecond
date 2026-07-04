@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
 import { ModeHeader } from '../../ui/ModeHeader'
 import { TabNav } from '../../ui/TabNav'
@@ -36,8 +37,10 @@ function PartsBin() {
   )
 }
 
-function FieldManual() {
-  const [open, setOpen] = useState('request')
+function FieldManual({ open }: { open: string }) {
+  const navigate = useNavigate()
+  // The open section lives in the URL (ADR 0004) so briefings are linkable.
+  const setOpen = (id: string) => navigate(id ? `/manual/briefings/${id}` : '/manual/briefings')
   return (
     <div style={{ maxWidth: 780 }}>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55 }}>
@@ -163,20 +166,24 @@ function Ladder() {
 }
 
 export default function Manual() {
-  const [tab, setTab] = useState('manual')
+  const { tab, sectionId } = useParams()
+  const navigate = useNavigate()
+  if (tab !== 'briefings' && tab !== 'ladder') return <Navigate to="/manual/briefings" replace />
+  if (sectionId && (tab !== 'briefings' || !MANUAL.some((m) => m.id === sectionId)))
+    return <Navigate to="/manual/briefings" replace />
   return (
     <div>
       <ModeHeader title="FIELD MANUAL" thesis="learn it before you're tested on it · dotted words are clickable">
         <TabNav
           tabs={[
-            { id: 'manual', label: '01 · BRIEFINGS', sub: 'learn the vocabulary' },
+            { id: 'briefings', label: '01 · BRIEFINGS', sub: 'learn the vocabulary' },
             { id: 'ladder', label: '02 · THE LADDER', sub: 'derive the numbers' },
           ]}
           active={tab}
-          onPick={setTab}
+          onPick={(id) => navigate(`/manual/${id}`)}
         />
       </ModeHeader>
-      {tab === 'manual' ? <FieldManual /> : <Ladder />}
+      {tab === 'briefings' ? <FieldManual open={sectionId ?? ''} /> : <Ladder />}
     </div>
   )
 }

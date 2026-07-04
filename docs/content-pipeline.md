@@ -86,3 +86,14 @@ Bulkhead, Dead-Letter Queue, Read-Through Cache, Canary Deploys, Multi-AZ.
 Encounters escalate per act: act 1 = capacity, act 2 = capacity + one modifier,
 act 3 = interacting modifiers. Every boss beatable by ≥2 distinct strategies
 (enforced in balance suite).
+
+## 8. Concept registry
+`src/content/concepts.ts` — one row per teachable idea; the spine cross-mode
+links hang off. Fields: { id, name, ch (Channel), toyId (toys.ts | null),
+manualId (manual.tsx briefing | null), termKeys[] (glossary.ts), numberIds[]
+(numbers.ts) }. Drills attach automatically via `numbersRefs` ∩ `numberIds`
+(`drillsForConcept`) — never add a parallel drill-id list. Rules: ids are
+stable and URL-safe (they may appear in links); one concept per toy, matching
+the toy's channel; ≥1 term, ≥1 number, and ≥1 reachable drill per concept
+(enforced by tests/concepts.test.ts). When authoring a new toy, add its
+concept row in the same change.

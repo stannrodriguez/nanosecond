@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C } from '../../theme'
 import { ModeHeader } from '../../ui/ModeHeader'
 import { TabNav } from '../../ui/TabNav'
@@ -233,20 +234,22 @@ function Stats() {
 }
 
 export default function Drills() {
-  const [tab, setTab] = useState('drill')
+  const { tab } = useParams()
+  const navigate = useNavigate()
+  if (tab !== 'session' && tab !== 'calibration') return <Navigate to="/drills/session" replace />
   return (
     <div style={{ maxWidth: 720 }}>
       <ModeHeader title="DRILLS" thesis="scored by order of magnitude, the way an interviewer scores you">
         <TabNav
           tabs={[
-            { id: 'drill', label: '01 · DRILL', sub: 'due cards come first' },
-            { id: 'stats', label: '02 · CALIBRATION', sub: 'accuracy by category' },
+            { id: 'session', label: '01 · DRILL', sub: 'due cards come first' },
+            { id: 'calibration', label: '02 · CALIBRATION', sub: 'accuracy by category' },
           ]}
           active={tab}
-          onPick={setTab}
+          onPick={(id) => navigate(`/drills/${id}`)}
         />
       </ModeHeader>
-      {tab === 'drill' ? <DrillSession /> : <Stats />}
+      {tab === 'session' ? <DrillSession /> : <Stats />}
     </div>
   )
 }

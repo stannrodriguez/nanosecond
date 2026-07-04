@@ -1,10 +1,15 @@
-import { useState, type ComponentType } from 'react'
+import type { ComponentType } from 'react'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ModeHeader } from '../../ui/ModeHeader'
-import { TabNav } from '../../ui/TabNav'
-import { C, CH_COLOR } from '../../theme'
-import { TOYS } from '../../content/toys'
+import { Eyebrow } from '../../ui/kit'
+import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
+import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { COMPONENTS } from '../../content/components'
+import { conceptForToy, drillsForConcept } from '../../content/concepts'
+import { MANUAL } from '../../content/manual'
+import { GLOSSARY } from '../../content/glossary'
 import { FinePrint } from '../../ui/FinePrint'
+import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
@@ -35,30 +40,145 @@ const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> 
   stampede: TtlStampede,
 }
 
+// Index group order + each channel's physical wall (product-spec: every
+// architecture is a negotiation between these four).
+const CHANNEL_WALL: Record<Channel, string> = {
+  net: 'bounded by the speed of light',
+  compute: 'bounded by heat',
+  storage: 'bounded by sensing physics & moving metal',
+  mem: 'bounded by wire length & leaking charge',
+}
+const CHANNELS: Channel[] = ['net', 'compute', 'storage', 'mem']
+
+// /lab → grouped index · /lab/:toyId → one toy (ADR 0004)
 export default function Lab() {
-  const [toyId, setToyId] = useState('light')
+  const { toyId } = useParams()
+  if (!toyId) return <LabIndex />
+  const toy = toyById(toyId)
+  if (!toy) return <Navigate to="/lab" replace />
+  return <ToyDetail toy={toy} />
+}
+
+function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: () => void }) {
+  const col = CH_COLOR[toy.ch]
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        textAlign: 'left',
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderLeft: `3px solid ${col}`,
+        borderRadius: 10,
+        padding: '12px 14px',
+        cursor: 'pointer',
+        color: C.text,
+        fontFamily: 'inherit',
+      }}
+    >
+      <div className="mono" style={{ fontSize: 12, fontWeight: 600 }}>
+        {done && <span style={{ color: C.ok }}>✓ </span>}
+        {toy.n} · {toy.name}
+      </div>
+      <div style={{ fontSize: 12, color: C.dim, marginTop: 4, lineHeight: 1.4 }}>{toy.sub}</div>
+      {toy.forgeUnlocks && (
+        <div className="mono" style={{ fontSize: 10, color: done ? C.gold : C.faint, marginTop: 6 }}>
+          ⚒ {done ? 'forged a Builder part' : 'forges a Builder part'}
+        </div>
+      )}
+    </button>
+  )
+}
+
+function LabIndex() {
+  const navigate = useNavigate()
+  const { toysCompleted } = useProgress()
+  const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
+  return (
+    <div>
+      <ModeHeader title="INTUITION LAB" thesis="numbers don't stick — mechanisms do">
+        <div className="mono" style={{ fontSize: 12, color: doneCount === TOYS.length ? C.ok : C.dim, margin: '6px 0 2px' }}>
+          {doneCount}/{TOYS.length} mechanisms internalized
+        </div>
+      </ModeHeader>
+      {CHANNELS.map((ch) => (
+        <section key={ch} style={{ marginBottom: 24 }} aria-label={CH_LABEL[ch]}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+            <Eyebrow color={CH_COLOR[ch]}>{CH_LABEL[ch]}</Eyebrow>
+            <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
+              {CHANNEL_WALL[ch]}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+            {TOYS.filter((t) => t.ch === ch).map((t) => (
+              <ToyCard key={t.id} toy={t} done={!!toysCompleted[t.id]} onOpen={() => navigate(`/lab/${t.id}`)} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function PrevNext({ toy }: { toy: ToyEntry }) {
+  const navigate = useNavigate()
+  const idx = TOYS.findIndex((t) => t.id === toy.id)
+  const btn = (target: ToyEntry | undefined, label: string) =>
+    target && (
+      <button
+        onClick={() => navigate(`/lab/${target.id}`)}
+        title={target.name}
+        style={{
+          background: 'transparent',
+          border: `1px solid ${C.line}`,
+          borderRadius: 8,
+          color: C.dim,
+          padding: '5px 10px',
+          cursor: 'pointer',
+          fontFamily: FONT.mono,
+          fontSize: 11.5,
+        }}
+      >
+        {label}
+      </button>
+    )
+  return (
+    <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+      {btn(TOYS[idx - 1], `← ${TOYS[idx - 1]?.n}`)}
+      {btn(TOYS[idx + 1], `${TOYS[idx + 1]?.n} →`)}
+    </span>
+  )
+}
+
+function ToyDetail({ toy }: { toy: ToyEntry }) {
   const { toysCompleted, completeToy } = useProgress()
-  const toy = TOYS.find((t) => t.id === toyId)!
-  const Comp = TOY_COMPONENTS[toyId]
-  const done = !!toysCompleted[toyId]
+  const Comp = TOY_COMPONENTS[toy.id]
+  const done = !!toysCompleted[toy.id]
+  const col = CH_COLOR[toy.ch]
   // forge ids use the product-spec plural names; map to parts-bin components
   const FORGE_TO_COMPONENT: Record<string, string> = { shards: 'shard', replicas: 'replica', cache: 'cache', queue: 'queue' }
   const forgedComp = toy.forgeUnlocks ? COMPONENTS.find((c) => c.id === FORGE_TO_COMPONENT[toy.forgeUnlocks!]) : null
   const forgedName =
     forgedComp?.name ?? (toy.forgeUnlocks === 'workers' ? 'Workers' : toy.forgeUnlocks === 'cdn' ? 'CDN' : toy.forgeUnlocks)
+  const concept = conceptForToy(toy.id)
+  const briefing = concept?.manualId ? MANUAL.find((m) => m.id === concept.manualId) : undefined
+  const drillCount = concept ? drillsForConcept(concept).length : 0
   return (
     <div>
       <ModeHeader title="INTUITION LAB" thesis="numbers don't stick — mechanisms do">
-        <TabNav
-          tabs={TOYS.map((t) => ({
-            id: t.id,
-            label: `${toysCompleted[t.id] ? '✓ ' : ''}${t.n} · ${t.name}`,
-            sub: t.sub,
-            ch: CH_COLOR[t.ch],
-          }))}
-          active={toyId}
-          onPick={setToyId}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+          <Link className="mono" to="/lab" style={{ color: C.dim, fontSize: 11.5, textDecoration: 'none' }}>
+            ← all toys
+          </Link>
+          <span className="mono" style={{ color: col, fontWeight: 600, fontSize: 13 }}>
+            {done && <span style={{ color: C.ok }}>✓ </span>}
+            {toy.n} · {toy.name}
+          </span>
+          <span className="mono" style={{ fontSize: 11, color: C.faint }}>
+            {toy.sub}
+          </span>
+          <PrevNext toy={toy} />
+        </div>
       </ModeHeader>
       <p style={{ color: C.text, fontSize: 14.5, margin: '0 0 6px', fontWeight: 500 }}>{toy.oneLiner}</p>
       {done && toy.forgeUnlocks && (
@@ -79,8 +199,41 @@ export default function Lab() {
           ⚒ FORGED: {String(forgedName).toUpperCase()} — unlocked for the Builder
         </span>
       )}
-      <Comp onComplete={() => completeToy(toyId)} />
+      <Comp onComplete={() => completeToy(toy.id)} />
       <FinePrint text={toy.simplifies} />
+      {concept && (
+        <div
+          className="mono"
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 14,
+            flexWrap: 'wrap',
+            fontSize: 11.5,
+            color: C.dim,
+            borderTop: `1px solid ${C.line}`,
+            marginTop: 12,
+            paddingTop: 10,
+          }}
+        >
+          <Eyebrow color={col}>KEEP THE LOOP</Eyebrow>
+          {briefing && (
+            <Link to={`/manual/briefings/${briefing.id}`} style={{ color: C.dim }}>
+              read the briefing: {briefing.title}
+            </Link>
+          )}
+          <Link to="/drills/session" style={{ color: C.dim }}>
+            {drillCount} drills use these numbers
+          </Link>
+          <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {concept.termKeys.map((k) => (
+              <T key={k} k={k}>
+                {GLOSSARY[k].name}
+              </T>
+            ))}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

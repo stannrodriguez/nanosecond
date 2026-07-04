@@ -29,8 +29,21 @@ Catalog (v1 = rows 1–12):
 10. Connection Pool — 100 conns vs 10k clients; why poolers exist
 11. Backpressure — fast producer, slow consumer, bounded buffer; drop, block, or shed
 12. TTL & Stampede — hot key expires, 10k misses race to the DB → dogpile lock/jitter → forges cache
+
+v1.5 "Deep Water" (rows 13–17, specs 090/120 — forge nothing, teach judgment):
+13. The Anomaly Zoo — two txns over shared rows; isolation dial; which anomalies
+    survive at each level; MVCC versions pile up → why serializable costs
+    throughput, why Postgres vacuums
+14. Retry Storm — 3-tier stack, per-tier retry dial; 3×3×3 = 27× amplification;
+    backoff+jitter+budget toggles; goodput collapses past the knee
+15. The Tail at Scale — fan-out × per-backend p99; 1 − 0.99¹⁰⁰ ≈ 63%;
+    hedged-request toggle (wins on reads, double-fires on writes)
+16. Two Clocks — skewed wall clocks + last-write-wins silently drops the later
+    write; Lamport toggle (orders events, can't pick the right winner)
+17. Shuffle Shard — k-of-n shard assignment; shared fate collapses 1 → 1/C(n,k)
 Backlog (v2): Transistor Switch, NAND Charge Levels, TCP Handshake+Slow Start,
-DNS Resolution, GC Pause, Row vs Column layout, Bloom Filter, Quorum Overlap.
+DNS Resolution, GC Pause, Bloom Filter, Quorum Overlap. (Row vs Column layout
+was promoted into the OLTP/OLAP section's viz, spec 100.)
 
 ## 3. Flaw puzzle template + the RECIPE
 Fields: { id, title, reqs (one line, MUST contain the number the flaw violates),
@@ -63,14 +76,18 @@ The 3 wrong justifications must each embody a named bad habit:
   constraint in THIS spec — the most tempting distractor; make it genuinely attractive
 (A fourth allowed type: IRRELEVANT-TRUTH — accurate fact that doesn't decide this case.)
 
-## 5. Drill categories (60 total, ~10 each)
+## 5. Drill categories (v1: 60 total, ~10 each; schema test pins the exact count)
 - Capacity of single machines (app, Redis, Postgres r/w, Kafka, NVMe)
 - Latency ladder (recall + combinations: "cache miss then SSD read ≈ ?")
 - Story→numbers translation (DAU math, IoT fleets, peak multipliers)
 - Storage growth (users × events × size; retention)
 - Network (RTTs, bandwidth-delay, requests per page load)
 - Cost sanity (what $1k/mo buys; cache vs replica per absorbed read)
+- Concurrency & pools (v1.5, spec 100): Little's Law L = λ·W — pool sizing,
+  in-flight estimation, leak spotting
 Every drill: { q, unit, ans, loExp, hiExp, derive[3], numbersRefs[] }.
+Read-the-Dashboards diagnostic scenes (v1.5, spec 110) are a separate deck with
+their own template — §11.
 
 ## 6. Builder scenario template
 { name, story (JSX with Terms), translate[] (math → out rows), think[] (2–3 Socratic
@@ -97,17 +114,23 @@ Quality bar:
 - Ends with "where you'll feel this": deep-link to the toy, drill, puzzle, or
   scenario that exercises the concept.
 
-Catalog (v1 = 27 sections; spec 020's 10 originals are re-shelved into these):
-- **concepts (8):** networking essentials · API design · data modeling · database
+Catalog (v1 = 27 sections; spec 020's 10 originals are re-shelved into these.
+v1.5 = 31, additions marked; specs 100/120):
+- **concepts (8 → 9):** networking essentials · API design · data modeling · database
   indexing · caching · sharding & partitioning · consistent hashing · CAP theorem
-- **technologies (11):** relational databases · NoSQL databases · blob storage ·
+  (v1.5: upgrades to "CAP & the Consistency Ladder" — same id) · transactions &
+  isolation (v1.5)
+- **technologies (11 → 12):** relational databases · NoSQL databases · blob storage ·
   search-optimized databases · API gateway · load balancer · queues ·
-  streams / event sourcing · distributed locks · distributed caches · CDN
-- **patterns (8):** pushing realtime updates · managing long-running tasks · dealing
+  streams / event sourcing · distributed locks · distributed caches · CDN ·
+  OLTP vs OLAP & columnar storage (v1.5)
+- **patterns (8 → 10):** pushing realtime updates · managing long-running tasks · dealing
   with contention · scaling reads · scaling writes · handling large blobs ·
-  multi-step processes · proximity-based services
-Backlog (v2): pattern selection meta-guide, security essentials, observability,
-idempotency deep-dive, cell-based architecture.
+  multi-step processes · proximity-based services · the log (v1.5 capstone) ·
+  blast radius & shuffle sharding (v1.5)
+Backlog (v2): pattern selection meta-guide, security essentials, observability
+(the v1.5 dashboards deck is its first pass), idempotency deep-dive, cell-based
+architecture (the v1.5 blast-radius section is its first pass).
 
 ## 8. On-Call content
 Patterns: { key, name, price, icon, fx (game effect, one line), irl (real-world
@@ -116,6 +139,8 @@ Bulkhead, Dead-Letter Queue, Read-Through Cache, Canary Deploys, Multi-AZ.
 Encounters escalate per act: act 1 = capacity, act 2 = capacity + one modifier,
 act 3 = interacting modifiers. Every boss beatable by ≥2 distinct strategies
 (enforced in balance suite).
+v1.5: boss #4 The Metastable Storm (spec 090 — the outage persists after the
+trigger clears; same ≥2-ways rule) and the Shuffle Shard relic (spec 120).
 
 ## 9. Concept registry
 `src/content/concepts.ts` — one row per teachable idea; the spine cross-mode
@@ -127,3 +152,10 @@ stable and URL-safe (they may appear in links); one concept per toy, matching
 the toy's channel; ≥1 term, ≥1 number, and ≥1 reachable drill per concept
 (enforced by tests/concepts.test.ts). When authoring a new toy, add its
 concept row in the same change.
+
+## 10–12. Reserved template slots
+§10 Interrogation (filled by spec 055) · §11 Dashboard scene — { id, panels[],
+options[4], ans, why, mechanism } (filled by spec 110) · §12 Case file —
+{ id, company, year, title, timeline[], decisions[], mechanisms[], officialUrl }
+(filled by spec 130). Each spec fills its slot in the same change that lands
+the content, keeping section numbers stable for cross-references.

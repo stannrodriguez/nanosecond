@@ -70,3 +70,11 @@ with an interactive visualization), answer 60 drills with spaced repetition, cle
 12 flaw puzzles + 6 taste tests + 6 interrogations, win an On-Call run, see the
 Forge gate components behind toys, and export a pre-interview briefing from the
 Scar Journal.
+
+## Definition of done (v1.5 — "Deep Water", ADR 0005)
+Specs 090–140 done, verify green, and additionally: 17 toys (isolation, retry
+physics, tails, clocks, shuffle sharding), 31 library sections including The Log
+capstone and the consistency ladder, the Little's Law drill family + the
+Read-the-Dashboards deck, On-Call boss #4 (The Metastable Storm), and 4 playable
+Case Files each ending at its official postmortem. After that, the v2 backlog
+promotes Legacy campaign first, then Readiness Meter.

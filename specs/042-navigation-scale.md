@@ -20,7 +20,7 @@ pattern. Routing scheme is fixed by ADR 0004.
       `tests/concepts.test.ts` enforces referential integrity: unique ids,
       every ref resolves, every toy has exactly one concept with a matching
       channel, every concept reaches ≥1 drill. Template documented in
-      `docs/content-pipeline.md` §8.
+      `docs/content-pipeline.md` §9.
 - [x] **Lab index**: `/lab` is a channel-grouped card grid (kit primitives),
       showing per-toy completion ✓, forge status, and a completion count.
       Toy detail gets a back link, prev/next, and a registry-derived

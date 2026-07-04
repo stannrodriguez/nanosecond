@@ -1,4 +1,4 @@
-// Concept registry (docs/content-pipeline.md §8): one row per teachable idea,
+// Concept registry (docs/content-pipeline.md §9): one row per teachable idea,
 // tying together everything the game says about it — its Lab toy, its Field
 // Manual briefing, its glossary terms, and its home numbers. This is the
 // spine cross-mode links hang off; tests/concepts.test.ts enforces that every

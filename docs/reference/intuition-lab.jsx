@@ -1,3 +1,7 @@
+/* PORTED (spec 030) → src/modes/lab/. The shipped code is the source of truth
+   for everything it implements; do NOT re-read this file to build on the Lab.
+   Kept only as the voice/feel reference for authoring NEW toys. */
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 /* ============================================================

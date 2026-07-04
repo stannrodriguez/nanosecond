@@ -22,11 +22,16 @@ test('manual: ladder tab opens a rung with physics', async ({ page }) => {
 })
 
 test('manual: glossary drawer opens from a dotted term', async ({ page }) => {
-  // deep link straight to the open briefing (ADR 0004)
-  await page.goto('/#/manual/briefings/request')
+  // deep link straight to the open section (ADR 0004)
+  await page.goto('/#/manual/briefings/networking')
   await page.getByRole('button', { name: 'request', exact: true }).first().click()
   await expect(page.getByRole('dialog')).toContainText('REQUEST')
   await page.screenshot({ path: 'e2e/shots/manual-glossary.png', fullPage: true })
+})
+
+test('manual: legacy section ids redirect to their re-shelved home', async ({ page }) => {
+  await page.goto('/#/manual/briefings/replication')
+  await expect(page).toHaveURL(/#\/manual\/briefings\/relational-db$/)
 })
 
 test('drills: lock in a guess and see the derivation', async ({ page }) => {
@@ -78,12 +83,31 @@ test('on-call: map renders and first encounter opens', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/oncall-encounter.png', fullPage: true })
 })
 
-test('manual: new sections open (delivery guarantees)', async ({ page }) => {
+test('manual: shelves open a section with its interactive viz', async ({ page }) => {
   await page.goto('/#/manual')
-  await page.getByRole('button', { name: /Delivery guarantees/ }).click()
-  await expect(page.getByText('Networks lose messages', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: /Managing long-running tasks/ }).click()
+  await expect(page.getByText('return a receipt', { exact: false })).toBeVisible()
+  await expect(page.getByText("WHERE YOU'LL FEEL THIS")).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/manual-delivery.png', fullPage: true })
+})
+
+test('library at 380px: shelves and the widest viz do not overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 900 })
+  const noOverflow = async () => {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(false)
+  }
+  await page.goto('/#/manual')
+  await noOverflow()
+  // consistent-hashing carries the widest viz (the ring SVG)
+  await page.goto('/#/manual/briefings/consistent-hashing')
+  await expect(page.getByText('nodes on the ring', { exact: false })).toBeVisible()
+  await noOverflow()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-380px.png', fullPage: true })
 })
 
 test('lab: 12 toys registered; hot partition throttles and forges shards', async ({ page }) => {

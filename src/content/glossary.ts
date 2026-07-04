@@ -249,6 +249,102 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Retry (with backoff + jitter)',
     def: 'The immune system of distributed systems: transient failures are common, so try again — waiting exponentially longer each time, with randomness so thousands of clients do not retry in lockstep (that synchronized wave is a self-inflicted thundering herd). Two rules make retries safe: the operation must be idempotent, and retries must be budgeted so they cannot multiply load during an outage.',
   },
+  rest: {
+    name: 'REST API',
+    def: 'A convention for HTTP APIs where URLs name resources (/users/42) and verbs (GET, POST, PUT, DELETE) name the action, so the protocol itself carries meaning. Its discipline matters for scale: GETs are cacheable and safe to repeat, PUT/DELETE are idempotent by design — which is exactly what lets caches, retries, and CDNs work without corrupting data.',
+  },
+  pagination: {
+    name: 'Pagination',
+    def: 'Returning a long list in bounded pages instead of all at once, so one request can never drag back a million rows and blow up latency and memory. Cursor-based pagination (a pointer to the last item) beats offset-based (LIMIT/OFFSET) because offsets re-scan and skip or duplicate rows when the underlying data changes between pages.',
+  },
+  normalization: {
+    name: 'Normalization',
+    def: 'Storing each fact exactly once and referencing it by key, so an update touches one row and truth can never contradict itself. The cost is paid at read time: assembling a view requires joining several tables, which grows more expensive as data grows — which is why read-heavy systems often denormalize.',
+  },
+  denormalization: {
+    name: 'Denormalization',
+    def: 'Deliberately duplicating data — pre-joining it into the shape a screen needs — so a read is a single lookup instead of a multi-table join. It trades write cost and consistency risk (every copy must be updated, and copies can drift) for read speed, which is the right trade only when reads vastly outnumber writes.',
+  },
+  join: {
+    name: 'Join',
+    def: 'Combining rows from multiple tables on a shared key at query time — the relational database’s superpower and its scaling wall. Joins keep data normalized (stored once) but cost CPU and I/O that grows with table size, and they become hard or impossible once data is sharded across machines, which is a major reason NoSQL stores drop them.',
+  },
+  acid: {
+    name: 'ACID',
+    def: 'The transactional guarantees of a classic database: Atomicity (all-or-nothing), Consistency (rules always hold), Isolation (concurrent transactions don’t see each other’s partial work), Durability (committed data survives a crash). They are why a bank transfer can’t lose money — and why every commit pays an fsync, bounding write throughput to thousands per second.',
+  },
+  nosql: {
+    name: 'NoSQL',
+    def: 'A family of non-relational databases (key-value, document, wide-column, graph) that drop joins and strict ACID in exchange for horizontal scale and a data model shaped to one access pattern. The catch: you must know your queries up front and design the partition key first — reach for it when the access pattern is fixed and the scale is real, not because relational "doesn’t scale".',
+  },
+  blob: {
+    name: 'Blob / object storage',
+    def: 'Large binary objects — images, video, backups — stored in a flat key→bytes service (S3, GCS) at ~$0.02/GB/mo, far cheaper and more scalable than any block disk. Keeping blobs OUT of your database matters: a multi-megabyte row bloats indexes, wrecks the cache, and costs several times more, so you store the blob in object storage and only its key in the DB.',
+  },
+  presigned: {
+    name: 'Presigned URL',
+    def: 'A time-limited, permission-scoped link that lets a client read or write one specific object in blob storage directly, without the bytes passing through your servers. It exists so a 2 GB upload doesn’t tie up an app-server thread and memory for minutes — the heavy transfer goes client↔storage while your API only issues the ticket.',
+  },
+  invertedindex: {
+    name: 'Inverted index',
+    def: 'The data structure behind search: a map from each word to the list of documents that contain it, so a text query becomes a lookup and a merge instead of scanning every row. It is built at write time (tokenizing and indexing each document), which is why search lives in a separate, eventually-consistent system fed from the database rather than in the primary store.',
+  },
+  apigateway: {
+    name: 'API gateway',
+    def: 'A single front door in front of many services that handles cross-cutting concerns once — TLS termination, authentication, rate limiting, routing, sometimes aggregating several backend calls into one reply. Centralizing this keeps every service from re-implementing auth and limiting, but the gateway becomes a critical path, so it stays thin and highly available.',
+  },
+  stream: {
+    name: 'Stream (event log)',
+    def: 'An ordered, retained, replayable log of events (Kafka) that many independent consumers read at their own offset — unlike a queue, a message isn’t deleted when consumed. It sustains ~1M msgs/s per broker because it only ever appends sequentially, and its replayability lets you add a new consumer that reprocesses all of history.',
+  },
+  eventsourcing: {
+    name: 'Event sourcing',
+    def: 'Storing the sequence of changes (events) as the source of truth and deriving current state by replaying them, rather than storing only the latest state. It gives a perfect audit log and the ability to rebuild any view or fix a bug retroactively — at the cost of more storage and the need to reason about replay and schema evolution of old events.',
+  },
+  distlock: {
+    name: 'Distributed lock',
+    def: 'A lock shared across machines so only one worker performs a critical action at a time (charge a card once, run one cron). Because a holder can pause or crash, correct locks are time-bounded leases with a fencing token the resource checks — and because it is agreement among machines, robust implementations use a consensus store (etcd, ZooKeeper), not a lone Redis key.',
+  },
+  lease: {
+    name: 'Lease',
+    def: 'A lock that is granted for a bounded time and must be renewed to keep, so a crashed holder’s lock auto-expires instead of deadlocking the system forever. The subtlety: a paused holder can lose its lease while still believing it owns the resource, which is why a fencing token (a rising number the resource validates) is needed to reject the stale writer.',
+  },
+  websocket: {
+    name: 'WebSocket',
+    def: 'A persistent, full-duplex connection over a single TCP socket, letting server and client send messages either way with minimal latency — the right tool for chat, multiplayer, and trading. The cost is statefulness: every open connection is memory pinned to a specific server, so the fan-out and connection-routing tier is where realtime systems get hard.',
+  },
+  sse: {
+    name: 'Server-sent events',
+    def: 'A long-lived one-way stream from server to client over plain HTTP, with automatic reconnection built in — ideal for feeds, notifications, and live dashboards. It is simpler than a WebSocket and firewall-friendly, but it can only push server→client, so client actions still need ordinary requests.',
+  },
+  polling: {
+    name: 'Polling',
+    def: 'The client repeatedly asks "anything new?" on a timer because HTTP can’t let the server speak first. It is trivial to build and works everywhere, but wastes requests when updates are rare (most responses say "nothing") and adds up to half the interval in staleness — long-polling and push exist to fix exactly that.',
+  },
+  saga: {
+    name: 'Saga',
+    def: 'A way to run a transaction spanning several services as a sequence of local steps, each paired with a compensating action that undoes it if a later step fails. It trades atomicity for availability — there is a window where some steps are done and others aren’t — so every step must be idempotent, and failures that can’t compensate go to a human via a dead-letter queue.',
+  },
+  '2pc': {
+    name: 'Two-phase commit (2PC)',
+    def: 'A protocol where a coordinator asks all participants to PREPARE, then (if all agree) to COMMIT, giving atomicity across separate databases. It is strongly consistent but blocks — participants hold locks while waiting, and a coordinator crash can leave them stuck — so it is reserved for a few fast steps that truly must be atomic, with sagas preferred at scale.',
+  },
+  optimistic: {
+    name: 'Optimistic concurrency',
+    def: 'Handling contention by letting writers race without locking: read a version number, and only commit if it hasn’t changed (compare-and-set), otherwise retry. It is fastest when conflicts are rare because it avoids lock overhead — but under heavy contention it thrashes on repeated retries, where a pessimistic lock or a serialized single owner wins instead.',
+  },
+  geohash: {
+    name: 'Geohash',
+    def: 'An encoding that interleaves latitude and longitude bits into a single string, so geographically nearby points share a common prefix and a normal index can answer "near me" with a prefix range scan. It turns a 2D proximity query into a 1D lookup; the catch is cell borders — a point near an edge needs its neighboring cells checked too.',
+  },
+  quadtree: {
+    name: 'Quadtree',
+    def: 'A spatial index that recursively splits a region into four quadrants, subdividing only where points are dense so cities get fine cells and oceans stay coarse. It adapts to uneven density far better than a fixed grid, at the cost of a heavier structure to maintain as objects move — the trade you weigh against a simpler geohash.',
+  },
+  consistenthash: {
+    name: 'Consistent hashing',
+    def: 'Placing nodes and keys on a hash ring where each key belongs to the next node clockwise, so adding or removing a node re-homes only about 1/N of the keys instead of nearly all of them. It is what lets distributed caches and partitioned stores grow or lose a node without a system-wide reshuffle (and, for a cache, a total miss storm).',
+  },
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY

@@ -36,8 +36,8 @@ test('toy detail prev/next walks the catalog', async ({ page }) => {
 test('toy detail cross-links into the manual briefing (concept registry)', async ({ page }) => {
   await page.goto('/#/lab/replag')
   await page.getByRole('link', { name: /read the briefing/ }).click()
-  await expect(page).toHaveURL(/#\/manual\/briefings\/replication$/)
-  await expect(page.getByText('Replication & lag').first()).toBeVisible()
+  await expect(page).toHaveURL(/#\/manual\/briefings\/relational-db$/)
+  await expect(page.getByText('Relational databases').first()).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/manual-deeplink.png', fullPage: true })
 })

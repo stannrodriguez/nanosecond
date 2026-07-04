@@ -1,4 +1,4 @@
-// On-Call run content (docs/content-pipeline.md §7): patterns (relics),
+// On-Call run content (docs/content-pipeline.md §8): patterns (relics),
 // encounters, and the act map. Spec 060 grows this to 3 acts / 18 encounters /
 // 12 patterns / 6 events / 3 bosses.
 

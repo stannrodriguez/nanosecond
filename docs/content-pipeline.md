@@ -79,7 +79,37 @@ p99Target, profile(t), mod?(t) }. New v1 scenarios beyond the existing three:
 "Chat app goes to school" (fan-out writes), "Black Friday checkout" (writes must NOT
 be delayed — anti-queue lesson), "Analytics backfill" (batch vs online contention).
 
-## 7. On-Call content
+## 7. Manual section (Concept Library) template + catalog
+The explanation/visualization layer — the product's heart; hold it to the highest bar.
+Fields: { id, shelf ('concepts' | 'technologies' | 'patterns'), title, body (JSX,
+plain language, every jargon word a <Term>), viz (interactive or animated diagram
+component — REQUIRED, a section without one is not authorable), related { toys[],
+terms[], sections[] }, feltIn (one line: the mode/scenario where this concept bites) }.
+
+Quality bar:
+- The viz carries the explanation; the prose annotates the viz, never the reverse.
+  If the section still teaches with the viz deleted, the viz is decoration — redo it.
+- Prefer manipulable over animated over static: a slider the player drags beats a
+  looping animation beats a labeled figure. At least one state the player can change.
+- One idea per section. If the viz needs two legends, split the section.
+- Every number shown resolves to `numbers.ts`; every tradeoff names when the losing
+  option wins (law L5); `simplifies` fine print on every viz.
+- Ends with "where you'll feel this": deep-link to the toy, drill, puzzle, or
+  scenario that exercises the concept.
+
+Catalog (v1 = 27 sections; spec 020's 10 originals are re-shelved into these):
+- **concepts (8):** networking essentials · API design · data modeling · database
+  indexing · caching · sharding & partitioning · consistent hashing · CAP theorem
+- **technologies (11):** relational databases · NoSQL databases · blob storage ·
+  search-optimized databases · API gateway · load balancer · queues ·
+  streams / event sourcing · distributed locks · distributed caches · CDN
+- **patterns (8):** pushing realtime updates · managing long-running tasks · dealing
+  with contention · scaling reads · scaling writes · handling large blobs ·
+  multi-step processes · proximity-based services
+Backlog (v2): pattern selection meta-guide, security essentials, observability,
+idempotency deep-dive, cell-based architecture.
+
+## 8. On-Call content
 Patterns: { key, name, price, icon, fx (game effect, one line), irl (real-world
 explanation, 2 sentences, interview-usable) }. New patterns for v1: Rate Limiter,
 Bulkhead, Dead-Letter Queue, Read-Through Cache, Canary Deploys, Multi-AZ.

@@ -30,12 +30,27 @@ export interface Scar {
   lesson: string
 }
 
+/** A 60-second teach-back: after a solve you narrate the fix, then self-score
+ *  a 3-item rubric (did I name the mechanism, the tradeoff, a number?). */
+export interface TeachBack {
+  ts: number
+  mode: ScarMode
+  /** what you taught back (puzzle/scenario title) */
+  topic: string
+  rubric: { mechanism: boolean; tradeoff: boolean; number: boolean }
+  /** 0..3 self-rubric points */
+  score: number
+}
+
 interface ScarState {
   scars: Scar[]
   /** interview-ready lines collected from solved/revealed content */
   soundbites: string[]
+  /** self-scored teach-backs, newest last */
+  teachBacks: TeachBack[]
   addScar: (s: Omit<Scar, 'ts'>) => void
   addSoundbite: (line: string) => void
+  addTeachBack: (t: Omit<TeachBack, 'ts'>) => void
 }
 
 export const useScars = create<ScarState>()(
@@ -43,9 +58,11 @@ export const useScars = create<ScarState>()(
     (set) => ({
       scars: [],
       soundbites: [],
+      teachBacks: [],
       addScar: (s) => set((st) => ({ scars: [...st.scars.slice(-499), { ...s, ts: Date.now() }] })),
       addSoundbite: (line) =>
         set((st) => (st.soundbites.includes(line) ? st : { soundbites: [...st.soundbites, line] })),
+      addTeachBack: (t) => set((st) => ({ teachBacks: [...st.teachBacks.slice(-199), { ...t, ts: Date.now() }] })),
     }),
     { name: 'nanosecond-scars' },
   ),

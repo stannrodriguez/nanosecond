@@ -40,7 +40,7 @@ function Empty() {
 export default function Journal() {
   const { tab } = useParams()
   const navigate = useNavigate()
-  const { scars, soundbites } = useScars()
+  const { scars, soundbites, teachBacks } = useScars()
   const { history } = useDrillProgress()
   const [copied, setCopied] = useState(false)
 
@@ -142,6 +142,39 @@ export default function Journal() {
                 {s}
               </div>
             ))}
+          </div>
+
+          <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 14 }}>
+            <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.gold, marginBottom: 10 }}>
+              TEACH-BACKS — you explained it out loud, the real test
+            </div>
+            {teachBacks.length === 0 && (
+              <div style={{ color: C.dim, fontSize: 13.5 }}>
+                None yet. After a Design Review solve, take the 60-second teach-back — narrating the fix is what makes it stick.
+              </div>
+            )}
+            {teachBacks.length > 0 && (
+              <>
+                <div style={{ fontSize: 13.5, color: C.text, marginBottom: 8 }}>
+                  {teachBacks.length} logged · avg{' '}
+                  <b style={{ color: C.mem }}>
+                    {(teachBacks.reduce((a, t) => a + t.score, 0) / teachBacks.length).toFixed(1)}/3
+                  </b>{' '}
+                  on the mechanism / tradeoff / number rubric
+                </div>
+                {[...teachBacks]
+                  .slice(-5)
+                  .reverse()
+                  .map((t, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12.5, padding: '4px 0', flexWrap: 'wrap' }}>
+                      <span style={{ color: C.dim }}>{t.topic}</span>
+                      <span className="mono" style={{ color: t.score === 3 ? C.ok : t.score >= 2 ? C.compute : C.alert }}>
+                        {t.score}/3
+                      </span>
+                    </div>
+                  ))}
+              </>
+            )}
           </div>
 
           <button

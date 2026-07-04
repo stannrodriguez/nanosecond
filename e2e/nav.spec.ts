@@ -47,6 +47,9 @@ test('unknown sub-content ids degrade to the mode index, never 404', async ({ pa
   await expect(page).toHaveURL(/#\/lab$/)
   await page.goto('/#/review/nonsense')
   await expect(page).toHaveURL(/#\/review\/flaw$/)
+  // unknown puzzle id under the flaw tab also degrades to the tab index
+  await page.goto('/#/review/flaw/not-a-puzzle')
+  await expect(page).toHaveURL(/#\/review\/flaw$/)
   await page.goto('/#/journal')
   await expect(page).toHaveURL(/#\/journal\/log$/)
 })

@@ -72,6 +72,42 @@ test('review: accuse a component and watch the reveal', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/review-reveal.png', fullPage: true })
 })
 
+test('review: the "actually fine" puzzle rewards shipping it, and grades judgment', async ({ page }) => {
+  test.setTimeout(60_000)
+  // deep link straight to the fine puzzle (ADR 0004 sub-content URL)
+  await page.goto('/#/review/flaw/boring')
+  await expect(page.getByText('The Boring Monolith')).toBeVisible()
+  await page.getByRole('button', { name: /declare it sound/ }).click()
+  await expect(page.getByText(/CORRECT — the honest call was/)).toBeVisible({ timeout: 25_000 })
+  // aggregate judgment surfaces after a graded attempt
+  await expect(page.getByText('JUDGMENT', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Teach it back/ })).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/review-fine.png', fullPage: true })
+})
+
+test('review: daily incident is one-shot and date-seeded with a share string', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/#/review/daily')
+  await expect(page.getByText(/DAILY INCIDENT · #/).first()).toBeVisible()
+  await expect(page.getByText(/day streak/).first()).toBeVisible()
+  await page.getByRole('button', { name: /declare it sound/ }).click()
+  await expect(page.getByRole('button', { name: /Share result/ })).toBeVisible({ timeout: 25_000 })
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/review-daily.png', fullPage: true })
+  // one shot: reloading shows the recap, not a fresh puzzle
+  await page.reload()
+  await expect(page.getByText(/Come back tomorrow for Incident/)).toBeVisible()
+})
+
+test('lab landing surfaces the Daily Incident card', async ({ page }) => {
+  await page.goto('/#/lab')
+  const card = page.getByRole('button', { name: 'Daily Incident' })
+  await expect(card).toBeVisible()
+  await card.click()
+  await expect(page).toHaveURL(/#\/review\/daily$/)
+})
+
 test('on-call: map renders and first encounter opens', async ({ page }) => {
   await page.goto('/#/on-call')
   await expect(page.getByRole('heading', { name: 'ON-CALL' })).toBeVisible()

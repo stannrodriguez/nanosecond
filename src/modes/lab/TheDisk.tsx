@@ -103,11 +103,12 @@ function drawPlatter(
   ctx.fill()
 }
 
-export function TheDisk() {
+export function TheDisk({ onComplete }: { onComplete: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [running, setRunning] = useState(false)
   const [stats, setStats] = useState({ diskMs: 0, randReads: 0, seqMB: 0, phase: 'idle' as string })
   const S = useRef<DiskState | null>(null)
+  const won = useRef(false)
 
   const reset = () => {
     S.current = {
@@ -186,6 +187,10 @@ export function TheDisk() {
         ctx.fillStyle = C.faint
         ctx.fillText('head never moves — data flows', 392, 278)
       }
+    }
+    if (!won.current && s.randReads >= 3 && (s.seqMB * 1024) / (s.randReads * 4) > 300) {
+      won.current = true
+      onComplete()
     }
     setStats({ diskMs: s.diskMs, randReads: s.randReads, seqMB: s.seqMB, phase: s.phase })
   }, running)

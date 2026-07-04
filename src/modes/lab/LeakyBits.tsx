@@ -22,13 +22,14 @@ const initCells = (): Cell[] =>
     corrupt: false,
   }))
 
-export function LeakyBits() {
+export function LeakyBits({ onComplete }: { onComplete: () => void }) {
   const [refreshOn, setRefreshOn] = useState(true)
   const [, force] = useState(0)
   const cells = useRef<Cell[] | null>(null)
   const sweepRow = useRef(0)
   const sweepT = useRef(0)
   const readFlash = useRef<Record<number, number>>({})
+  const sawDecay = useRef(false)
   if (!cells.current) cells.current = initCells()
 
   useRaf((dt) => {
@@ -51,6 +52,10 @@ export function LeakyBits() {
         }
         sweepRow.current = (row + 1) % 8
       }
+    }
+    if (!sawDecay.current && cs.filter((c) => c.corrupt).length >= 10) {
+      sawDecay.current = true
+      onComplete()
     }
     force((x) => x + 1)
   }, true)

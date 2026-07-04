@@ -84,3 +84,44 @@ test('manual: new sections open (delivery guarantees)', async ({ page }) => {
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/manual-delivery.png', fullPage: true })
 })
+
+test('lab: 12 toys registered; hot partition throttles and forges shards', async ({ page }) => {
+  await page.goto('/#/lab')
+  await expect(page.getByRole('button', { name: /12 · TTL & STAMPEDE/ })).toBeVisible()
+  await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
+  await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText(/FORGED: DB SHARD/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-hotpartition.png', fullPage: true })
+})
+
+test('lab: ttl stampede spikes the DB', async ({ page }) => {
+  test.setTimeout(45_000)
+  await page.goto('/#/lab')
+  await page.getByRole('button', { name: /12 · TTL & STAMPEDE/ }).click()
+  await expect(page.getByText(/× capacity/)).toBeVisible({ timeout: 15_000 })
+  await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
+})
+
+test('lab: consensus toy commits a cross-region write', async ({ page }) => {
+  await page.goto('/#/lab')
+  await page.getByRole('button', { name: /08 · CONSENSUS/ }).click()
+  await page.getByRole('button', { name: 'cross-region (US E↔W)' }).click()
+  await page.getByRole('button', { name: 'Commit one write' }).click()
+  await expect(page.getByText('141 ms')).toBeVisible({ timeout: 15_000 })
+  await page.screenshot({ path: 'e2e/shots/lab-consensus.png', fullPage: true })
+})
+
+test('lab at 380px: no horizontal overflow on new toys', async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/lab')
+  for (const name of [/07 · THE PIPE/, /10 · CONNECTION POOL/, /11 · BACKPRESSURE/]) {
+    await page.getByRole('button', { name }).click()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(false)
+  }
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-380px.png', fullPage: true })
+})

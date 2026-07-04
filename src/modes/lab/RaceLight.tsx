@@ -65,7 +65,7 @@ const LOG_MIN = Math.log10(0.005)
 const LOG_MAX = Math.log10(4e7)
 const xOf = (m: number) => ((Math.log10(Math.max(m, 0.005)) - LOG_MIN) / (LOG_MAX - LOG_MIN)) * 100
 
-export function RaceLight() {
+export function RaceLight({ onComplete }: { onComplete: () => void }) {
   const [opIdx, setOpIdx] = useState(2)
   const [u, setU] = useState(0)
   const [running, setRunning] = useState(false)
@@ -77,6 +77,7 @@ export function RaceLight() {
       const next = prev + dt / DUR
       if (next >= 1) {
         setRunning(false)
+        onComplete()
         return 1
       }
       return next

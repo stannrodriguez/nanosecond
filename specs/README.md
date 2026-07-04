@@ -9,7 +9,7 @@ AND scripts/verify.sh is green AND the screenshots look right. Numbered with gap
 | 000 | scaffold | ✅ |
 | 010 | port-prototypes | ✅ |
 | 020 | glossary-field-manual | ✅ |
-| 030 | intuition-lab | ☐ |
+| 030 | intuition-lab | ✅ |
 | 040 | drills | ☐ |
 | 045 | scar-journal | ☐ |
 | 050 | design-review | ☐ |

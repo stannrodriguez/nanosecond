@@ -13,10 +13,11 @@ interface QueueState {
   t: number
 }
 
-export function TheQueue() {
+export function TheQueue({ onComplete }: { onComplete: () => void }) {
   const [util, setUtil] = useState(0.6)
   const [, force] = useState(0)
   const S = useRef<QueueState>({ queue: [], busyLeft: 0, waits: [], served: 0, t: 0 })
+  const sawKnee = useRef(false)
 
   const MU = 6 // service rate per second
 
@@ -34,6 +35,10 @@ export function TheQueue() {
       s.served++
     }
     if (s.queue.length > 400) s.queue.length = 400
+    if (!sawKnee.current && util >= 0.9 && s.queue.length > 15) {
+      sawKnee.current = true
+      onComplete()
+    }
     force((x) => x + 1)
   }, true)
 

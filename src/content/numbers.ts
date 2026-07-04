@@ -283,6 +283,32 @@ export const NUMBERS: NumberEntry[] = [
     toyId: 'queue',
     confusions: 'Throughput barely changes as you cross the knee — it is WAITING that explodes, which is why the failure surprises people.',
   },
+  {
+    id: 'partition-write-cap',
+    value: 1_000,
+    unit: 'writes/s per partition',
+    derivation: [
+      'A partitioned store (DynamoDB, Cassandra) spreads KEYS across nodes; each partition lives on one node with finite I/O.',
+      'DynamoDB documents the ceiling: ~1,000 write units per second per partition, no matter how big the table is.',
+      'Total cluster capacity = partitions × 1k — but only if your keys actually spread. One hot key gets exactly one partition.',
+    ],
+    boundingPhysics: 'Single-node write throughput: one partition is ultimately one machine fsyncing.',
+    toyId: 'hotpartition',
+    confusions: 'Provisioning more total capacity does NOT fix a hot key — per-partition ceilings are per-key-range, not per-table.',
+  },
+  {
+    id: 'bdp',
+    value: 8_750_000,
+    unit: 'bytes in flight (1 Gbps × 70 ms)',
+    derivation: [
+      'A sender may only have one congestion window of unacknowledged data in flight; more must wait for ACKs a full RTT away.',
+      'Max throughput of one stream = window ÷ RTT. To fill the link, window must equal bandwidth × RTT.',
+      '1 Gbps × 70 ms = 125 MB/s × 0.07 s ≈ 8.75 MB of in-flight data — far above default windows, which is why one cross-country TCP stream rarely fills a fat pipe.',
+    ],
+    boundingPhysics: 'The ACK must physically travel back: window sizing is the speed of light showing up in TCP.',
+    toyId: 'pipe',
+    confusions: 'Bandwidth is not throughput: a 1 Gbps link with a small window and long RTT delivers a tiny fraction of 1 Gbps per stream.',
+  },
 ]
 
 export const numberById = (id: string): NumberEntry | undefined => NUMBERS.find((n) => n.id === id)

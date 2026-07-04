@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { C } from '../../theme'
+import { Button } from '../../ui/kit'
 import { TASTES } from '../../content/tastes'
+import { useScars } from '../../state/scars'
 
 export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
+  const addScar = useScars((s) => s.addScar)
   const [qi, setQi] = useState(0)
   const [pick, setPick] = useState<'a' | 'b' | null>(null)
   const [why, setWhy] = useState<number | null>(null)
@@ -12,6 +15,22 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
   const submit = () => {
     setDone(true)
     onScore((pick === q.ans ? 50 : 0) + (q.whys[why!].ok ? 50 : 0))
+    if (pick !== q.ans)
+      addScar({
+        mode: 'taste',
+        theme: 'taste: fit over vibes',
+        what: q[pick!].name,
+        truth: q[q.ans].name,
+        lesson: q.flip.split('. ')[0] + '.',
+      })
+    else if (!q.whys[why!].ok)
+      addScar({
+        mode: 'taste',
+        theme: 'right answer, wrong reason',
+        what: q.whys[why!].t.slice(0, 80),
+        truth: q.whys.find((w) => w.ok)!.t.slice(0, 80),
+        lesson: q.whys[why!].why.split('. ')[0] + '.',
+      })
   }
   const next = () => {
     setQi((qi + 1) % TASTES.length)
@@ -82,23 +101,9 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
             </button>
           ))}
           {!done ? (
-            <button
-              onClick={submit}
-              disabled={why === null}
-              style={{
-                marginTop: 6,
-                padding: '11px 24px',
-                background: why !== null ? C.alert : C.line,
-                color: why !== null ? '#fff' : C.faint,
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: why !== null ? 'pointer' : 'default',
-              }}
-            >
+            <Button variant="danger" disabled={why === null} onClick={submit} style={{ marginTop: 6, padding: '11px 24px' }}>
               Defend it
-            </button>
+            </Button>
           ) : (
             <>
               <div style={{ background: C.bg, border: `1px solid ${C.net}44`, borderRadius: 8, padding: '12px 14px', marginTop: 8, fontSize: 13.5, lineHeight: 1.6 }}>
@@ -107,22 +112,9 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
                 </span>
                 {q.flip}
               </div>
-              <button
-                onClick={next}
-                style={{
-                  marginTop: 12,
-                  padding: '10px 22px',
-                  background: C.net,
-                  color: C.bg,
-                  border: 'none',
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: 'pointer',
-                }}
-              >
+              <Button onClick={next} style={{ marginTop: 12 }}>
                 Next matchup →
-              </button>
+              </Button>
             </>
           )}
         </div>

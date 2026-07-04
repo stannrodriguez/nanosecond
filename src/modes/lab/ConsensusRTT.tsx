@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Punchline } from '../../ui/Punchline'
+import { Button, Chip } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 
 /* TOY 08 — CONSENSUS ROUND-TRIPS: agreement is round trips × distance. */
@@ -64,23 +65,17 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {PLACES.map((p, i) => (
-          <button
+          <Chip
             key={p.name}
-            onClick={() => { setPlaceIdx(i); setPhase('idle'); setT(0) }}
-            className="mono"
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: i === placeIdx ? C.net : C.panel,
-              color: i === placeIdx ? C.bg : C.dim,
-              border: `1px solid ${i === placeIdx ? C.net : C.line}`,
+            active={i === placeIdx}
+            onClick={() => {
+              setPlaceIdx(i)
+              setPhase('idle')
+              setT(0)
             }}
           >
             {p.name}
-          </button>
+          </Chip>
         ))}
       </div>
 
@@ -118,13 +113,9 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
           </span>
         </div>
         <div className="mono" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, marginTop: 8, alignItems: 'baseline' }}>
-          <button
-            onClick={run}
-            disabled={phase === 'running'}
-            style={{ padding: '9px 18px', borderRadius: 8, background: phase === 'running' ? C.line : C.net, color: phase === 'running' ? C.dim : C.bg, border: 'none', fontWeight: 700, fontSize: 13, cursor: phase === 'running' ? 'default' : 'pointer' }}
-          >
+          <Button size="sm" disabled={phase === 'running'} onClick={run} style={{ padding: '9px 18px', fontSize: 13 }}>
             {phase === 'running' ? 'agreeing…' : 'Commit one write'}
-          </button>
+          </Button>
           <span style={{ color: C.dim }}>
             write latency: <b style={{ color: phase === 'done' ? (totalMs > 50 ? C.alert : C.ok) : C.text, fontSize: 16 }}>{phase === 'done' ? `${totalMs.toFixed(totalMs < 10 ? 1 : 0)} ms` : '—'}</b>
             <span style={{ color: C.faint }}> = {ROUNDS} × {place.rttMs} ms RTT + 1 ms fsync</span>

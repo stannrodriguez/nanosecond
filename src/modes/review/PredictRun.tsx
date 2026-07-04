@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { C } from '../../theme'
 import { Bar } from '../../ui/Bar'
+import { Panel, Button, Chip } from '../../ui/kit'
 import { fmtNum } from '../../ui/fmt'
 import { CAP } from '../../engine/capacity'
 import { PREDICT_ROUNDS, type PredictRound } from '../../content/predict'
+import { useScars } from '../../state/scars'
 
 const TICKS = 22
 
@@ -32,6 +34,7 @@ export function firstPast80(r: PredictRound): number {
 }
 
 export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
+  const addScar = useScars((s) => s.addScar)
   const [ri, setRi] = useState(0)
   const [q1, setQ1] = useState<number | null>(null)
   const [pos, setPos] = useState(500)
@@ -61,6 +64,22 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
     setT(0)
     setPhase('run')
     onScore((q1Right ? 100 : 0) + q2Pts)
+    if (!q1Right)
+      addScar({
+        mode: 'predict',
+        theme: 'bottleneck arithmetic',
+        what: r.q1.opts[q1!],
+        truth: r.q1.opts[firstIdx],
+        lesson: r.lesson.split('. ')[0] + '.',
+      })
+    if (q2Pts === 0)
+      addScar({
+        mode: 'predict',
+        theme: 'error-onset forecasting',
+        what: `${fmtNum(guess)} req/s`,
+        truth: `${fmtNum(r.q2.ans)} req/s`,
+        lesson: r.lesson.split('. ')[0] + '.',
+      })
   }
   const next = () => {
     setRi((ri + 1) % PREDICT_ROUNDS.length)
@@ -77,7 +96,7 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
         teaches a lot — it's also literally what an interviewer asks: “where does this break first?” Commit before you see
         anything.
       </p>
-      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 12 }}>
+      <Panel style={{ marginTop: 12 }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>{r.name}</div>
         <div className="mono" style={{ fontSize: 11.5, color: C.dim, marginTop: 6, lineHeight: 1.6 }}>
           STACK · {r.stack}
@@ -90,22 +109,9 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
             <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600 }}>{r.q1.prompt}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
               {r.q1.opts.map((o, i) => (
-                <button
-                  key={o}
-                  onClick={() => setQ1(i)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    fontSize: 13,
-                    background: q1 === i ? C.net : C.bg,
-                    color: q1 === i ? C.bg : C.dim,
-                    border: `1px solid ${q1 === i ? C.net : C.line}`,
-                    fontWeight: 600,
-                  }}
-                >
+                <Chip key={o} active={q1 === i} onClick={() => setQ1(i)} mono={false} style={{ padding: '8px 14px', fontSize: 13 }}>
                   {o}
-                </button>
+                </Chip>
               ))}
             </div>
             <div style={{ marginTop: 18, fontSize: 14, fontWeight: 600 }}>{r.q2.prompt}</div>
@@ -113,24 +119,9 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
               {fmtNum(guess)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
             </div>
             <input type="range" min={0} max={1000} value={pos} onChange={(e) => setPos(+e.target.value)} aria-label="error onset forecast" />
-            <button
-              onClick={lock}
-              disabled={q1 === null}
-              style={{
-                marginTop: 16,
-                width: '100%',
-                padding: '12px 0',
-                background: q1 !== null ? C.alert : C.line,
-                color: q1 !== null ? '#fff' : C.faint,
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: q1 !== null ? 'pointer' : 'default',
-              }}
-            >
+            <Button variant="danger" full disabled={q1 === null} onClick={lock} style={{ marginTop: 16 }}>
               Commit predictions — run it
-            </button>
+            </Button>
           </>
         )}
 
@@ -158,25 +149,12 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
             <div style={{ fontSize: 13.5, lineHeight: 1.6, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 12px' }}>
               {r.lesson}
             </div>
-            <button
-              onClick={next}
-              style={{
-                marginTop: 12,
-                padding: '10px 22px',
-                background: C.net,
-                color: C.bg,
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
-            >
+            <Button onClick={next} style={{ marginTop: 12 }}>
               {ri === PREDICT_ROUNDS.length - 1 ? 'Round 1 again (beat your score)' : 'Next round →'}
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   )
 }

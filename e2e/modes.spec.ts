@@ -139,3 +139,29 @@ test('drills: leitner chip, category label, and calibration tab', async ({ page 
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/drills-stats.png', fullPage: true })
 })
+
+test('journal: a drill miss lands as a scar with its lesson', async ({ page }) => {
+  await page.goto('/#/drills')
+  // drag the slider to an extreme so the answer is a guaranteed miss
+  await page.locator('input[type=range]').first().fill('0')
+  await page.getByRole('button', { name: 'Lock it in' }).click()
+  await page.goto('/#/journal')
+  await expect(page.getByRole('heading', { name: 'SCAR JOURNAL' })).toBeVisible()
+  await expect(page.getByText('you:', { exact: false }).first()).toBeVisible()
+  await page.getByRole('button', { name: /02 · BY THEME/ }).click()
+  await expect(page.getByText(/MISSED 1×/).first()).toBeVisible()
+  await page.getByRole('button', { name: /03 · PRE-INTERVIEW BRIEFING/ }).click()
+  await expect(page.getByText(/5 SHAKIEST NUMBERS/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/journal-briefing.png', fullPage: true })
+})
+
+test('on-call: a full encounter runs to a survivable result (tick runner)', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/#/on-call')
+  await page.getByRole('button', { name: /Launch Day/ }).click()
+  await page.getByRole('button', { name: 'Take the traffic' }).click()
+  // useTickRunner drives ticks 0..15; the run resolves to a reward draft
+  await expect(page.getByRole('button', { name: /Collect & draft reward/ })).toBeVisible({ timeout: 40_000 })
+  await page.screenshot({ path: 'e2e/shots/oncall-result.png', fullPage: true })
+})

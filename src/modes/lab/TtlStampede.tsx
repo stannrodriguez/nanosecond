@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { Punchline } from '../../ui/Punchline'
+import { Chip } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 import { fmtNum } from '../../ui/fmt'
 
@@ -63,22 +64,9 @@ export function TtlStampede({ onComplete }: { onComplete: () => void }) {
         request is a miss, and every miss goes hunting. The database can survive {fmtNum(DB_CAP)}/s. Watch the clock.
       </p>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', margin: '14px 0' }}>
-        <button
-          onClick={() => setDogpile(!dogpile)}
-          className="mono"
-          style={{
-            padding: '10px 16px',
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            background: dogpile ? C.mem : C.panel,
-            color: dogpile ? C.bg : C.dim,
-            border: `1px solid ${dogpile ? C.mem : C.line}`,
-          }}
-        >
+        <Chip active={dogpile} color={C.mem} onClick={() => setDogpile(!dogpile)} style={{ padding: '10px 16px', fontWeight: 700 }}>
           dogpile lock: {dogpile ? 'ON — one flier recomputes, rest serve stale' : 'OFF — every miss charges the DB'}
-        </button>
+        </Chip>
         <span className="mono" style={{ fontSize: 12.5, color: s.stampedes ? C.alert : C.faint }}>
           stampedes so far: {s.stampedes}
         </span>

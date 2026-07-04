@@ -202,6 +202,36 @@ export function simTick(
   return { rps, comps, p50, p99, errRate, readErr, writeErr, backlog, hit, readShare }
 }
 
+/* ---------- diagnosis (shared by Builder, On-Call post-mortems) ---------- */
+
+/**
+ * The worst (highest-utilization) frame of each tier across a whole run,
+ * sorted hottest-first. Pure — the narration copy lives in diagnoseTiers so
+ * modes can substitute their own voice.
+ */
+export function worstTiers(frames: Frame[]): TierFrame[] {
+  const worst: Record<string, TierFrame> = {}
+  for (const f of frames) {
+    for (const c of f.comps) {
+      if (!worst[c.id] || c.u > worst[c.id].u) worst[c.id] = c
+    }
+  }
+  return Object.values(worst).sort((a, b) => b.u - a.u)
+}
+
+/** Standard post-mortem lines: which tiers saturated (≥1) or crossed the knee (≥0.8). */
+export function diagnoseTiers(frames: Frame[]): string[] {
+  const lines: string[] = []
+  for (const c of worstTiers(frames)) {
+    if (c.u >= 1) lines.push(`${c.label} hit ${(c.u * 100).toFixed(0)}% — beyond capacity, requests queue then die. (${c.note})`)
+    else if (c.u >= 0.8)
+      lines.push(
+        `${c.label} peaked at ${(c.u * 100).toFixed(0)}% — past the ~80% knee, waiting time grows nonlinearly. It held, but one clump of traffic from failing.`,
+      )
+  }
+  return lines
+}
+
 /* ---------- cost ---------- */
 export const stackCost = (cfg: StackConfig): number =>
   cfg.app * CAP.app.cost +

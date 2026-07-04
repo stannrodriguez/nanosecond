@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
 import { Term } from '../../ui/Term'
+import { Button, Chip } from '../../ui/kit'
+import { useTickRunner } from '../../ui/useTickRunner'
 import { BREAKER_CAP, CAP, simTick, tickDamage, type Frame, type StackConfig } from '../../engine/capacity'
 import { ENCOUNTERS, LAYERS, NODE_META, PATTERNS, RUN, type Encounter, type MapNode } from '../../content/oncall'
 import { useScars } from '../../state/scars'
@@ -72,24 +74,28 @@ export function oncallTick(cfg: StackConfig, enc: Encounter, t: number, pats: st
 export default function OnCall() {
   const addScar = useScars((s) => s.addScar)
   const [g, setG] = useState<GameState>(freshGame)
-  const [tick, setTick] = useState(-1)
-  const [frame, setFrame] = useState<Frame | null>(null)
-  const [encDmg, setEncDmg] = useState(0)
   const [result, setResult] = useState<{ dmg: number; lagNote: boolean; reward: number; boss: boolean } | null>(null)
-  const backlogRef = useRef(0)
-  const dmgRef = useRef(0)
-  const histRef = useRef<Frame[]>([])
 
   const enc = g.node?.enc ? ENCOUNTERS[g.node.enc] : null
   const upd = (patch: Partial<GameState>) => setG((s) => ({ ...s, ...patch }))
+  const dmgOf = (frames: Frame[]) => {
+    if (!enc) return 0
+    const raw = frames.reduce((s, f) => s + tickDamage(f, enc.target, { idem: g.pats.includes('idem'), degrade: g.pats.includes('degrade') }), 0)
+    return g.pats.includes('breaker') ? Math.min(BREAKER_CAP, raw) : raw
+  }
 
-  /* ---- encounter runner ---- */
-  useEffect(() => {
-    if (tick < 0 || !enc) return
-    if (tick > enc.ticks) {
-      const capped = g.pats.includes('breaker') ? Math.min(BREAKER_CAP, dmgRef.current) : dmgRef.current
-      const dmg = Math.round(capped)
-      const strandedLag = histRef.current.length ? histRef.current[histRef.current.length - 1].backlog : 0
+  /* ---- encounter runner (shared tick loop) ---- */
+  const runner = useTickRunner<Frame>({
+    ticks: enc ? enc.ticks + 1 : 0,
+    intervalMs: 150,
+    step: (t, frames) => {
+      const prevBacklog = frames.length ? frames[frames.length - 1].backlog : 0
+      return oncallTick(g.cfg, enc!, t, g.pats, prevBacklog)
+    },
+    onDone: (frames) => {
+      if (!enc) return
+      const dmg = Math.round(dmgOf(frames))
+      const strandedLag = frames.length ? frames[frames.length - 1].backlog : 0
       const extraLag = strandedLag > RUN.strandedLagThreshold ? RUN.strandedLagDamage : 0
       const total = dmg + extraLag
       const hp = g.hp - total
@@ -108,29 +114,14 @@ export default function OnCall() {
         setResult({ dmg: total, lagNote: extraLag > 0, reward, boss: !!enc.boss })
         upd({ hp })
       }
-      setTick(-1)
-      return
-    }
-    const id = setTimeout(() => {
-      const f = oncallTick(g.cfg, enc, tick, g.pats, backlogRef.current)
-      backlogRef.current = f.backlog
-      dmgRef.current += tickDamage(f, enc.target, { idem: g.pats.includes('idem'), degrade: g.pats.includes('degrade') })
-      histRef.current.push(f)
-      setFrame(f)
-      setEncDmg(Math.round(g.pats.includes('breaker') ? Math.min(BREAKER_CAP, dmgRef.current) : dmgRef.current))
-      setTick(tick + 1)
-    }, 150)
-    return () => clearTimeout(id)
-  }, [tick]) // eslint-disable-line react-hooks/exhaustive-deps
+    },
+  })
+  const { tick, frame, frames } = runner
+  const encDmg = Math.round(dmgOf(frames))
 
   const startEnc = () => {
-    backlogRef.current = 0
-    dmgRef.current = 0
-    histRef.current = []
-    setEncDmg(0)
     setResult(null)
-    setFrame(null)
-    setTick(0)
+    runner.start()
   }
 
   const finishNode = (extra: Partial<GameState> = {}) => {
@@ -140,7 +131,7 @@ export default function OnCall() {
       return
     }
     upd({ phase: 'map', layer: nextLayer, node: null, ...extra })
-    setFrame(null)
+    runner.reset()
     setResult(null)
   }
 
@@ -237,16 +228,17 @@ export default function OnCall() {
               ))}
             </div>
           )}
-          <button
+          <Button
+            size="lg"
+            style={{ marginTop: 22, padding: '12px 28px' }}
             onClick={() => {
               setG(freshGame())
-              setFrame(null)
+              runner.reset()
               setResult(null)
             }}
-            style={{ marginTop: 22, padding: '12px 28px', background: C.net, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
           >
             New run
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -452,22 +444,14 @@ export default function OnCall() {
                 ${PRICE.queue}
               </span>
             </span>
-            <button
+            <Chip
+              active={g.cfg.queue}
               disabled={running || (!g.cfg.queue && g.gold < PRICE.queue)}
               onClick={() => (g.cfg.queue ? sell('queue', PRICE.queue) : buy('queue', PRICE.queue))}
-              style={{
-                padding: '3px 11px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: 11.5,
-                fontWeight: 600,
-                background: g.cfg.queue ? C.net : C.bg,
-                color: g.cfg.queue ? C.bg : C.dim,
-                border: `1px solid ${g.cfg.queue ? C.net : C.line}`,
-              }}
+              style={{ padding: '3px 11px', borderRadius: 6, fontSize: 11.5 }}
             >
               {g.cfg.queue ? 'ON' : 'OFF'}
-            </button>
+            </Chip>
           </div>
           {g.cfg.queue && (
             <Step label="Workers" price={PRICE.worker} val={g.cfg.workers} col={C.net} canDec={!running && g.cfg.workers > 1} canInc={!running && g.gold >= PRICE.worker} onDec={() => sell('workers', PRICE.worker)} onInc={() => buy('workers', PRICE.worker)} />
@@ -482,24 +466,9 @@ export default function OnCall() {
               ⚡ SYNERGY: CDN + cache → hit rate +{Math.round(RUN.cdnHitBonus * 100)}%
             </div>
           )}
-          <button
-            onClick={startEnc}
-            disabled={running || !!result}
-            style={{
-              marginTop: 12,
-              width: '100%',
-              padding: '11px 0',
-              background: running ? C.line : C.alert,
-              color: running ? C.dim : '#fff',
-              border: 'none',
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: running ? 'default' : 'pointer',
-            }}
-          >
+          <Button variant="danger" full disabled={running || !!result} onClick={startEnc} style={{ marginTop: 12 }}>
             {running ? `t=${tick}/${enc.ticks}` : result ? 'Survived' : enc.boss ? 'FACE THE HERD' : 'Take the traffic'}
-          </button>
+          </Button>
         </div>
 
         {/* live view */}

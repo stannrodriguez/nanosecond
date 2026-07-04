@@ -155,3 +155,13 @@ test('journal: a drill miss lands as a scar with its lesson', async ({ page }) =
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/journal-briefing.png', fullPage: true })
 })
+
+test('on-call: a full encounter runs to a survivable result (tick runner)', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/#/on-call')
+  await page.getByRole('button', { name: /Launch Day/ }).click()
+  await page.getByRole('button', { name: 'Take the traffic' }).click()
+  // useTickRunner drives ticks 0..15; the run resolves to a reward draft
+  await expect(page.getByRole('button', { name: /Collect & draft reward/ })).toBeVisible({ timeout: 40_000 })
+  await page.screenshot({ path: 'e2e/shots/oncall-result.png', fullPage: true })
+})

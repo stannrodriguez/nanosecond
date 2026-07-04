@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { C } from '../../theme'
 import { Punchline } from '../../ui/Punchline'
+import { Chip } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 import { fmtBig, fmtDist, fmtTimeNs } from '../../ui/fmt'
 
@@ -106,23 +107,9 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {LIGHT_OPS.map((o, i) => (
-          <button
-            key={o.name}
-            onClick={() => start(i)}
-            className="mono"
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              background: i === opIdx ? o.ch : C.panel,
-              color: i === opIdx ? C.bg : C.dim,
-              border: `1px solid ${i === opIdx ? o.ch : C.line}`,
-            }}
-          >
+          <Chip key={o.name} active={i === opIdx} onClick={() => start(i)} color={o.ch}>
             {o.name}
-          </button>
+          </Chip>
         ))}
       </div>
 

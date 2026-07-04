@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Punchline } from '../../ui/Punchline'
+import { Button } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 import { fmtNum } from '../../ui/fmt'
 
@@ -51,15 +52,12 @@ export function LsmVsBtree({ onComplete }: { onComplete: () => void }) {
         flushes sorted files, sequential-only. Race them, then send one read and see who pays the bill you deferred.
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '14px 0' }}>
-        <button
-          onClick={() => (s.done ? (reset(), setRunning(true)) : setRunning(!running))}
-          style={{ padding: '10px 22px', borderRadius: 8, background: running ? C.panelUp : C.net, color: running ? C.text : C.bg, border: `1px solid ${running ? C.line : C.net}`, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
-        >
+        <Button variant={running ? 'secondary' : 'primary'} size="lg" onClick={() => (s.done ? (reset(), setRunning(true)) : setRunning(!running))}>
           {running ? 'Pause' : s.done ? 'Race again' : s.btree > 0 ? 'Resume' : 'Start the write race'}
-        </button>
-        <button onClick={() => { setRunning(false); reset() }} style={{ padding: '10px 16px', borderRadius: 8, background: C.panel, color: C.dim, border: `1px solid ${C.line}`, fontSize: 14, cursor: 'pointer' }}>
+        </Button>
+        <Button variant="ghost" onClick={() => { setRunning(false); reset() }} style={{ background: C.panel, fontWeight: 400 }}>
           Reset
-        </button>
+        </Button>
       </div>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>

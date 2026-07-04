@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Punchline } from '../../ui/Punchline'
+import { Button } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 
 /* TOY 02 — THE DISK: two identical 7200 RPM drives race, slowed 120×. */
@@ -206,38 +207,19 @@ export function TheDisk({ onComplete }: { onComplete: () => void }) {
         around</i> (~4 ms average). The right one refuses to move the head and just streams. Same hardware. Watch the score.
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '14px 0' }}>
-        <button
-          onClick={() => setRunning(!running)}
-          style={{
-            padding: '10px 22px',
-            borderRadius: 8,
-            background: running ? C.panelUp : C.net,
-            color: running ? C.text : C.bg,
-            border: `1px solid ${running ? C.line : C.net}`,
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-        >
+        <Button variant={running ? 'secondary' : 'primary'} size="lg" onClick={() => setRunning(!running)}>
           {running ? 'Pause' : stats.diskMs > 0 ? 'Resume' : 'Start the race'}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={() => {
             setRunning(false)
             reset()
           }}
-          style={{
-            padding: '10px 16px',
-            borderRadius: 8,
-            background: C.panel,
-            color: C.dim,
-            border: `1px solid ${C.line}`,
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
+          style={{ background: C.panel, fontWeight: 400 }}
         >
           Reset
-        </button>
+        </Button>
       </div>
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 8, overflowX: 'auto' }}>
         <canvas ref={canvasRef} width={620} height={290} style={{ width: '100%', maxWidth: 620, display: 'block', margin: '0 auto' }} />

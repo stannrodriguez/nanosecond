@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { C } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { Diagram } from '../../ui/Diagram'
+import { Panel, Button } from '../../ui/kit'
+import { useFrameStepper } from '../../ui/useFrameStepper'
 import { PUZZLES } from '../../content/puzzles'
 import { useScars } from '../../state/scars'
 
@@ -10,23 +12,16 @@ export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
   const [pi, setPi] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
   const [phase, setPhase] = useState<'inspect' | 'reveal' | 'done'>('inspect')
-  const [fi, setFi] = useState(0)
   const p = PUZZLES[pi]
   const correct = picked === p.flaw
 
-  useEffect(() => {
-    if (phase !== 'reveal') return
-    if (fi >= p.frames.length - 1) {
-      const t = setTimeout(() => setPhase('done'), 1400)
-      return () => clearTimeout(t)
-    }
-    const t = setTimeout(() => setFi(fi + 1), 1700)
-    return () => clearTimeout(t)
-  }, [phase, fi]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Scripted failure reveal: step through the frames, then flip to the verdict.
+  const stepper = useFrameStepper(p.frames.length, { intervalMs: 1700, onEnd: () => setPhase('done') })
+  const frame = p.frames[stepper.index]
 
   const lockIn = () => {
-    setFi(0)
     setPhase('reveal')
+    stepper.play()
     onScore(correct ? 100 : 0)
     addSoundbite(p.line)
     if (!correct)
@@ -42,9 +37,8 @@ export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
     setPi((pi + 1) % PUZZLES.length)
     setPicked(null)
     setPhase('inspect')
-    setFi(0)
+    stepper.reset()
   }
-  const frame = p.frames[Math.min(fi, p.frames.length - 1)]
 
   return (
     <div>
@@ -59,45 +53,23 @@ export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
       </div>
       <p style={{ fontSize: 14, lineHeight: 1.6, color: C.text, marginBottom: 12 }}>{p.brief}</p>
 
-      <Diagram
-        nodes={p.nodes}
-        edges={p.edges}
-        picked={picked}
-        onPick={setPicked}
-        flaw={p.flaw}
-        revealed={phase === 'done'}
-        locked={phase !== 'inspect'}
-      />
+      <Diagram nodes={p.nodes} edges={p.edges} picked={picked} onPick={setPicked} flaw={p.flaw} revealed={phase === 'done'} locked={phase !== 'inspect'} />
 
       {phase === 'inspect' && (
-        <button
-          onClick={lockIn}
-          disabled={!picked}
-          style={{
-            marginTop: 14,
-            padding: '11px 24px',
-            background: picked ? C.alert : C.line,
-            color: picked ? '#fff' : C.faint,
-            border: 'none',
-            borderRadius: 8,
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: picked ? 'pointer' : 'default',
-          }}
-        >
+        <Button variant="danger" disabled={!picked} onClick={lockIn} style={{ marginTop: 14, padding: '11px 24px' }}>
           {picked ? 'Lock in suspicion — run the traffic' : 'Click a component to accuse it'}
-        </button>
+        </Button>
       )}
 
       {(phase === 'reveal' || phase === 'done') && (
-        <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
+        <Panel style={{ marginTop: 14 }}>
           <div className="mono" style={{ fontSize: 12.5, color: C.compute, minHeight: 36, lineHeight: 1.5, marginBottom: 12 }}>
             ▸ {frame.cap}
           </div>
           {frame.bars.map((b) => (
             <Bar key={b.label} label={b.label} u={b.u} ch={b.col} txt={b.txt} />
           ))}
-        </div>
+        </Panel>
       )}
 
       {phase === 'done' && (
@@ -107,37 +79,24 @@ export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
               ? '✓ CORRECT — you smelled it before the traffic did'
               : `✗ You accused "${p.nodes.find((n) => n.id === picked)?.label}" — the real flaw was "${p.nodes.find((n) => n.id === p.flaw)?.label}"`}
           </div>
-          <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 10, fontSize: 13.5, lineHeight: 1.6 }}>
-            <div>{p.explain}</div>
-            <div style={{ marginTop: 10 }}>
+          <Panel style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>{p.explain}</div>
+            <div style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.6 }}>
               <span className="mono" style={{ color: C.mem, fontSize: 10.5, letterSpacing: 1.5 }}>
                 THE FIX ·{' '}
               </span>
               {p.fix}
             </div>
-            <div style={{ marginTop: 10, borderLeft: `3px solid ${C.net}`, paddingLeft: 12, color: C.dim, fontStyle: 'italic' }}>
+            <div style={{ marginTop: 10, borderLeft: `3px solid ${C.net}`, paddingLeft: 12, color: C.dim, fontStyle: 'italic', fontSize: 13.5, lineHeight: 1.6 }}>
               <span className="mono" style={{ color: C.net, fontSize: 10.5, letterSpacing: 1.5, fontStyle: 'normal' }}>
                 SAY IT IN THE INTERVIEW ·{' '}
               </span>
               {p.line}
             </div>
-          </div>
-          <button
-            onClick={next}
-            style={{
-              marginTop: 12,
-              padding: '10px 22px',
-              background: C.net,
-              color: C.bg,
-              border: 'none',
-              borderRadius: 8,
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
+          </Panel>
+          <Button onClick={next} style={{ marginTop: 12 }}>
             Next puzzle →
-          </button>
+          </Button>
         </div>
       )}
     </div>

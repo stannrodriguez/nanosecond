@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { Punchline } from '../../ui/Punchline'
+import { Chip } from '../../ui/kit'
 import { useRaf } from '../../ui/useRaf'
 import { fmtNum } from '../../ui/fmt'
 
@@ -55,22 +56,9 @@ export function HotPartition({ onComplete }: { onComplete: () => void }) {
           </div>
           <input type="range" min={1000} max={8000} step={500} value={writes} onChange={(e) => setWrites(+e.target.value)} aria-label="incoming writes per second" />
         </div>
-        <button
-          onClick={() => setSalted(!salted)}
-          className="mono"
-          style={{
-            padding: '10px 16px',
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            background: salted ? C.mem : C.panel,
-            color: salted ? C.bg : C.dim,
-            border: `1px solid ${salted ? C.mem : C.line}`,
-          }}
-        >
+        <Chip active={salted} color={C.mem} onClick={() => setSalted(!salted)} style={{ padding: '10px 16px', fontWeight: 700 }}>
           key: {salted ? 'time_bucket#shard_0..7 (salted)' : 'time_bucket (the hour)'}
-        </button>
+        </Chip>
       </div>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>

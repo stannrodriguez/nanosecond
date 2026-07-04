@@ -125,3 +125,17 @@ test('lab at 380px: no horizontal overflow on new toys', async ({ page }) => {
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-380px.png', fullPage: true })
 })
+
+test('drills: leitner chip, category label, and calibration tab', async ({ page }) => {
+  await page.goto('/#/drills')
+  await expect(page.getByText(/ESTIMATE · /)).toBeVisible()
+  await expect(page.getByText('new card')).toBeVisible()
+  await page.getByRole('button', { name: 'Lock it in' }).click()
+  await expect(page.getByText('HOW TO DERIVE IT')).toBeVisible()
+  await page.getByRole('button', { name: 'Next drill →' }).click()
+  await page.getByRole('button', { name: /02 · CALIBRATION/ }).click()
+  await expect(page.getByText(/ACCURACY BY CATEGORY — your blind spots/)).toBeVisible()
+  await expect(page.getByText('LEITNER BOXES', { exact: false })).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/drills-stats.png', fullPage: true })
+})

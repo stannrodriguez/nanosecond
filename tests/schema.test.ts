@@ -127,6 +127,27 @@ describe('schema: drills', () => {
       expect(Math.log10(d.ans)).toBeLessThanOrEqual(d.hiExp)
     }
   })
+
+  it('bank has 60 drills, ~10 per category, unique stable ids', () => {
+    expect(DRILLS.length).toBe(60)
+    const ids = DRILLS.map((d) => d.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    const counts = new Map<string, number>()
+    for (const d of DRILLS) counts.set(d.cat, (counts.get(d.cat) ?? 0) + 1)
+    expect(counts.size).toBe(6)
+    for (const [cat, n] of counts) {
+      expect(n, cat).toBeGreaterThanOrEqual(8)
+      expect(n, cat).toBeLessThanOrEqual(12)
+    }
+  })
+
+  it('slider bounds give the answer honest room on both sides', () => {
+    for (const d of DRILLS) {
+      const logAns = Math.log10(d.ans)
+      expect(logAns - d.loExp, d.id).toBeGreaterThanOrEqual(0.5)
+      expect(d.hiExp - logAns, d.id).toBeGreaterThanOrEqual(0.5)
+    }
+  })
 })
 
 describe('schema: flaw puzzles', () => {

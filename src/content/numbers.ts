@@ -309,6 +309,58 @@ export const NUMBERS: NumberEntry[] = [
     toyId: 'pipe',
     confusions: 'Bandwidth is not throughput: a 1 Gbps link with a small window and long RTT delivers a tiny fraction of 1 Gbps per stream.',
   },
+  {
+    id: 'server-cost',
+    value: 150,
+    unit: '$/mo per 16-core box',
+    derivation: [
+      'Cloud on-demand pricing lands near $0.04–0.06 per vCPU-hour for general-purpose instances.',
+      '16 vCPUs × ~730 h × $0.05 ≈ $580 list — but reserved/spot and right-sizing cut 60–75%.',
+      '~$150/mo is the honest planning number for a committed 16-core app box.',
+    ],
+    boundingPhysics: 'Silicon amortization + datacenter power; compute is the commodity.',
+    toyId: null,
+    confusions: 'Engineers cost ~100× more per month than a server — optimize people-time before shaving instances.',
+  },
+  {
+    id: 'storage-cost',
+    value: 0.02,
+    unit: '$/GB/mo (object storage)',
+    derivation: [
+      'S3-class storage lists at ~$0.023/GB/mo, cheaper in colder tiers.',
+      'A terabyte is ~$20/mo; a petabyte ~$20k/mo.',
+      'Storage is rarely the budget item that kills you — egress and IOPS are.',
+    ],
+    boundingPhysics: 'Disk platter density; object stores sit right above raw disk economics.',
+    toyId: null,
+    confusions: 'Block storage (EBS) is ~4× this, and replicated databases store every byte 3+ times.',
+  },
+  {
+    id: 'egress-cost',
+    value: 0.09,
+    unit: '$/GB to the internet',
+    derivation: [
+      'Cloud egress lists at ~$0.05–0.09/GB — orders of magnitude above what the bytes cost the provider.',
+      'Storing 1 GB for a month ($0.02) is cheaper than sending it out once ($0.09).',
+      'Serving 100 TB/mo of traffic ≈ $9,000 in egress alone — the quiet architecture tax.',
+    ],
+    boundingPhysics: 'Not physics — pricing strategy. Which is exactly why CDNs and colocation exist.',
+    toyId: null,
+    confusions: 'Ingress is free; the meter only runs on the way OUT. Data gravity is a billing phenomenon.',
+  },
+  {
+    id: 'page-requests',
+    value: 70,
+    unit: 'requests per page load',
+    derivation: [
+      'A modern page pulls HTML, then CSS/JS bundles, fonts, images, and a burst of API/analytics calls.',
+      'HTTP Archive medians hover around 70 requests and ~2 MB per page.',
+      'So "10k page views/s" is really ~700k requests/s somewhere — mostly absorbable at the CDN edge.',
+    ],
+    boundingPhysics: 'Nothing physical — accumulated front-end habit. But capacity math must use it.',
+    toyId: null,
+    confusions: 'API traffic ≠ page traffic: one SPA page load can be 1 backend call or 40 depending on design.',
+  },
 ]
 
 export const numberById = (id: string): NumberEntry | undefined => NUMBERS.find((n) => n.id === id)

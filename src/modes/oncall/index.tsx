@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
+import { Term } from '../../ui/Term'
 import { BREAKER_CAP, CAP, simTick, tickDamage, type Frame, type StackConfig } from '../../engine/capacity'
 import { ENCOUNTERS, LAYERS, NODE_META, PATTERNS, RUN, type Encounter, type MapNode } from '../../content/oncall'
 
@@ -158,7 +159,9 @@ export default function OnCall() {
         node {Math.min(g.layer + 1, LAYERS.length)}/{LAYERS.length}
       </span>
       <span className="mono" style={{ fontSize: 13 }}>
-        <span style={{ color: C.faint }}>error budget </span>
+        <span style={{ color: C.faint }}>
+          <Term k="errorbudget">error budget</Term>{' '}
+        </span>
         <b style={{ color: g.hp > 50 ? C.ok : g.hp > 25 ? C.compute : C.alert }}>{g.hp}</b>
         <span style={{ color: C.faint }}>/100</span>
       </span>

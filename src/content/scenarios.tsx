@@ -101,7 +101,7 @@ export const SCENARIOS: Scenario[] = [
         <T k="phonehome">phones home</T>: "here's my GPS position, speed, engine temp." Each report is a <T k="write">write</T> —
         the device deposits data and asks nothing back. The only <T k="read">reads</T> are dispatchers watching dashboards.
         Mid-run, a cell-network hiccup disconnects a chunk of the fleet; when it recovers, they all reconnect and resend at once
-        — a classic <T k="burst">thundering herd</T> at ~2× normal volume.
+        — a classic <T k="herd">thundering herd</T> at ~2× normal volume.
       </>
     ),
     translate: [

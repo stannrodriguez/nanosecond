@@ -105,6 +105,150 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Cache stampede',
     def: "A hot key expires (or a cache restarts) and thousands of concurrent misses race to recompute the same answer against the database at once — the cache's absence IS the load spike. Defenses: dogpile locks (one flier recomputes, the rest wait), staggered TTLs with jitter, and serving stale content while refreshing.",
   },
+  consistency: {
+    name: 'Consistency',
+    def: 'Whether every reader sees the same data at the same moment. Strong consistency means a read after a write always shows the write — which requires copies to coordinate BEFORE answering, and coordination costs round trips. Eventual consistency answers immediately from whatever a copy has, and copies converge later. The choice is a latency-and-availability trade, not a correctness slider.',
+  },
+  consensus: {
+    name: 'Consensus',
+    def: 'The protocol family (Raft, Paxos) by which several machines agree on one value — who is leader, what order writes happened in — even while some of them crash. Agreement takes multiple round trips between a majority of nodes, which is WHY strongly-consistent cross-region writes cost ~150ms: two rounds × 70ms of geography. You pay consensus prices only where two truths would be catastrophic.',
+  },
+  failover: {
+    name: 'Failover',
+    def: "Promoting a replica to primary when the primary dies. It is never instant: detection takes seconds (is it dead or just slow?), promotion takes more, and clients must re-discover the new primary. Writes fail during the gap, and any writes the dead primary hadn't replicated yet are lost or need reconciling — which is why failover is rehearsed, not assumed.",
+  },
+  ttl: {
+    name: 'TTL (time to live)',
+    def: 'An expiry stamp on a cached value: after this long, throw it away and refetch. Short TTLs mean fresher data but more misses hitting the database; long TTLs mean staleness. The subtle trap: many keys expiring at the SAME second creates a synchronized miss storm — which is why real systems add random jitter to TTLs.',
+  },
+  wal: {
+    name: 'Write-ahead log (WAL)',
+    def: "The database's crash insurance: before changing any data structure, append the intent to a sequential log and fsync it. If the machine dies mid-write, replay the log. It works because appending is the one thing disks do fast — and it is the reason every durable write costs a sequential disk flush, bounding a primary to thousands (not millions) of writes/s.",
+  },
+  lsm: {
+    name: 'LSM-tree',
+    def: 'A storage engine (Cassandra, RocksDB, LevelDB) that never overwrites in place: writes go to a memory buffer, then flush as sorted immutable files that background jobs merge. Writes become pure sequential appends — very fast — while reads may check several files (read amplification). Choose it when writes dominate; that is the trade.',
+  },
+  btree: {
+    name: 'B-tree',
+    def: 'The classic database index (Postgres, MySQL): a wide, shallow tree where each node is one disk page, so any row is ~3–4 page reads away. Reads are fast and predictable; writes must find and update pages in place, costing random I/O. The B-tree/LSM choice is literally "optimize reads or optimize writes" — same data, opposite physics.',
+  },
+  gsi: {
+    name: 'Secondary index (GSI)',
+    def: "An extra copy of your table sorted by a DIFFERENT key, so you can query by something other than the primary key. In distributed stores (DynamoDB's Global Secondary Index) it is literally a second table the system keeps in sync — meaning every write now costs two writes, and the index copy can lag. Indexes are not free lookups; they are bought with write amplification.",
+  },
+  cdc: {
+    name: 'Change data capture (CDC)',
+    def: "Tapping the database's own replication log and streaming every committed change to other systems (search indexes, caches, warehouses). It beats dual-writing from the app because the log is the truth: nothing is missed, order is preserved, and consumers can replay. The cost: downstream systems are eventually consistent by construction.",
+  },
+  fanout: {
+    name: 'Fan-out',
+    def: 'One incoming event triggering many outgoing operations — one tweet written to a million follower timelines, one request calling six microservices. Fan-out multiplies load invisibly: 1k posts/s × 500 followers = 500k timeline writes/s. Every feed design is a choice between fan-out-on-write (pay when posting) and fan-out-on-read (pay when reading), priced by the follower distribution.',
+  },
+  backpressure: {
+    name: 'Backpressure',
+    def: 'What a system does when a producer is faster than a consumer and the buffer between them is full: block the producer, shed (drop) work, or degrade. The alternative — an unbounded buffer — just converts overload into memory exhaustion and a later, bigger crash. Deciding WHERE to say no, and to whom, is a design decision, not an accident.',
+  },
+  ratelimit: {
+    name: 'Rate limiting',
+    def: 'Refusing requests beyond a quota (per user, per IP, per API key) BEFORE they consume real capacity — usually with token buckets. It converts unbounded abuse or retry storms into a clean, predictable 429. Protecting the write path with a limiter is often cheaper than provisioning for the worst client you will ever meet.',
+  },
+  dns: {
+    name: 'DNS',
+    def: 'The phone book of the internet: turns a name (api.example.com) into IP addresses, resolved through a hierarchy of caches with TTLs. It adds a lookup (~1–100ms when not cached) to first connections, and it is a control surface: changing a DNS answer is how traffic gets steered between regions — at the speed of cache expiry, not instantly.',
+  },
+  tls: {
+    name: 'TLS handshake',
+    def: 'The certificate-and-key exchange that upgrades a TCP connection to encrypted HTTPS. It costs 1–2 extra round trips BEFORE the first byte of your request — 100–200ms for a far-away user. That per-connection tax is why connection reuse (keep-alive, HTTP/2) and terminating TLS at a nearby edge matter so much.',
+  },
+  connpool: {
+    name: 'Connection pool',
+    def: 'A small set of pre-opened database connections that many app threads share, because connections are expensive for the DATABASE (memory and a process/thread each; Postgres degrades past a few hundred). 10,000 concurrent users do not get 10,000 connections — they queue briefly for ~100 pooled ones. When the pool is exhausted, requests wait: the pool is a queue, with all the queue math attached.',
+  },
+  herd: {
+    name: 'Thundering herd',
+    def: 'Thousands of clients acting in perfect sync — reconnecting after a network blip, retrying on the same backoff schedule, or hammering one just-expired cache key. Each client behaves reasonably; the SYNCHRONIZATION is the weapon. Defenses all break the sync: random jitter on retries and TTLs, staggered reconnects, dogpile locks.',
+  },
+  breaker: {
+    name: 'Circuit breaker',
+    def: 'A wrapper that watches calls to a dependency and, after enough failures, OPENS: further calls fail instantly instead of waiting on timeouts. This frees your threads, sheds load off the sick dependency so it can recover, and periodically lets a probe through to test recovery. It converts "one slow service drags down everything" into "one feature degrades".',
+  },
+  bulkhead: {
+    name: 'Bulkhead',
+    def: "Ship-hull thinking for capacity: give each dependency or tenant its own bounded pool (threads, connections, queue slots) so one flooding compartment can't sink the whole vessel. Without bulkheads, a slow payments API quietly consumes every thread and takes checkout, search, and login down with it. Isolation is cheap; shared-everything failure is not.",
+  },
+  bluegreen: {
+    name: 'Blue-green deploy',
+    def: 'Run two identical environments: blue serves traffic while you deploy to green, then flip the router. Rollback is flipping back — seconds, not a re-deploy. The costs: double the hardware during the window, and the databases are shared, so schema changes must stay compatible with BOTH versions. It buys instant, boring rollbacks.',
+  },
+  canary: {
+    name: 'Canary deploy',
+    def: 'Ship the new version to a tiny slice (1–5%) of traffic, watch error rates and latency, then widen or roll back. Named for the coal-mine bird: a small sacrifice detects the poison before everyone breathes it. The catch is representativeness — a 1% canary can miss bugs that only appear at full load or for specific user cohorts.',
+  },
+  cap: {
+    name: 'CAP theorem',
+    def: 'During a network partition, a distributed system must choose: refuse some requests (consistency) or answer with possibly-stale data (availability). Not a buzzword — a proof, and really a statement about geography: partitions WILL happen between regions. The practical question in interviews is per-operation: which requests may be stale, which must never be?',
+  },
+  quorum: {
+    name: 'Quorum',
+    def: 'Requiring a majority (e.g. 2 of 3, 3 of 5) of replicas to acknowledge a write or serve a read, so any two majorities overlap in at least one node that has the latest value. This is HOW systems stay consistent while surviving minority failures — and why replica counts are odd, and why every quorum write costs a round trip to the slowest majority member.',
+  },
+  leader: {
+    name: 'Leader election',
+    def: 'Picking exactly ONE node to accept writes, so ordering has a single source of truth; done with consensus so a network split cannot crown two leaders (split-brain). The subtle cost: during an election — triggered exactly when things are already failing — there is no leader, and writes stall. Systems are designed around how short that gap can be made.',
+  },
+  exactlyonce: {
+    name: 'Exactly-once',
+    def: 'The guarantee everyone asks for and no network can natively give: a message delivered and PROCESSED precisely one time. Real systems fake it honestly — at-least-once delivery plus idempotent processing (dedup by operation ID), so duplicates arrive but have no second effect. When a vendor says exactly-once, look for where the idempotency key lives.',
+  },
+  atleastonce: {
+    name: 'At-least-once',
+    def: 'The workhorse delivery guarantee: keep retrying until acknowledged, so nothing is lost — but the SAME message may arrive twice (the ack, not the message, may be what got lost). The moment you accept at-least-once, duplicates are not a bug but a promise; every consumer must be idempotent. The alternative, at-most-once, trades duplicates for silent loss.',
+  },
+  visibility: {
+    name: 'Visibility timeout',
+    def: "A queue's crash insurance: receiving a message HIDES it (rather than deleting it) for a window while you work. Finish and delete it, and it's gone forever; crash, and the timeout expires and the message reappears for another worker. Set it longer than your slowest processing time — too short and healthy work gets double-processed.",
+  },
+  dlq: {
+    name: 'Dead-letter queue',
+    def: "Where messages go after failing N processing attempts, so one poison message (malformed, or hitting a bug) can't clog the queue being retried forever while healthy work backs up behind it. The DLQ is also your forensic record: it converts 'we kept crashing all night' into 'here are the 14 exact messages that failed — replay them after the fix'.",
+  },
+  hotpartition: {
+    name: 'Hot partition',
+    def: "One shard receiving wildly more traffic than its siblings because many writers compute the SAME partition key — a timestamp bucket, today's date, a viral post's ID. The cluster is huge and mostly idle while one node melts; total capacity means nothing, per-key capacity is what saturates. Defense: salt or compose keys so concurrent writers spread out.",
+  },
+  readyourwrites: {
+    name: 'Read-your-own-writes',
+    def: "The consistency promise users actually notice: after I save, MY next read shows my change — even if strangers can see stale data a moment longer. Replication lag breaks it (write to primary, read from a lagging replica: my comment 'vanished'). Fixes: pin a user's reads to the primary briefly after their write, or route by session.",
+  },
+  replag: {
+    name: 'Replication lag',
+    def: "The delay between a write committing on the primary and appearing on a replica — milliseconds normally, unbounded under load (lag is a queue, and queues explode past the knee). It is the fine print on 'just add replicas': every read from a replica is a read of the recent past. Design question: which reads tolerate that, and which must not?",
+  },
+  cdn: {
+    name: 'CDN',
+    def: 'Servers in hundreds of cities that cache your content near users, because no engineering beats moving the data 2,000 km closer (cross-region RTT is physics). A CDN can absorb most read traffic before it ever reaches your stack — often the single cheapest capacity money can buy. Only helps cacheable responses; personalized and write traffic still travels to you.',
+  },
+  autoscaling: {
+    name: 'Autoscaling',
+    def: 'Rules that add or remove servers based on load signals (CPU, queue depth, request rate). It handles RAMPS beautifully and SPIKES poorly: new instances take minutes to boot and warm up, and a 10-second surge is over before help arrives. That gap is why queues, caches, and headroom still exist in autoscaled systems.',
+  },
+  index: {
+    name: 'Index',
+    def: 'A sorted copy of chosen columns that turns "scan a billion rows" into "walk a tree in a few page reads". The price is paid on the write path: every insert must also update every index, and each index is more storage and more write amplification. Indexes are the canonical read-vs-write trade, one table at a time.',
+  },
+  throughput: {
+    name: 'Throughput vs latency',
+    def: "Throughput is how much per second; latency is how long one request takes. They are different axes and they fight: batching raises throughput while adding waiting, and pushing utilization toward 100% maximizes throughput while queueing destroys latency. Always ask which one the requirement actually names — 'fast' is not a number.",
+  },
+  timeout: {
+    name: 'Timeout',
+    def: "How long you'll wait on a dependency before giving up. No timeout means a slow dependency silently holds your threads until everything upstream is stuck — slowness spreads farther than errors do. Timeouts must shrink as calls go deeper (the caller's budget bounds the callee's), and every timeout needs a decided fallback: retry, degrade, or fail.",
+  },
+  retry: {
+    name: 'Retry (with backoff + jitter)',
+    def: 'The immune system of distributed systems: transient failures are common, so try again — waiting exponentially longer each time, with randomness so thousands of clients do not retry in lockstep (that synchronized wave is a self-inflicted thundering herd). Two rules make retries safe: the operation must be idempotent, and retries must be budgeted so they cannot multiply load during an outage.',
+  },
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY

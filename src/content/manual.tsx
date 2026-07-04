@@ -177,4 +177,150 @@ export const MANUAL: ManualSection[] = [
       </>
     ),
   },
+  {
+    id: 'internet',
+    title: 'How the internet delivers a request',
+    body: (
+      <>
+        <p>Before your code runs a single line, a tap on a phone has already paid four tolls:</p>
+        <div
+          className="mono"
+          style={{ fontSize: 12.5, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 14px', margin: '8px 0' }}
+        >
+          DNS lookup → TCP + TLS handshakes → (CDN edge?) → load balancer → your app
+        </div>
+        <p>
+          <T k="dns">DNS</T> turns the name into an address — cached almost everywhere, but a cold lookup costs real
+          milliseconds. Then TCP plus the <T k="tls">TLS handshake</T> spend 1–2 round trips agreeing on encryption before the
+          first byte moves; for a user far from your servers that is 100–200 ms of pure geography, which is why connections are
+          reused and why a <T k="cdn">CDN</T> terminates them close to the user and serves cached content without ever crossing
+          the ocean.
+        </p>
+        <p>
+          Whatever reaches you goes through the <T k="lb">load balancer</T> to an app server — which talks to the database
+          through a <T k="connpool">connection pool</T>, the quiet queue almost nobody provisions on purpose. Interview
+          instinct: first-visit latency and steady-state <T k="throughput">throughput</T> are different problems with different
+          fixes — edges and handshake reuse for the first, capacity math for the second.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'engines',
+    title: 'Storage engines: B-tree vs LSM',
+    body: (
+      <>
+        <p>
+          Every database first writes intent to a <T k="wal">write-ahead log</T> — a sequential append, the one thing disks do
+          fast — so a crash can be replayed. The engines differ in what they do next:
+        </p>
+        <p>
+          A <T k="btree">B-tree</T> (Postgres, MySQL) keeps data sorted in place: any row is a few page reads away, so reads are
+          fast and predictable — but writes must update pages where they live, paying random I/O. An <T k="lsm">LSM-tree</T>{' '}
+          (Cassandra, RocksDB) refuses to overwrite anything: writes buffer in memory and flush as sorted immutable files merged
+          in the background — writes become pure appends, and reads may consult several files to find the newest version.
+        </p>
+        <div
+          className="mono"
+          style={{ fontSize: 12.5, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 14px', margin: '8px 0' }}
+        >
+          B-tree: read-optimized, write-amplified in place · LSM: write-optimized, read-amplified across files
+        </div>
+        <p style={{ color: C.dim }}>
+          Every <T k="index">index</T> you add is the same trade in miniature: one more sorted copy to speed a read, one more
+          structure every <T k="durable">durable</T> write must update. "Which side of this trade does my workload live on?" is
+          the storage-engine question, and it is answerable from the read/write mix alone.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'replication',
+    title: 'Replication & lag',
+    body: (
+      <>
+        <p>
+          A <T k="replica">replica</T> is a live photocopy: the primary streams every committed change and the copy applies
+          them, seconds or milliseconds behind. That gap is <T k="replag">replication lag</T> — normally tiny, but it is a
+          queue, and under load queues explode. Every read from a replica is a read of the recent past.
+        </p>
+        <p>
+          Users forgive most staleness but notice one kind instantly: posting a comment and watching it vanish. That is the{' '}
+          <T k="readyourwrites">read-your-own-writes</T> anomaly — write lands on the primary, next read hits a lagging replica.
+          Fix it by pinning a user's reads to the primary right after their write, not by making everything strongly{' '}
+          <T k="consistency">consistent</T>.
+        </p>
+        <p>
+          Replicas also buy survival: when the primary dies, <T k="failover">failover</T> promotes one — after a{' '}
+          <T k="leader">leader election</T> in which <T k="consensus">consensus</T> among a <T k="quorum">quorum</T> guarantees
+          the cluster cannot crown two primaries. Elections take seconds, and writes stall while they run. <T k="cap">CAP</T> is
+          this whole section in one sentence: when the network partitions, you either stop answering or answer stale.
+        </p>
+        <p style={{ color: C.dim }}>
+          One more use of the replication stream: <T k="cdc">change data capture</T> taps it to feed search indexes, caches, and
+          warehouses — one source of truth, many eventually-consistent projections.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'partitioning',
+    title: 'Partitioning & keys',
+    body: (
+      <>
+        <p>
+          <T k="shard">Sharding</T> scales writes by splitting data across independent databases — and the partition key decides
+          everything. The store can only spread LOAD as evenly as your keys spread. A key derived from "now" (this hour's
+          bucket) or from popularity (a viral post's ID) funnels every concurrent writer to one node: a{' '}
+          <T k="hotpartition">hot partition</T>, melting while the rest of the expensive cluster idles.
+        </p>
+        <div
+          className="mono"
+          style={{ fontSize: 12.5, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 14px', margin: '8px 0' }}
+        >
+          rule: will many concurrent writers compute the SAME key value? then salt it (key#0..9) and fan-in on read
+        </div>
+        <p>
+          Need to query by something other than the partition key? That is a <T k="gsi">secondary index</T> — a second copy of
+          the table sorted differently, kept in sync at the cost of doubling your writes. And when one event must reach many
+          partitions (a post to a million follower feeds), you are choosing a <T k="fanout">fan-out</T> strategy: pay at write
+          time or pay at read time, priced by your most-followed user.
+        </p>
+        <p style={{ color: C.dim }}>
+          Hot keys have a cache-side twin: one popular key expiring triggers a <T k="stampede">stampede</T> of identical misses.
+          Same lesson as salting, applied to <T k="ttl">TTLs</T>: add jitter so the crowd doesn't move in sync.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'delivery',
+    title: 'Delivery guarantees',
+    body: (
+      <>
+        <p>
+          Networks lose messages, and worse, they lose ACKNOWLEDGMENTS — the work succeeded but the reply vanished, and the
+          sender cannot tell the difference. Out of that one ambiguity falls every delivery guarantee.{' '}
+          <T k="atleastonce">At-least-once</T> retries until acknowledged, so nothing is lost but duplicates are PROMISED.{' '}
+          <T k="exactlyonce">Exactly-once</T> is at-least-once plus <T k="idempotent">idempotent</T> processing — duplicates
+          arrive, but a remembered operation ID makes the second one a no-op.
+        </p>
+        <p>
+          A <T k="queue">queue</T> makes the machinery concrete: the <T k="visibility">visibility timeout</T> hides a message
+          while a worker processes it and resurrects it if the worker crashes; after enough failed attempts the message lands in
+          the <T k="dlq">dead-letter queue</T> instead of clogging the line while a <T k="backlog">backlog</T> grows behind it.
+        </p>
+        <p>
+          The failure-handling trio travels together: a <T k="timeout">timeout</T> decides how long to wait, a{' '}
+          <T k="retry">retry with backoff and jitter</T> decides how to try again without becoming a synchronized{' '}
+          <T k="herd">thundering herd</T>, and when a dependency stays sick, a <T k="breaker">circuit breaker</T> stops calling
+          it while <T k="bulkhead">bulkheads</T> keep its pool from starving everyone else's.
+        </p>
+        <p style={{ color: C.dim }}>
+          At the front door the same idea is <T k="ratelimit">rate limiting</T> and <T k="backpressure">backpressure</T>: decide
+          on purpose where the system says "no" — or overload will decide for you, somewhere worse.
+        </p>
+      </>
+    ),
+  },
 ]

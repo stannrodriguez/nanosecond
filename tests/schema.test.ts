@@ -86,6 +86,33 @@ describe('schema: glossary coverage (law L6)', () => {
   it('component term keys exist', () => {
     for (const c of COMPONENTS) expect(GLOSSARY[c.termKey], c.id).toBeDefined()
   })
+
+  it('glossary has the v1 target of 60 entries', () => {
+    expect(Object.keys(GLOSSARY).length).toBeGreaterThanOrEqual(60)
+  })
+
+  it('no orphan glossary entries: every key is taught somewhere in copy', () => {
+    // Terms whose in-copy teaching lives in On-Call pattern/event cards (plain
+    // strings, not JSX) until those specs land. Keep this list shrinking.
+    const ALLOWED_UNREFERENCED = new Set(['canary', 'bluegreen', 'autoscaling'])
+    const used = new Set<string>()
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name)
+        if (statSync(p).isDirectory()) walk(p)
+        else if (/\.(tsx?|ts)$/.test(name)) {
+          const src = readFileSync(p, 'utf8')
+          for (const m of src.matchAll(/<T(?:erm)?\s+k="([a-zA-Z0-9_-]+)"/g)) used.add(m[1])
+          for (const m of src.matchAll(/termKey:\s*'([a-zA-Z0-9_-]+)'/g)) used.add(m[1])
+        }
+      }
+    }
+    walk(join(__dirname, '../src'))
+    for (const k of Object.keys(GLOSSARY)) {
+      if (ALLOWED_UNREFERENCED.has(k)) continue
+      expect(used.has(k), `glossary entry never taught in copy: ${k}`).toBe(true)
+    }
+  })
 })
 
 describe('schema: drills', () => {

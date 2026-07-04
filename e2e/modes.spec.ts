@@ -76,3 +76,11 @@ test('on-call: map renders and first encounter opens', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Take the traffic' })).toBeVisible()
   await page.screenshot({ path: 'e2e/shots/oncall-encounter.png', fullPage: true })
 })
+
+test('manual: new sections open (delivery guarantees)', async ({ page }) => {
+  await page.goto('/#/manual')
+  await page.getByRole('button', { name: /Delivery guarantees/ }).click()
+  await expect(page.getByText('Networks lose messages', { exact: false })).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-delivery.png', fullPage: true })
+})

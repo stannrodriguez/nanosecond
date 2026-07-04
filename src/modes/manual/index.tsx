@@ -41,7 +41,7 @@ function FieldManual() {
   return (
     <div style={{ maxWidth: 780 }}>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55 }}>
-        Five short briefings — everything the scenarios assume you know. Dotted words are clickable here and everywhere else in
+        Ten short briefings — everything the challenges assume you know. Dotted words are clickable here and everywhere else in
         the game. Read top to bottom once; after that, the scenarios will read like stories instead of jargon.
       </p>
       {MANUAL.map((m) => (

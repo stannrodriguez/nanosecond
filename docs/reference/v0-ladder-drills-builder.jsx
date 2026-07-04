@@ -1,3 +1,7 @@
+/* PORTED (specs 020/040/010) → src/modes/manual (ladder), src/modes/drills,
+   src/modes/builder. The shipped code is the source of truth; do NOT re-read
+   this file to build on those modes. Kept only as voice/feel reference. */
+
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
 /* ============================================================

@@ -117,7 +117,7 @@ Encounters escalate per act: act 1 = capacity, act 2 = capacity + one modifier,
 act 3 = interacting modifiers. Every boss beatable by ≥2 distinct strategies
 (enforced in balance suite).
 
-## 8. Concept registry
+## 9. Concept registry
 `src/content/concepts.ts` — one row per teachable idea; the spine cross-mode
 links hang off. Fields: { id, name, ch (Channel), toyId (toys.ts | null),
 manualId (manual.tsx briefing | null), termKeys[] (glossary.ts), numberIds[]

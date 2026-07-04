@@ -1,3 +1,8 @@
+/* PORTED (spec 010) → src/modes/review/ (Find the Flaw, Predict & Run, Taste
+   Test shells + 4/2/2 seed content). The shipped code is the source of truth;
+   spec 050 needs content-pipeline.md §3-4 and product-spec §3.5, not this
+   file. Kept only as voice/feel reference. */
+
 import React, { useState, useEffect, useRef } from "react";
 
 /* ============================================================

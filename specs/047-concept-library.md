@@ -33,3 +33,21 @@ full catalog: `docs/content-pipeline.md` §7; product intent: `product-spec.md` 
       derivation
 - [ ] Balance suite untouched and green; screenshots of all three shelves reviewed
       per autonomy rule 3
+
+## Context (read this, not the whole repo)
+- **Read**: `docs/content-pipeline.md` §7 (the template + full 27-section
+  catalog — it's the spec's source of truth) and product-spec §3.2. The
+  current manual lives in `src/content/manual.tsx` (10 sections) +
+  `src/modes/manual/index.tsx`; `docs/reference/` is ported — don't re-read it.
+- **Touch**: `src/content/manual.tsx` (add `shelf`/`viz`/`related`/`feltIn`),
+  `src/modes/manual/` (shelf nav), viz components (new, colocated with the
+  mode or `src/ui/`), `src/content/concepts.ts` (manualId values must track
+  any section-id changes — `tests/concepts.test.ts` will catch drift),
+  `tests/schema.test.ts` (viz + simplifies enforcement), e2e + baseline shots.
+- **Routing (ADR 0004)**: sections are already addressable at
+  `/manual/briefings/:sectionId` and the Lab's "keep the loop" row links
+  there. If shelves change the path shape (e.g. `/manual/:shelf/:sectionId`),
+  keep old section URLs redirecting — links to them exist in shipped UI.
+- **Scale warning**: 27 sections ≈ tripling `manual.tsx`; consider splitting
+  content per shelf (`manual/concepts.tsx`, …) in the same change so future
+  authoring reads one shelf, not the whole library.

@@ -7,7 +7,8 @@ up. The map of this repo:
 - `docs/architecture.md` — stack, repo layout, simulation math, balance suite, theme
 - `docs/content-pipeline.md` — content templates (contracts) + authoring recipes
 - `docs/decisions/` — ADRs; add one before any hard-to-reverse choice
-- `docs/reference/` — five working prototypes; source of truth for look, feel, voice
+- `docs/reference/` — five prototypes, now PORTED (see each file's header); voice/feel
+  reference only — the shipped code in `src/` is the source of truth
 - `specs/` — the ordered work queue; `specs/README.md` is the index
 - `tests/` — the verification layer; `scripts/verify.sh` runs everything
 - `.claude/commands/` — /milestone, /author-content, /playtest, /status
@@ -20,9 +21,11 @@ until verify.sh is green.**
 ## How to work (autonomy rules)
 1. Take the FIRST spec in `specs/README.md` not marked done. Work only on it.
 2. Before coding, restate its acceptance criteria in your plan.
-3. Build → run `scripts/verify.sh` → LOOK at the Playwright screenshots in
-   `e2e/shots/`. This is a visual game; if a screen looks broken, cramped, or
-   off-palette, fix it before calling the spec done.
+3. Build → run `scripts/verify.sh` → it ends by printing which screenshots
+   changed vs `e2e/baseline/`. LOOK at those (only those). This is a visual
+   game; if a screen looks broken, cramped, or off-palette, fix it before
+   calling the spec done. Intended changes: `node scripts/shots-changed.mjs
+   --update` and commit the new baseline. Unintended changes are regressions.
 4. Check the spec's boxes, flip its row in `specs/README.md`, commit as
    `spec NNN: <summary>`, move on.
 5. Never ask the user a question the docs answer. If the docs are silent AND the
@@ -34,6 +37,16 @@ until verify.sh is green.**
    templates exactly (the content-authoring skill enforces this).
 7. Every simulation change keeps the balance suite green — those tests encode
    "the game teaches true things" and are load-bearing.
+
+## Token discipline (context is a budget)
+- Start from the spec's **Context** block; read only what it lists. Grep before
+  you Read; read slices, not whole files.
+- Content files are append-only with schema tests as the contract: read the
+  interface + one entry as your example, then append.
+- While iterating, run the ONE test file that covers your change; full
+  `verify.sh` once at the end.
+- View only the screenshots `shots-changed.mjs` flags — except during
+  /playtest, which deliberately reviews all of them.
 
 ## Quality bar
 - **Explanations + visualizations are the product's center of gravity** (playtest-

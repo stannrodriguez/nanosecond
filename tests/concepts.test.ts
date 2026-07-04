@@ -1,4 +1,4 @@
-// Concept registry integrity (spec 042, docs/content-pipeline.md §8).
+// Concept registry integrity (spec 042, docs/content-pipeline.md §9).
 // The registry is the spine cross-mode links hang off; a dangling reference
 // here means a dead link in the UI, so every reference must resolve.
 

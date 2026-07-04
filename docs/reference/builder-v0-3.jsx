@@ -1,3 +1,7 @@
+/* PORTED (specs 010/020) → src/modes/builder + src/content/scenarios.tsx and
+   the manual briefings. The shipped code is the source of truth; do NOT
+   re-read this file to build on the Builder. Kept only as voice/feel reference. */
+
 import React, { useState, useEffect, useRef, createContext, useContext } from "react";
 
 /* ============================================================

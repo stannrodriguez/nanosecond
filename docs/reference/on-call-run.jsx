@@ -1,3 +1,8 @@
+/* PORTED (spec 010) → src/modes/oncall/ + src/content/oncall.ts (map,
+   encounters, tick runner). The shipped code is the source of truth; spec 060
+   needs product-spec §3.7 and content-pipeline §7, not this file. Kept only
+   as voice/feel reference. */
+
 import React, { useState, useEffect, useRef } from "react";
 
 /* ============================================================

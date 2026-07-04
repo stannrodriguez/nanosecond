@@ -6,7 +6,7 @@ AND scripts/verify.sh is green AND the screenshots look right. Numbered with gap
 
 | # | Spec | Status |
 |---|------|--------|
-| 000 | scaffold | ☐ |
+| 000 | scaffold | ✅ |
 | 010 | port-prototypes | ☐ |
 | 020 | glossary-field-manual | ☐ |
 | 030 | intuition-lab | ☐ |

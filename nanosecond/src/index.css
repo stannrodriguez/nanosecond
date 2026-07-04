@@ -1,0 +1,89 @@
+/* Global floor: fonts, reset, focus visibility, range inputs, reduced motion.
+   Everything else is inline styles + src/theme.ts tokens. */
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0f1930;
+  color: #e9eef8;
+  font-family: 'Space Grotesk', sans-serif;
+  min-width: 380px;
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+::selection {
+  background: #53dcec44;
+}
+
+/* Accessibility floor: visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid #53dcec;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button {
+  font-family: inherit;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 100%;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #283a5c;
+  border-radius: 2px;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 22px;
+  width: 10px;
+  border-radius: 3px;
+  background: #53dcec;
+  margin-top: -9px;
+  box-shadow: 0 0 10px #53dcec88;
+  cursor: pointer;
+}
+input[type='range']::-moz-range-track {
+  height: 4px;
+  background: #283a5c;
+  border-radius: 2px;
+}
+input[type='range']::-moz-range-thumb {
+  height: 22px;
+  width: 10px;
+  border: none;
+  border-radius: 3px;
+  background: #53dcec;
+  cursor: pointer;
+}
+
+@keyframes ns-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

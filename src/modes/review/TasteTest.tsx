@@ -3,9 +3,11 @@ import { C } from '../../theme'
 import { Button } from '../../ui/kit'
 import { TASTES } from '../../content/tastes'
 import { useScars } from '../../state/scars'
+import { useJudgment } from '../../state/judgment'
 
 export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
   const addScar = useScars((s) => s.addScar)
+  const record = useJudgment((s) => s.record)
   const [qi, setQi] = useState(0)
   const [pick, setPick] = useState<'a' | 'b' | null>(null)
   const [why, setWhy] = useState<number | null>(null)
@@ -14,7 +16,9 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
 
   const submit = () => {
     setDone(true)
-    onScore((pick === q.ans ? 50 : 0) + (q.whys[why!].ok ? 50 : 0))
+    const pts = (pick === q.ans ? 50 : 0) + (q.whys[why!].ok ? 50 : 0)
+    onScore(pts)
+    record('taste', pts, 100)
     if (pick !== q.ans)
       addScar({
         mode: 'taste',

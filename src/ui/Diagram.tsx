@@ -25,6 +25,7 @@ export function Diagram({
   flaw,
   revealed,
   locked,
+  fine = false,
 }: {
   nodes: DiagNode[]
   edges: DiagEdge[]
@@ -33,6 +34,8 @@ export function Diagram({
   flaw: string
   revealed: boolean
   locked: boolean
+  /** "actually fine" puzzle: no node is the villain, so the reveal marks none */
+  fine?: boolean
 }) {
   const W = 660
   const H = 250
@@ -69,7 +72,7 @@ export function Diagram({
       })}
       {nodes.map((n) => {
         const isPicked = picked === n.id
-        const isFlaw = revealed && flaw === n.id
+        const isFlaw = revealed && !fine && flaw === n.id
         const stroke = isFlaw ? C.alert : isPicked ? C.net : n.chip ? C.compute + '88' : C.line
         return (
           <g key={n.id} onClick={() => !locked && onPick(n.id)} style={{ cursor: locked ? 'default' : 'pointer' }}>

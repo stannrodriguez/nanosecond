@@ -11,6 +11,7 @@ import { GLOSSARY } from '../../content/glossary'
 import { FinePrint } from '../../ui/FinePrint'
 import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
+import { DailyIncidentCard } from '../review/DailyIncidentCard'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
 import { LeakyBits } from './LeakyBits'
@@ -101,6 +102,7 @@ function LabIndex() {
           {doneCount}/{TOYS.length} mechanisms internalized
         </div>
       </ModeHeader>
+      <DailyIncidentCard />
       {CHANNELS.map((ch) => (
         <section key={ch} style={{ marginBottom: 24 }} aria-label={CH_LABEL[ch]}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>

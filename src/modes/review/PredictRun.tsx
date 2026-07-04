@@ -6,6 +6,7 @@ import { fmtNum } from '../../ui/fmt'
 import { CAP } from '../../engine/capacity'
 import { PREDICT_ROUNDS, type PredictRound } from '../../content/predict'
 import { useScars } from '../../state/scars'
+import { useJudgment } from '../../state/judgment'
 
 const TICKS = 22
 
@@ -33,15 +34,30 @@ export function firstPast80(r: PredictRound): number {
   return rpsAt80.sort((a, b) => a.at - b.at)[0].i
 }
 
+/** Confidence-interval score: reward a bracket that contains the truth AND is
+ *  tight. A mile-wide "can't be wrong" interval is worth little; a miss is 0. */
+export function ciScore(lo: number, hi: number, ans: number): number {
+  const a = Math.min(lo, hi)
+  const b = Math.max(lo, hi)
+  if (ans < a || ans > b || a <= 0) return 0
+  const width = Math.log10(b / a)
+  return width <= 0.3 ? 100 : width <= 0.6 ? 60 : 30
+}
+
 export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
   const addScar = useScars((s) => s.addScar)
+  const record = useJudgment((s) => s.record)
   const [ri, setRi] = useState(0)
   const [q1, setQ1] = useState<number | null>(null)
   const [pos, setPos] = useState(500)
+  const [posLo, setPosLo] = useState(300)
+  const [posHi, setPosHi] = useState(700)
   const [phase, setPhase] = useState<'predict' | 'run' | 'done'>('predict')
   const [t, setT] = useState(0)
   const r = PREDICT_ROUNDS[ri]
   const guess = sliderVal(pos, r.q2.lo, r.q2.hi)
+  const ciLo = Math.min(sliderVal(posLo, r.q2.lo, r.q2.hi), sliderVal(posHi, r.q2.lo, r.q2.hi))
+  const ciHi = Math.max(sliderVal(posLo, r.q2.lo, r.q2.hi), sliderVal(posHi, r.q2.lo, r.q2.hi))
 
   useEffect(() => {
     if (phase !== 'run') return
@@ -57,13 +73,20 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
   const bars = tiersAt(r, rpsNow)
   const firstIdx = firstPast80(r)
   const q1Right = q1 === r.q1.ans
-  const errLog = Math.abs(Math.log10(guess) - Math.log10(r.q2.ans))
-  const q2Pts = errLog <= 0.08 ? 100 : errLog <= 0.2 ? 60 : 0
+  const q2Pts = r.ci
+    ? ciScore(ciLo, ciHi, r.q2.ans)
+    : (() => {
+        const errLog = Math.abs(Math.log10(guess) - Math.log10(r.q2.ans))
+        return errLog <= 0.08 ? 100 : errLog <= 0.2 ? 60 : 0
+      })()
+  const contained = r.q2.ans >= ciLo && r.q2.ans <= ciHi
 
   const lock = () => {
     setT(0)
     setPhase('run')
-    onScore((q1Right ? 100 : 0) + q2Pts)
+    const total = (q1Right ? 100 : 0) + q2Pts
+    onScore(total)
+    record('predict', total, 200)
     if (!q1Right)
       addScar({
         mode: 'predict',
@@ -75,8 +98,8 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
     if (q2Pts === 0)
       addScar({
         mode: 'predict',
-        theme: 'error-onset forecasting',
-        what: `${fmtNum(guess)} req/s`,
+        theme: r.ci ? 'calibration (confidence intervals)' : 'error-onset forecasting',
+        what: r.ci ? `[${fmtNum(ciLo)}, ${fmtNum(ciHi)}]` : `${fmtNum(guess)} req/s`,
         truth: `${fmtNum(r.q2.ans)} req/s`,
         lesson: r.lesson.split('. ')[0] + '.',
       })
@@ -85,6 +108,8 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
     setRi((ri + 1) % PREDICT_ROUNDS.length)
     setQ1(null)
     setPos(500)
+    setPosLo(300)
+    setPosHi(700)
     setPhase('predict')
     setT(0)
   }
@@ -97,7 +122,13 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
         anything.
       </p>
       <Panel style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>{r.name}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>{r.name}</div>
+          <div className="mono" style={{ fontSize: 10.5, color: C.dim }}>
+            round {ri + 1}/{PREDICT_ROUNDS.length}
+            {r.ci && <span style={{ color: C.net }}> · confidence-interval round</span>}
+          </div>
+        </div>
         <div className="mono" style={{ fontSize: 11.5, color: C.dim, marginTop: 6, lineHeight: 1.6 }}>
           STACK · {r.stack}
           <br />
@@ -115,10 +146,27 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
               ))}
             </div>
             <div style={{ marginTop: 18, fontSize: 14, fontWeight: 600 }}>{r.q2.prompt}</div>
-            <div className="mono" style={{ textAlign: 'center', fontSize: 24, fontWeight: 600, color: C.net, margin: '6px 0' }}>
-              {fmtNum(guess)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
-            </div>
-            <input type="range" min={0} max={1000} value={pos} onChange={(e) => setPos(+e.target.value)} aria-label="error onset forecast" />
+            {r.ci ? (
+              <>
+                <div className="mono" style={{ textAlign: 'center', fontSize: 22, fontWeight: 600, color: C.net, margin: '6px 0' }}>
+                  {fmtNum(ciLo)} – {fmtNum(ciHi)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
+                </div>
+                <label className="mono" style={{ fontSize: 10.5, color: C.faint }}>lower bound</label>
+                <input type="range" min={0} max={1000} value={posLo} onChange={(e) => setPosLo(+e.target.value)} aria-label="lower bound" />
+                <label className="mono" style={{ fontSize: 10.5, color: C.faint }}>upper bound</label>
+                <input type="range" min={0} max={1000} value={posHi} onChange={(e) => setPosHi(+e.target.value)} aria-label="upper bound" />
+                <div className="mono" style={{ fontSize: 10.5, color: C.dim, marginTop: 4 }}>
+                  Narrow if you're sure, wide if you're not — but a bracket that misses the truth scores zero.
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mono" style={{ textAlign: 'center', fontSize: 24, fontWeight: 600, color: C.net, margin: '6px 0' }}>
+                  {fmtNum(guess)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
+                </div>
+                <input type="range" min={0} max={1000} value={pos} onChange={(e) => setPos(+e.target.value)} aria-label="error onset forecast" />
+              </>
+            )}
             <Button variant="danger" full disabled={q1 === null} onClick={lock} style={{ marginTop: 16 }}>
               Commit predictions — run it
             </Button>
@@ -142,10 +190,17 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
               {q1Right ? '✓' : '✗'} First past 80%: <b>{r.q1.opts[firstIdx]}</b>{' '}
               {q1Right ? '— you called it' : `(you said ${r.q1.opts[q1!]})`}
             </div>
-            <div className="mono" style={{ fontSize: 13, marginBottom: 10, color: q2Pts >= 60 ? C.ok : C.alert }}>
-              {q2Pts >= 60 ? '✓' : '✗'} Errors begin ≈ <b>{fmtNum(r.q2.ans)}/s</b> — you predicted {fmtNum(guess)}/s{' '}
-              {q2Pts === 100 ? '(dead on)' : q2Pts === 60 ? '(close)' : ''}
-            </div>
+            {r.ci ? (
+              <div className="mono" style={{ fontSize: 13, marginBottom: 10, color: q2Pts >= 60 ? C.ok : C.alert }}>
+                {contained ? '✓' : '✗'} Errors begin ≈ <b>{fmtNum(r.q2.ans)}/s</b> — your bracket {fmtNum(ciLo)}–{fmtNum(ciHi)}{' '}
+                {contained ? (q2Pts === 100 ? 'brackets it, tightly' : 'brackets it, but wide') : 'missed it'} ({q2Pts} pts)
+              </div>
+            ) : (
+              <div className="mono" style={{ fontSize: 13, marginBottom: 10, color: q2Pts >= 60 ? C.ok : C.alert }}>
+                {q2Pts >= 60 ? '✓' : '✗'} Errors begin ≈ <b>{fmtNum(r.q2.ans)}/s</b> — you predicted {fmtNum(guess)}/s{' '}
+                {q2Pts === 100 ? '(dead on)' : q2Pts === 60 ? '(close)' : ''}
+              </div>
+            )}
             <div style={{ fontSize: 13.5, lineHeight: 1.6, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 12px' }}>
               {r.lesson}
             </div>

@@ -94,7 +94,7 @@ function AppShell() {
             <Route path="/manual/:tab?/:sectionId?" element={<Manual />} />
             <Route path="/drills/:tab?" element={<Drills />} />
             <Route path="/builder" element={<Builder />} />
-            <Route path="/review/:tab?" element={<Review />} />
+            <Route path="/review/:tab?/:sub?" element={<Review />} />
             <Route path="/on-call" element={<OnCall />} />
             <Route path="/journal/:tab?" element={<Journal />} />
             <Route path="*" element={<Navigate to="/lab" replace />} />

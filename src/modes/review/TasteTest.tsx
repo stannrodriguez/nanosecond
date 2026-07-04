@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { C } from '../../theme'
 import { TASTES } from '../../content/tastes'
+import { useScars } from '../../state/scars'
 
 export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
+  const addScar = useScars((s) => s.addScar)
   const [qi, setQi] = useState(0)
   const [pick, setPick] = useState<'a' | 'b' | null>(null)
   const [why, setWhy] = useState<number | null>(null)
@@ -12,6 +14,22 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
   const submit = () => {
     setDone(true)
     onScore((pick === q.ans ? 50 : 0) + (q.whys[why!].ok ? 50 : 0))
+    if (pick !== q.ans)
+      addScar({
+        mode: 'taste',
+        theme: 'taste: fit over vibes',
+        what: q[pick!].name,
+        truth: q[q.ans].name,
+        lesson: q.flip.split('. ')[0] + '.',
+      })
+    else if (!q.whys[why!].ok)
+      addScar({
+        mode: 'taste',
+        theme: 'right answer, wrong reason',
+        what: q.whys[why!].t.slice(0, 80),
+        truth: q.whys.find((w) => w.ok)!.t.slice(0, 80),
+        lesson: q.whys[why!].why.split('. ')[0] + '.',
+      })
   }
   const next = () => {
     setQi((qi + 1) % TASTES.length)

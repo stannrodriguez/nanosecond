@@ -4,6 +4,7 @@ import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
 import { CAP } from '../../engine/capacity'
 import { PREDICT_ROUNDS, type PredictRound } from '../../content/predict'
+import { useScars } from '../../state/scars'
 
 const TICKS = 22
 
@@ -32,6 +33,7 @@ export function firstPast80(r: PredictRound): number {
 }
 
 export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
+  const addScar = useScars((s) => s.addScar)
   const [ri, setRi] = useState(0)
   const [q1, setQ1] = useState<number | null>(null)
   const [pos, setPos] = useState(500)
@@ -61,6 +63,22 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
     setT(0)
     setPhase('run')
     onScore((q1Right ? 100 : 0) + q2Pts)
+    if (!q1Right)
+      addScar({
+        mode: 'predict',
+        theme: 'bottleneck arithmetic',
+        what: r.q1.opts[q1!],
+        truth: r.q1.opts[firstIdx],
+        lesson: r.lesson.split('. ')[0] + '.',
+      })
+    if (q2Pts === 0)
+      addScar({
+        mode: 'predict',
+        theme: 'error-onset forecasting',
+        what: `${fmtNum(guess)} req/s`,
+        truth: `${fmtNum(r.q2.ans)} req/s`,
+        lesson: r.lesson.split('. ')[0] + '.',
+      })
   }
   const next = () => {
     setRi((ri + 1) % PREDICT_ROUNDS.length)

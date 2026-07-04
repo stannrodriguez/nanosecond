@@ -7,6 +7,7 @@ import { Term as T } from '../../ui/Term'
 import { fmtNum } from '../../ui/fmt'
 import { simTick, stackCost, type Frame, type StackConfig } from '../../engine/capacity'
 import { SCENARIOS, SCENARIO_TICKS } from '../../content/scenarios'
+import { useScars } from '../../state/scars'
 
 interface Verdict {
   pass: boolean
@@ -17,6 +18,7 @@ interface Verdict {
 const DEFAULT_CFG: StackConfig = { app: 2, cache: 0, hitRate: 0.8, replicas: 0, shards: 1, queue: false, workers: 2 }
 
 export default function Builder() {
+  const addScar = useScars((s) => s.addScar)
   const [scIdx, setScIdx] = useState(0)
   const [stage, setStage] = useState<'brief' | 'build'>('brief')
   const sc = SCENARIOS[scIdx]
@@ -83,6 +85,14 @@ export default function Builder() {
           `Passed with $${sc.budget - cost}/mo to spare. Interview move: name your headroom on purpose — "I'm at ~65% utilization to absorb 1.5× bursts."`,
         )
       setVerdict({ pass: checks.every((c) => c.pass), checks, diagnosis })
+      if (!checks.every((c) => c.pass))
+        addScar({
+          mode: 'builder',
+          theme: sc.name,
+          what: `${cfg.app} app · ${cfg.cache} cache · ${cfg.shards} shard(s) · ${cfg.replicas} repl${cfg.queue ? ` · queue+${cfg.workers}w` : ''} ($${cost})`,
+          truth: checks.filter((c) => !c.pass).map((c) => `${c.name} — ${c.detail}`).join('; '),
+          lesson: diagnosis[0] ?? 'The architecture did not fit the story — re-read the translate table.',
+        })
       return
     }
     const id = setTimeout(() => {

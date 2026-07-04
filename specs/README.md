@@ -11,7 +11,7 @@ AND scripts/verify.sh is green AND the screenshots look right. Numbered with gap
 | 020 | glossary-field-manual | ✅ |
 | 030 | intuition-lab | ✅ |
 | 040 | drills | ✅ |
-| 045 | scar-journal | ☐ |
+| 045 | scar-journal | ✅ |
 | 050 | design-review | ☐ |
 | 055 | interrogation | ☐ |
 | 060 | on-call | ☐ |

@@ -7,6 +7,7 @@ import Drills from './modes/drills'
 import Builder from './modes/builder'
 import Review from './modes/review'
 import OnCall from './modes/oncall'
+import Journal from './modes/journal'
 
 export const MODES = [
   { path: '/lab', label: 'LAB', sub: 'mechanisms, not numbers' },
@@ -15,6 +16,7 @@ export const MODES = [
   { path: '/builder', label: 'BUILDER', sub: 'story → numbers → system' },
   { path: '/review', label: 'REVIEW', sub: 'the judgment gym' },
   { path: '/on-call', label: 'ON-CALL', sub: 'survive to IPO' },
+  { path: '/journal', label: 'JOURNAL', sub: 'misses, distilled' },
 ] as const
 
 export default function App() {
@@ -73,6 +75,7 @@ function AppShell() {
             <Route path="/builder" element={<Builder />} />
             <Route path="/review" element={<Review />} />
             <Route path="/on-call" element={<OnCall />} />
+            <Route path="/journal" element={<Journal />} />
           </Routes>
         </div>
       </main>

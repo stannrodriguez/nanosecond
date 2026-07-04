@@ -5,6 +5,7 @@ import { fmtNum } from '../../ui/fmt'
 import { Term } from '../../ui/Term'
 import { BREAKER_CAP, CAP, simTick, tickDamage, type Frame, type StackConfig } from '../../engine/capacity'
 import { ENCOUNTERS, LAYERS, NODE_META, PATTERNS, RUN, type Encounter, type MapNode } from '../../content/oncall'
+import { useScars } from '../../state/scars'
 
 /* ON-CALL — a roguelike run. HP = error budget, gold = cloud budget,
    relics = real patterns, bosses = real failure modes (law L7). */
@@ -69,6 +70,7 @@ export function oncallTick(cfg: StackConfig, enc: Encounter, t: number, pats: st
 }
 
 export default function OnCall() {
+  const addScar = useScars((s) => s.addScar)
   const [g, setG] = useState<GameState>(freshGame)
   const [tick, setTick] = useState(-1)
   const [frame, setFrame] = useState<Frame | null>(null)
@@ -91,6 +93,14 @@ export default function OnCall() {
       const extraLag = strandedLag > RUN.strandedLagThreshold ? RUN.strandedLagDamage : 0
       const total = dmg + extraLag
       const hp = g.hp - total
+      if (total >= 20 || hp <= 0)
+        addScar({
+          mode: 'oncall',
+          theme: enc.name.replace('ELITE · ', '').replace('BOSS · ', ''),
+          what: `${g.cfg.app} app · ${g.cfg.cache} cache · ${g.cfg.shards} shard(s) · ${g.cfg.replicas} repl${g.cfg.queue ? ` · queue+${g.cfg.workers}w` : ''}`,
+          truth: `−${total} error budget${extraLag ? ' (incl. stranded backlog)' : ''}`,
+          lesson: enc.secret ?? 'The stack had no headroom for this traffic shape — buy capacity or buy time before taking it.',
+        })
       if (hp <= 0) {
         upd({ hp: 0, over: { win: false, why: `${enc.name} burned through your remaining error budget. Users lost faith.` } })
       } else {

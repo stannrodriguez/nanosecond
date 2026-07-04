@@ -3,8 +3,10 @@ import { C } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { Diagram } from '../../ui/Diagram'
 import { PUZZLES } from '../../content/puzzles'
+import { useScars } from '../../state/scars'
 
 export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
+  const { addScar, addSoundbite } = useScars()
   const [pi, setPi] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
   const [phase, setPhase] = useState<'inspect' | 'reveal' | 'done'>('inspect')
@@ -26,6 +28,15 @@ export function FindTheFlaw({ onScore }: { onScore: (n: number) => void }) {
     setFi(0)
     setPhase('reveal')
     onScore(correct ? 100 : 0)
+    addSoundbite(p.line)
+    if (!correct)
+      addScar({
+        mode: 'flaw',
+        theme: p.title,
+        what: p.nodes.find((n) => n.id === picked)?.label ?? 'nothing',
+        truth: p.nodes.find((n) => n.id === p.flaw)?.label ?? '',
+        lesson: p.explain.split('. ')[0] + '.',
+      })
   }
   const next = () => {
     setPi((pi + 1) % PUZZLES.length)

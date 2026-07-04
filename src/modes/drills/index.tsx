@@ -6,6 +6,7 @@ import { fmtNum } from '../../ui/fmt'
 import { DRILLS, DRILL_CATEGORIES, type DrillCategory } from '../../content/drills'
 import { NUMBERS } from '../../content/numbers'
 import { buildSession, useDrillProgress, BOX_INTERVAL_DAYS } from '../../state/drillProgress'
+import { useScars } from '../../state/scars'
 
 // Log-scale slider → value with 2 significant figures.
 export function logSliderVal(pos: number, lo: number, hi: number): number {
@@ -26,6 +27,7 @@ export function gradeGuess(guess: number, ans: number) {
 
 function DrillSession() {
   const { cards, history, record } = useDrillProgress()
+  const addScar = useScars((s) => s.addScar)
   // Queue is built once per session from the Leitner state, then advanced.
   const [sessionStart] = useState(() => Date.now())
   const queue = useMemo(() => buildSession(DRILLS, cards, sessionStart), []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -46,6 +48,14 @@ function DrillSession() {
     setRevealed(true)
     setSessionPts([...sessionPts, grade.pts])
     record(d.id, d.cat, grade.err, grade.pts)
+    if (grade.pts < 75)
+      addScar({
+        mode: 'drills',
+        theme: DRILL_CATEGORIES[d.cat],
+        what: `${fmtNum(guess)} ${d.unit}`,
+        truth: `${fmtNum(d.ans)} ${d.unit}`,
+        lesson: d.derive[2],
+      })
   }
 
   return (

@@ -1,5 +1,6 @@
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { C, FONT } from './theme'
+import { GlossaryProvider } from './ui/Term'
 import Lab from './modes/lab'
 import Manual from './modes/manual'
 import Drills from './modes/drills'
@@ -17,6 +18,14 @@ export const MODES = [
 ] as const
 
 export default function App() {
+  return (
+    <GlossaryProvider>
+      <AppShell />
+    </GlossaryProvider>
+  )
+}
+
+function AppShell() {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
       <header style={{ borderBottom: `1px solid ${C.line}`, padding: '16px 20px 0' }}>

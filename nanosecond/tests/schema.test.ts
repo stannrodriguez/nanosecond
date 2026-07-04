@@ -1,0 +1,152 @@
+// Content schema tests — the contracts from docs/content-pipeline.md.
+
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { NUMBERS } from '../src/content/numbers'
+import { TOYS } from '../src/content/toys'
+import { COMPONENTS } from '../src/content/components'
+import { GLOSSARY } from '../src/content/glossary'
+import { DRILLS } from '../src/content/drills'
+import { PUZZLES } from '../src/content/puzzles'
+import { TASTES } from '../src/content/tastes'
+import { RUNGS } from '../src/content/ladder'
+import { PATTERNS } from '../src/content/oncall'
+
+describe('schema: numbers database', () => {
+  it('every number has a 3-step, non-empty derivation', () => {
+    for (const n of NUMBERS) {
+      expect(n.derivation, n.id).toHaveLength(3)
+      n.derivation.forEach((s) => expect(s.trim().length, n.id).toBeGreaterThan(0))
+      expect(n.boundingPhysics.trim().length, n.id).toBeGreaterThan(0)
+      expect(n.confusions.trim().length, n.id).toBeGreaterThan(0)
+    }
+  })
+
+  it('number ids are unique', () => {
+    const ids = NUMBERS.map((n) => n.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('toy references in numbers point at real toys', () => {
+    const toyIds = new Set(TOYS.map((t) => t.id))
+    for (const n of NUMBERS) if (n.toyId) expect(toyIds.has(n.toyId), `${n.id} → ${n.toyId}`).toBe(true)
+  })
+})
+
+describe('schema: honesty fine print', () => {
+  it('every component has non-empty simplifies', () => {
+    for (const c of COMPONENTS) expect(c.simplifies.trim().length, c.id).toBeGreaterThan(20)
+  })
+  it('every toy has non-empty simplifies', () => {
+    for (const t of TOYS) expect(t.simplifies.trim().length, t.id).toBeGreaterThan(20)
+  })
+})
+
+describe('schema: toys', () => {
+  it('targetNumbers reference existing numbers', () => {
+    const ids = new Set(NUMBERS.map((n) => n.id))
+    for (const t of TOYS) {
+      expect(t.targetNumbers.length, t.id).toBeGreaterThan(0)
+      t.targetNumbers.forEach((id) => expect(ids.has(id), `${t.id} → ${id}`).toBe(true))
+    }
+  })
+  it('forgeUnlocks reference known forgeable components', () => {
+    const forgeable = new Set(['cache', 'queue', 'replicas', 'shards', 'workers', 'cdn'])
+    for (const t of TOYS) if (t.forgeUnlocks) expect(forgeable.has(t.forgeUnlocks), `${t.id} → ${t.forgeUnlocks}`).toBe(true)
+  })
+})
+
+describe('schema: glossary coverage (law L6)', () => {
+  it('every <Term k="..."> key used in src/ exists in the glossary', () => {
+    const used = new Set<string>()
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name)
+        if (statSync(p).isDirectory()) walk(p)
+        else if (/\.(tsx?|ts)$/.test(name)) {
+          const src = readFileSync(p, 'utf8')
+          for (const m of src.matchAll(/<T(?:erm)?\s+k="([a-zA-Z0-9_-]+)"/g)) used.add(m[1])
+          for (const m of src.matchAll(/\bk=\{?'([a-zA-Z0-9_-]+)'\}?\s*>/g)) used.add(m[1])
+        }
+      }
+    }
+    walk(join(__dirname, '../src'))
+    expect(used.size).toBeGreaterThan(10)
+    for (const k of used) expect(GLOSSARY[k], `missing glossary entry: ${k}`).toBeDefined()
+  })
+
+  it('glossary defs are 2+ sentences and non-circular-ish', () => {
+    for (const [k, e] of Object.entries(GLOSSARY)) {
+      expect(e.def.length, k).toBeGreaterThan(80)
+      expect(e.name.trim().length, k).toBeGreaterThan(0)
+    }
+  })
+
+  it('component term keys exist', () => {
+    for (const c of COMPONENTS) expect(GLOSSARY[c.termKey], c.id).toBeDefined()
+  })
+})
+
+describe('schema: drills', () => {
+  it('every drill has a 3-step derivation and valid number refs', () => {
+    const ids = new Set(NUMBERS.map((n) => n.id))
+    for (const d of DRILLS) {
+      expect(d.derive).toHaveLength(3)
+      expect(d.numbersRefs.length, d.q).toBeGreaterThan(0)
+      d.numbersRefs.forEach((id) => expect(ids.has(id), `${d.q} → ${id}`).toBe(true))
+      expect(d.ans).toBeGreaterThan(0)
+      expect(Math.log10(d.ans)).toBeGreaterThanOrEqual(d.loExp)
+      expect(Math.log10(d.ans)).toBeLessThanOrEqual(d.hiExp)
+    }
+  })
+})
+
+describe('schema: flaw puzzles', () => {
+  it('flaw node exists, frames tell a 4-6 beat story, fix + soundbite present', () => {
+    for (const p of PUZZLES) {
+      expect(p.nodes.some((n) => n.id === p.flaw), p.id).toBe(true)
+      expect(p.frames.length, p.id).toBeGreaterThanOrEqual(4)
+      expect(p.frames.length, p.id).toBeLessThanOrEqual(6)
+      expect(p.reqs.trim().length, p.id).toBeGreaterThan(0)
+      expect(p.explain.trim().length, p.id).toBeGreaterThan(40)
+      expect(p.fix.trim().length, p.id).toBeGreaterThan(40)
+      expect(p.line.trim().length, p.id).toBeGreaterThan(20)
+      // every edge references real nodes
+      const nodeIds = new Set(p.nodes.map((n) => n.id))
+      p.edges.forEach((e) => {
+        expect(nodeIds.has(e.a), `${p.id} edge ${e.a}`).toBe(true)
+        expect(nodeIds.has(e.b), `${p.id} edge ${e.b}`).toBe(true)
+      })
+    }
+  })
+})
+
+describe('schema: taste tests (law L5)', () => {
+  it('exactly one ok justification, and a mandatory Tables Turn', () => {
+    for (const t of TASTES) {
+      expect(t.whys.filter((w) => w.ok).length, t.prompt).toBe(1)
+      expect(t.whys.length, t.prompt).toBe(4)
+      expect(t.flip.trim().length, t.prompt).toBeGreaterThan(40)
+      expect(/\d/.test(t.prompt), `prompt needs numbers: ${t.prompt}`).toBe(true)
+    }
+  })
+})
+
+describe('schema: ladder and patterns', () => {
+  it('rungs reference real numbers and carry physics + why-it-matters', () => {
+    const ids = new Set(NUMBERS.map((n) => n.id))
+    for (const r of RUNGS) {
+      expect(ids.has(r.numberId), r.name).toBe(true)
+      expect(r.physics.length, r.name).toBeGreaterThanOrEqual(2)
+      expect(r.matters.trim().length, r.name).toBeGreaterThan(20)
+    }
+  })
+
+  it('every pattern has a real-world explanation (law L7)', () => {
+    for (const p of Object.values(PATTERNS)) {
+      expect(p.irl.trim().length, p.key).toBeGreaterThan(40)
+      expect(p.fx.trim().length, p.key).toBeGreaterThan(10)
+    }
+  })
+})

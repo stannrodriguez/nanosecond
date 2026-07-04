@@ -1,0 +1,10 @@
+# Netlify deploy config for Nanosecond (static Vite SPA).
+# The app uses HashRouter, so routes live in the URL hash — no SPA
+# fallback redirect is required. Add one only if you migrate to BrowserRouter.
+
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

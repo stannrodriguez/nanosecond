@@ -7,11 +7,18 @@ import { FindTheFlaw } from './FindTheFlaw'
 import { PredictRun } from './PredictRun'
 import { TasteTest } from './TasteTest'
 import { DailyIncident } from './DailyIncident'
+import { Interrogate } from './Interrogate'
 import { PUZZLES } from '../../content/puzzles'
+import { INTERROGATIONS } from '../../content/interrogations'
 import { useJudgment, aggregateScore, weakestCategory, accuracy, totalAttempts, JUDG_LABEL } from '../../state/judgment'
 
-const TABS = ['daily', 'flaw', 'predict', 'taste'] as const
+const TABS = ['daily', 'flaw', 'predict', 'taste', 'interrogate'] as const
 type ReviewTab = (typeof TABS)[number]
+// Tabs whose sub-segment is a content id (ADR 0004); everything else drops it.
+const SUB_TABS: Record<string, (id: string) => boolean> = {
+  flaw: (id) => PUZZLES.some((p) => p.id === id),
+  interrogate: (id) => INTERROGATIONS.some((q) => q.id === id),
+}
 
 export default function Review() {
   const { tab, sub } = useParams()
@@ -19,10 +26,10 @@ export default function Review() {
   const [score, setScore] = useState(0)
   const add = (n: number) => setScore((s) => s + n)
   if (!TABS.includes(tab as ReviewTab)) return <Navigate to="/review/flaw" replace />
-  // Unknown puzzle id under the flaw tab degrades to the tab index (ADR 0004).
-  if (tab === 'flaw' && sub && !PUZZLES.some((p) => p.id === sub)) return <Navigate to="/review/flaw" replace />
-  // Sub-segments only make sense on the flaw tab.
-  if (tab !== 'flaw' && sub) return <Navigate to={`/review/${tab}`} replace />
+  // A sub-segment only makes sense on id-bearing tabs, and must be a known id
+  // (unknown ids degrade to the tab index — ADR 0004).
+  if (sub && !(tab! in SUB_TABS)) return <Navigate to={`/review/${tab}`} replace />
+  if (sub && tab! in SUB_TABS && !SUB_TABS[tab!](sub)) return <Navigate to={`/review/${tab}`} replace />
   return (
     <div style={{ maxWidth: 820 }}>
       <ModeHeader title="DESIGN REVIEW" thesis={`the judgment gym · session score ${score}`}>
@@ -32,6 +39,7 @@ export default function Review() {
             { id: 'flaw', label: '02 · FIND THE FLAW', sub: 'smell the bug before traffic does' },
             { id: 'predict', label: '03 · PREDICT & RUN', sub: 'commit, then face the sim' },
             { id: 'taste', label: '04 · TASTE TEST', sub: 'right answer, right reason' },
+            { id: 'interrogate', label: '05 · INTERROGATION', sub: 'extract the requirements' },
           ]}
           active={tab!}
           onPick={(id) => navigate(`/review/${id}`)}
@@ -42,6 +50,7 @@ export default function Review() {
       {tab === 'flaw' && <FindTheFlaw key={sub ?? '_first'} puzzleId={sub} onScore={add} />}
       {tab === 'predict' && <PredictRun onScore={add} />}
       {tab === 'taste' && <TasteTest onScore={add} />}
+      {tab === 'interrogate' && <Interrogate key={sub ?? '_first'} id={sub} onScore={add} />}
     </div>
   )
 }

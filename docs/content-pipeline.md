@@ -127,3 +127,24 @@ stable and URL-safe (they may appear in links); one concept per toy, matching
 the toy's channel; ≥1 term, ≥1 number, and ≥1 reachable drill per concept
 (enforced by tests/concepts.test.ts). When authoring a new toy, add its
 concept row in the same change.
+
+## 10. Interrogation template + the RECIPE (law L8)
+`src/content/interrogations.ts` — a vague stakeholder pitch the player extracts
+requirements from. Fields: { id, title, stakeholderPitch, budget (interview-
+minutes, display only — NOT a wall-clock timer), questions[{ text, cost (0.5–1.5),
+reveals (the stakeholder's answer), crucial, value (1..5 information value),
+changes (what this answer would have changed) }], trapForUnasked { headline,
+body, lesson }, requirementsMatrix[{ req, fromQ (index into questions, or -1) }] }.
+The RECIPE: (1) pick a deceptively-simple ask ("add search", "add notifications")
+that hides a fork in the architecture; (2) write ~10 questions of **mixed** value —
+include 1–2 low-value distractors (cost 0.5, value 1: brand colors, vendor picks)
+that burn budget for nothing; (3) exactly ONE question is `crucial: true` and must
+be the highest-value one — it's the fork the trap turns on; (4) the sum of all
+costs must EXCEED the budget so the player can't ask everything (forced
+prioritization); (5) `trapForUnasked` is the mid-build incident that fires when
+the crucial question went unasked — concrete, dated, a real production failure,
+ending in a one-line interview-usable lesson; (6) every `changes` names the
+architectural consequence ("forces resumable direct-to-storage uploads"), never a
+vibe. Rules (enforced in tests/schema.test.ts): 6 interrogations, unique URL-safe
+ids; exactly one crucial per set; the crucial question crystallizes ≥1 requirement;
+misses log a Scar (mode `interrogation`) with the trap's lesson.

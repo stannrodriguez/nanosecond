@@ -15,7 +15,7 @@ AND scripts/verify.sh is green AND the screenshots look right. Numbered with gap
 | 045 | scar-journal | ✅ |
 | 047 | concept-library | ✅ |
 | 050 | design-review | ✅ |
-| 055 | interrogation | ☐ |
+| 055 | interrogation | ✅ |
 | 060 | on-call | ☐ |
 | 070 | forge | ☐ |
 | 080 | polish | ☐ |

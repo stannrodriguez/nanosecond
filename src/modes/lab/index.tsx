@@ -1,9 +1,10 @@
-import type { ComponentType } from 'react'
+import { useState, type ComponentType } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ModeHeader } from '../../ui/ModeHeader'
 import { Eyebrow } from '../../ui/kit'
 import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
+import { BRIEFINGS } from '../../content/briefings'
 import { COMPONENTS } from '../../content/components'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
 import { MANUAL } from '../../content/manual'
@@ -102,6 +103,12 @@ function LabIndex() {
           {doneCount}/{TOYS.length} mechanisms internalized
         </div>
       </ModeHeader>
+      <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6, margin: '2px 0 16px', maxWidth: 760 }}>
+        Twelve toy mechanisms, four physical walls. Each toy hands you one variable to drag until one number stops being trivia
+        and starts being physics. New to one? Skim its <b style={{ color: C.text }}>field briefing</b> first — what the
+        mechanism is, where you'll meet it in real systems, and the words to know. Dotted words like{' '}
+        <T k="p99">p99</T> open the glossary, here and everywhere.
+      </p>
       <DailyIncidentCard />
       {CHANNELS.map((ch) => (
         <section key={ch} style={{ marginBottom: 24 }} aria-label={CH_LABEL[ch]}>
@@ -152,6 +159,87 @@ function PrevNext({ toy }: { toy: ToyEntry }) {
   )
 }
 
+// Law L2 (brief before test) in the Lab: the background layer above each sim.
+// Open by default on an unplayed toy; collapses to one line once it's done so
+// replays stay sim-first. Content contract: content/briefings.tsx.
+function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
+  const briefing = BRIEFINGS[toy.id]
+  const concept = conceptForToy(toy.id)
+  const [open, setOpen] = useState(!done)
+  if (!briefing) return null
+  const col = CH_COLOR[toy.ch]
+  return (
+    <section
+      aria-label="Field briefing"
+      style={{
+        background: C.panel,
+        border: `1px solid ${col}44`,
+        borderRadius: 10,
+        padding: '10px 14px 12px',
+        margin: '10px 0 4px',
+      }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="mono"
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          width: '100%',
+          textAlign: 'left',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ color: col, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5 }}>
+          {open ? '▾' : '▸'} FIELD BRIEFING
+        </span>
+        <span style={{ color: C.faint, fontSize: 10.5 }}>
+          {open ? 'the background before you touch it' : "what this is · where you'll meet it · words to know"}
+        </span>
+      </button>
+      {open && (
+        <>
+          <div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text, marginTop: 8 }}>{briefing.setting}</div>
+          <Eyebrow color={C.dim} style={{ marginTop: 12 }}>
+            WHERE YOU'LL MEET IT
+          </Eyebrow>
+          <div style={{ marginTop: 2 }}>
+            {briefing.meetIt.map((m) => (
+              <div key={m.name} style={{ fontSize: 12.5, lineHeight: 1.55, color: C.dim, marginTop: 4 }}>
+                <span className="mono" style={{ color: C.text, fontWeight: 600, fontSize: 12 }}>
+                  {m.name}
+                </span>{' '}
+                — {m.how}
+              </div>
+            ))}
+          </div>
+          {concept && concept.termKeys.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+              <Eyebrow color={C.dim}>WORDS TO KNOW</Eyebrow>
+              <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 12.5 }}>
+                {concept.termKeys.map((k) => (
+                  <T key={k} k={k}>
+                    {GLOSSARY[k].name}
+                  </T>
+                ))}
+              </span>
+              <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
+                tap any dotted word for a plain-language definition
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
 function ToyDetail({ toy }: { toy: ToyEntry }) {
   const { toysCompleted, completeToy } = useProgress()
   const Comp = TOY_COMPONENTS[toy.id]
@@ -183,6 +271,7 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
         </div>
       </ModeHeader>
       <p style={{ color: C.text, fontSize: 14.5, margin: '0 0 6px', fontWeight: 500 }}>{toy.oneLiner}</p>
+      <FieldBriefing key={toy.id} toy={toy} done={done} />
       {done && toy.forgeUnlocks && (
         <span
           className="mono"
@@ -227,13 +316,11 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
           <Link to="/drills/session" style={{ color: C.dim }}>
             {drillCount} drills use these numbers
           </Link>
-          <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {concept.termKeys.map((k) => (
-              <T key={k} k={k}>
-                {GLOSSARY[k].name}
-              </T>
-            ))}
-          </span>
+          {MANUAL.filter((m) => (m.related.toys ?? []).includes(toy.id) && m.id !== concept.manualId).map((sec) => (
+            <Link key={sec.id} to={`/manual/briefings/${sec.id}`} style={{ color: C.dim }}>
+              § {sec.title.toLowerCase()}
+            </Link>
+          ))}
         </div>
       )}
     </div>

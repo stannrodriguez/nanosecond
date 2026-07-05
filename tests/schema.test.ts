@@ -2,9 +2,12 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { Fragment, createElement, type ReactNode } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
+import { BRIEFINGS } from '../src/content/briefings'
 import { COMPONENTS } from '../src/content/components'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
@@ -59,6 +62,47 @@ describe('schema: toys', () => {
   })
 })
 
+describe('schema: toy field briefings (law L2, docs/content-pipeline.md §2)', () => {
+  // JSX copy → visible text, so the contract measures what the player reads.
+  const render = (node: ReactNode) => renderToStaticMarkup(createElement(Fragment, null, node))
+  const plain = (node: ReactNode) =>
+    render(node)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  it('every toy has a briefing and every briefing has a toy', () => {
+    const toyIds = new Set(TOYS.map((t) => t.id))
+    for (const t of TOYS) expect(BRIEFINGS[t.id], `missing briefing: ${t.id}`).toBeDefined()
+    for (const id of Object.keys(BRIEFINGS)) expect(toyIds.has(id), `briefing without a toy: ${id}`).toBe(true)
+  })
+
+  it('setting is a short, term-dotted preamble — never a wall of text', () => {
+    for (const [id, b] of Object.entries(BRIEFINGS)) {
+      const text = plain(b.setting)
+      expect(text.length, `${id} setting too thin`).toBeGreaterThan(150)
+      expect(text.length, `${id} setting is a wall of text`).toBeLessThan(700)
+      // <Term> renders a button — at least one tappable term per setting (law L6)
+      expect(render(b.setting).includes('<button'), `${id} setting dots no <Term>`).toBe(true)
+    }
+  })
+
+  it('meetIt names 2–4 real technologies, each with a one-clause how', () => {
+    for (const [id, b] of Object.entries(BRIEFINGS)) {
+      expect(b.meetIt.length, id).toBeGreaterThanOrEqual(2)
+      expect(b.meetIt.length, id).toBeLessThanOrEqual(4)
+      const names = b.meetIt.map((m) => m.name)
+      expect(new Set(names).size, `${id} duplicate meetIt names`).toBe(names.length)
+      for (const m of b.meetIt) {
+        expect(m.name.trim().length, id).toBeGreaterThan(1)
+        const how = plain(m.how)
+        expect(how.length, `${id} → ${m.name} how too thin`).toBeGreaterThan(20)
+        expect(how.length, `${id} → ${m.name} how must stay one clause`).toBeLessThan(170)
+      }
+    }
+  })
+})
+
 describe('schema: glossary coverage (law L6)', () => {
   it('every <Term k="..."> key used in src/ exists in the glossary', () => {
     const used = new Set<string>()
@@ -96,7 +140,7 @@ describe('schema: glossary coverage (law L6)', () => {
   it('no orphan glossary entries: every key is taught somewhere in copy', () => {
     // Terms whose in-copy teaching lives in On-Call pattern/event cards (plain
     // strings, not JSX) until those specs land. Keep this list shrinking.
-    const ALLOWED_UNREFERENCED = new Set(['canary', 'bluegreen', 'autoscaling'])
+    const ALLOWED_UNREFERENCED = new Set(['canary', 'bluegreen'])
     const used = new Set<string>()
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {

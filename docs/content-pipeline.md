@@ -12,7 +12,9 @@ practical consequence. Never circular, never assumes another undefined term.
 A toy makes ONE number impossible to forget by letting the player operate the mechanism.
 Fields: { id, name, oneLiner, targetNumbers[], sim (rAF component), controls,
 punchline (3–5 sentences: mechanism → number → why the whole industry bends around it),
-forgeUnlocks (component id | null) }.
+forgeUnlocks (component id | null), click (the exit criterion: the recognizable mental
+event the toy exists to cause — always phrased "It's clicked when …", concrete enough
+that the player can test themselves against it) }.
 Quality bar: playable in <10s, one clear manipulable variable, counters show real-world
 extrapolated rates, punchline names at least one famous technology this explains.
 
@@ -25,6 +27,14 @@ glossary chips and Library cross-links derive from the concept registry (§9) �
 author a second list. Quality bar: setting stays under ~700 rendered characters (a
 wall of text is a bug) and dots ≥1 term; the panel collapses to one line once the toy
 is done so replays stay sim-first.
+
+The Lab map (`content/journey.tsx`, the advance organizer): ONE concrete story — you
+tap "Post" on a comment — told as stations the request passes through. Station fields:
+{ id, name, ch (Channel), tagline (JSX, 1–2 plain sentences, jargon dotted), toyIds[],
+manualId (Concept Library primer | null) }. Rules (tests/schema.test.ts): every toy
+lives at EXACTLY ONE station; the station order tells the journey end to end. The map
+renders at the top of the Lab index; each toy's field briefing shows its "YOU ARE
+HERE" position and its `click`. New toy? Assign its station in the same change.
 
 Catalog (v1 = rows 1–12):
 1. Race Light — latency ladder vs speed of light (built)

@@ -1,0 +1,132 @@
+// The Lab map (docs/content-pipeline.md §2): one concrete story — you tap
+// "Post" on a comment — told as stations a request passes through. Every Lab
+// toy lives at EXACTLY ONE station (tests/schema.test.ts enforces coverage),
+// so the toy grid reads as places on a journey, not a pile of mechanisms.
+// JSX is copy + <Term> links only. `manualId` points at the Concept Library
+// primer for players who want the vocabulary before the toy.
+
+import type { ReactNode } from 'react'
+import type { Channel } from '../theme'
+import { Term as T } from '../ui/Term'
+
+export interface JourneyStation {
+  id: string
+  name: string
+  ch: Channel
+  /** what happens to the request here, plain language, 1–2 sentences */
+  tagline: ReactNode
+  /** ids into content/toys.ts — the toys that prove this station's physics */
+  toyIds: string[]
+  /** Concept Library primer (manual section id), or null */
+  manualId: string | null
+}
+
+export const STATIONS: JourneyStation[] = [
+  {
+    id: 'wire',
+    name: 'THE WIRE',
+    ch: 'net',
+    tagline: (
+      <>
+        Your tap becomes a <T k="request">request</T> and crosses the internet. Distance is the first cost — nothing you will
+        ever build beats the speed of light.
+      </>
+    ),
+    toyIds: ['light'],
+    manualId: 'networking',
+  },
+  {
+    id: 'door',
+    name: 'THE FRONT DOOR',
+    ch: 'compute',
+    tagline: (
+      <>
+        A <T k="lb">load balancer</T> hands your request to an app server. Every server — every one — is secretly a waiting
+        line with a breaking point well before 100%.
+      </>
+    ),
+    toyIds: ['queue'],
+    manualId: 'load-balancer',
+  },
+  {
+    id: 'chip',
+    name: 'INSIDE EVERY CHIP',
+    ch: 'mem',
+    tagline: (
+      <>
+        Meanwhile, physics: every line of code that "runs" here is mostly a CPU waiting on memory — and memory is leaking
+        charge at the end of a wire.
+      </>
+    ),
+    toyIds: ['cachecliff', 'dram'],
+    manualId: null,
+  },
+  {
+    id: 'shortcut',
+    name: 'THE SHORTCUT',
+    ch: 'mem',
+    tagline: (
+      <>
+        Before doing real work, the server asks a <T k="cache">cache</T>: "have we answered this already?" RAM answers
+        instantly, forgets instantly, and expires on a timer.
+      </>
+    ),
+    toyIds: ['stampede'],
+    manualId: 'caching',
+  },
+  {
+    id: 'vault',
+    name: "THE DATABASE'S DOOR",
+    ch: 'storage',
+    tagline: (
+      <>
+        Your comment is a <T k="write">write</T>: it must become bytes on a disk that survive a crash. There's a line at the
+        door, an engine deciding where the bytes land, and moving metal at the very bottom.
+      </>
+    ),
+    toyIds: ['connpool', 'lsmbtree', 'disk'],
+    manualId: 'relational-db',
+  },
+  {
+    id: 'copies',
+    name: 'THE COPIES',
+    ch: 'storage',
+    tagline: (
+      <>
+        One box isn't enough, so the data is copied — <T k="replica">replicas</T>, each living slightly in the past — and
+        split — <T k="shard">shards</T>, hopefully evenly. Both bargains have fine print.
+      </>
+    ),
+    toyIds: ['replag', 'hotpartition'],
+    manualId: 'sharding',
+  },
+  {
+    id: 'world',
+    name: 'THE WORLD',
+    ch: 'net',
+    tagline: (
+      <>
+        When data lives in many cities, agreement is bought in round trips, and bytes ride pipes that distance keeps
+        half-empty.
+      </>
+    ),
+    toyIds: ['consensus', 'pipe'],
+    manualId: 'cap',
+  },
+  {
+    id: 'valve',
+    name: 'THE OVERFLOW VALVE',
+    ch: 'net',
+    tagline: (
+      <>
+        Between every pair of stages on this map, the same question waits: when the fast one outruns the slow one, who
+        absorbs the difference? Someone waits, someone is told no, or someone pays in memory.
+      </>
+    ),
+    toyIds: ['backpressure'],
+    manualId: 'long-running-tasks',
+  },
+]
+
+export const stationForToy = (toyId: string): JourneyStation | undefined =>
+  STATIONS.find((s) => s.toyIds.includes(toyId))

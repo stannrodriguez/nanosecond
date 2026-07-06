@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
 import { BRIEFINGS } from '../src/content/briefings'
+import { STATIONS } from '../src/content/journey'
 import { COMPONENTS } from '../src/content/components'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
@@ -59,6 +60,41 @@ describe('schema: toys', () => {
   it('forgeUnlocks reference known forgeable components', () => {
     const forgeable = new Set(['cache', 'queue', 'replicas', 'shards', 'workers', 'cdn'])
     for (const t of TOYS) if (t.forgeUnlocks) expect(forgeable.has(t.forgeUnlocks), `${t.id} → ${t.forgeUnlocks}`).toBe(true)
+  })
+
+  it('every toy declares its click — the "It\'s clicked when …" exit criterion', () => {
+    for (const t of TOYS) {
+      expect(t.click.startsWith("It's clicked when "), `${t.id} click must open with the shared phrasing`).toBe(true)
+      expect(t.click.length, `${t.id} click too thin to self-test against`).toBeGreaterThan(60)
+    }
+  })
+})
+
+describe('schema: the Lab map (docs/content-pipeline.md §2)', () => {
+  it('station ids are unique and every station has a name, tagline, and ≥1 toy', () => {
+    const ids = STATIONS.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const s of STATIONS) {
+      expect(s.name.trim().length, s.id).toBeGreaterThan(0)
+      expect(s.tagline, `${s.id} needs a tagline`).toBeTruthy()
+      expect(s.toyIds.length, `${s.id} needs ≥1 toy`).toBeGreaterThan(0)
+    }
+  })
+
+  it('every toy lives at exactly one station', () => {
+    const seen = new Map<string, string>()
+    for (const s of STATIONS)
+      for (const id of s.toyIds) {
+        expect(seen.has(id), `toy ${id} at both ${seen.get(id)} and ${s.id}`).toBe(false)
+        seen.set(id, s.id)
+      }
+    for (const t of TOYS) expect(seen.has(t.id), `toy ${t.id} is on no station of the map`).toBe(true)
+    for (const id of seen.keys()) expect(TOYS.some((t) => t.id === id), `station toy ${id} does not exist`).toBe(true)
+  })
+
+  it('station primers resolve to Concept Library sections', () => {
+    const manualIds = new Set(MANUAL.map((m) => m.id))
+    for (const s of STATIONS) if (s.manualId) expect(manualIds.has(s.manualId), `${s.id} → ${s.manualId}`).toBe(true)
   })
 })
 

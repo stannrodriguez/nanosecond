@@ -183,6 +183,19 @@ test('lab: ttl stampede spikes the DB', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
 })
 
+test('lab: the map walks the request journey and deep-links its toys', async ({ page }) => {
+  await page.goto('/#/lab')
+  // station 1 (THE WIRE) is selected by default with its toy chip
+  await expect(page.getByRole('button', { name: /01 RACE LIGHT/ })).toBeVisible()
+  // pick a later station, follow its toy into the lab
+  await page.getByRole('button', { name: "THE DATABASE'S DOOR" }).click()
+  await page.getByRole('button', { name: /10 CONNECTION POOL/ }).click()
+  await expect(page).toHaveURL(/#\/lab\/connpool$/)
+  // the briefing situates the toy on the same journey and names its click
+  await expect(page.getByText('YOU ARE HERE')).toBeVisible()
+  await expect(page.getByText('THE CLICK')).toBeVisible()
+})
+
 test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {
   await page.goto('/#/lab/cachecliff')
   await expect(page.getByText(/avg access/).first()).toBeVisible()

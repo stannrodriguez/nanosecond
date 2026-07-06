@@ -5,6 +5,7 @@ import { Eyebrow } from '../../ui/kit'
 import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { BRIEFINGS } from '../../content/briefings'
+import { STATIONS, stationForToy } from '../../content/journey'
 import { COMPONENTS } from '../../content/components'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
 import { MANUAL } from '../../content/manual'
@@ -94,6 +95,116 @@ function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: 
   )
 }
 
+// THE MAP: the advance organizer the toy grid needs. One concrete story — you
+// tap "Post" on a comment — told as stations (content/journey.tsx); every toy
+// lives at exactly one. Answers "what whole are these parts of?" BEFORE the
+// player meets the parts. Deterministic (no auto-advance) so it's calm,
+// reduced-motion-safe, and screenshot-stable.
+function JourneyMap({ toysCompleted }: { toysCompleted: Record<string, boolean> }) {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(true)
+  const [stationId, setStationId] = useState(STATIONS[0].id)
+  const station = STATIONS.find((s) => s.id === stationId)!
+  const col = CH_COLOR[station.ch]
+  const primer = station.manualId ? MANUAL.find((m) => m.id === station.manualId) : undefined
+  return (
+    <section
+      aria-label="The map: a request's journey"
+      style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '10px 14px 12px', marginBottom: 18 }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="mono"
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          width: '100%',
+          textAlign: 'left',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ color: C.text, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5 }}>{open ? '▾' : '▸'} THE MAP</span>
+        <span style={{ color: C.faint, fontSize: 10.5 }}>
+          you tap "Post" on a comment — every toy below is one station of that request's journey
+        </span>
+      </button>
+      {open && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
+            {STATIONS.map((s, i) => {
+              const active = s.id === stationId
+              const sCol = CH_COLOR[s.ch]
+              return (
+                <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {i > 0 && <span style={{ color: C.faint, fontSize: 10 }}>→</span>}
+                  <button
+                    onClick={() => setStationId(s.id)}
+                    aria-pressed={active}
+                    className="mono"
+                    style={{
+                      padding: '5px 9px',
+                      borderRadius: 7,
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      letterSpacing: 0.5,
+                      cursor: 'pointer',
+                      background: active ? sCol : 'transparent',
+                      color: active ? C.bg : C.dim,
+                      border: `1px solid ${active ? sCol : C.line}`,
+                    }}
+                  >
+                    {s.name}
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+          <div style={{ borderLeft: `3px solid ${col}`, borderRadius: 2, paddingLeft: 12, marginTop: 12 }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text }}>{station.tagline}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+              <Eyebrow color={col}>PROVED IN THE LAB BY</Eyebrow>
+              {station.toyIds.map((id) => {
+                const t = toyById(id)!
+                return (
+                  <button
+                    key={id}
+                    onClick={() => navigate(`/lab/${id}`)}
+                    className="mono"
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${col}55`,
+                      borderRadius: 7,
+                      color: C.text,
+                      padding: '4px 9px',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {toysCompleted[id] && <span style={{ color: C.ok }}>✓ </span>}
+                    {t.n} {t.name}
+                  </button>
+                )
+              })}
+              {primer && (
+                <Link to={`/manual/briefings/${primer.id}`} className="mono" style={{ color: C.dim, fontSize: 11 }}>
+                  need the vocabulary first? § {primer.title.toLowerCase()}
+                </Link>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
 function LabIndex() {
   const navigate = useNavigate()
   const { toysCompleted } = useProgress()
@@ -112,6 +223,7 @@ function LabIndex() {
         the words to know. Dotted words like <T k="p99">p99</T> open the glossary, here and everywhere.
       </p>
       <DailyIncidentCard />
+      <JourneyMap toysCompleted={toysCompleted} />
       {CHANNELS.map((ch) => (
         <section key={ch} style={{ marginBottom: 24 }} aria-label={CH_LABEL[ch]}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -167,6 +279,8 @@ function PrevNext({ toy }: { toy: ToyEntry }) {
 function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
   const briefing = BRIEFINGS[toy.id]
   const concept = conceptForToy(toy.id)
+  const station = stationForToy(toy.id)
+  const stationIdx = station ? STATIONS.indexOf(station) : -1
   const [open, setOpen] = useState(!done)
   if (!briefing) return null
   const col = CH_COLOR[toy.ch]
@@ -236,6 +350,23 @@ function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
               </span>
             </div>
           )}
+          <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 12, paddingTop: 10 }}>
+            {station && (
+              <div className="mono" style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', fontSize: 10.5 }}>
+                <Eyebrow color={col}>YOU ARE HERE</Eyebrow>
+                <span style={{ color: C.faint }}>
+                  station {stationIdx + 1} of {STATIONS.length} on the request's journey (the map, on the Lab index):{' '}
+                  {stationIdx > 0 && <>… {STATIONS[stationIdx - 1].name} → </>}
+                  <b style={{ color: col }}>{station.name}</b>
+                  {stationIdx < STATIONS.length - 1 && <> → {STATIONS[stationIdx + 1].name} …</>}
+                </span>
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+              <Eyebrow color={C.gold}>THE CLICK</Eyebrow>
+              <span style={{ fontSize: 12.5, lineHeight: 1.55, color: C.text, flex: '1 1 260px' }}>{toy.click}</span>
+            </div>
+          </div>
         </>
       )}
     </section>

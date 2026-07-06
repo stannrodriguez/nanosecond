@@ -1,6 +1,7 @@
 # ADR 0005: The Lab teaches computing — one stack, two verbs
-Date: 2026-07-06 (revised same day while still proposed) · Status: proposed
-(playtester sign-off starts spec 081)
+Date: 2026-07-06 · Status: accepted (playtester-directed; the arc shipped as
+specs 081/082/084/086/088 — the Lab now carries 18 toys, the two-axis map,
+receipts, and forecasts)
 
 ## Context
 Playtesting surfaced, in three rounds of feedback, a goal the app only

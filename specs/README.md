@@ -1,8 +1,9 @@
 # specs/ — the ordered implementation queue
 
-Work strictly top to bottom. A spec is DONE when all its acceptance boxes are checked
-AND scripts/verify.sh is green AND the screenshots look right. Numbered with gaps of
-10 so new specs can be inserted. `/milestone` executes this queue.
+Work strictly top to bottom — TABLE order is the queue; spec numbers are stable ids,
+not positions. A spec is DONE when all its acceptance boxes are checked AND
+scripts/verify.sh is green AND the screenshots look right. `/milestone` executes
+this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080.)
 
 | # | Spec | Status |
 |---|------|--------|
@@ -16,11 +17,12 @@ AND scripts/verify.sh is green AND the screenshots look right. Numbered with gap
 | 047 | concept-library | ✅ |
 | 050 | design-review | ✅ |
 | 055 | interrogation | ✅ |
-| 060 | on-call | ☐ |
-| 070 | forge | ☐ |
-| 080 | polish | ☐ |
+| 081 | lab-stack-map (ADR 0005 arc) | ☐ |
 | 082 | lab-receipts (ADR 0005 arc) | ☐ |
 | 084 | lab-forecast (ADR 0005 arc) | ☐ |
 | 086 | deep-tier-compute (ADR 0005 arc) | ☐ |
 | 088 | deep-tier-memory (ADR 0005 arc) | ☐ |
+| 060 | on-call | ☐ |
+| 070 | forge | ☐ |
+| 080 | polish | ☐ |
 | 090 | backlog (v2 — do NOT build) | — |

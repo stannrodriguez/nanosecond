@@ -49,8 +49,8 @@ Catalog (v1 = rows 1–12):
 10. Connection Pool — 100 conns vs 10k clients; why poolers exist
 11. Backpressure — fast producer, slow consumer, bounded buffer; drop, block, or shed
 12. TTL & Stampede — hot key expires, 10k misses race to the DB → dogpile lock/jitter → forges cache
-Rows 14–17 are the ADR 0005 deep tier (specs 086/088): The Heat Wall, The Branch
-Predictor, The TLB Toll, False Sharing.
+Rows 14–18 are the ADR 0005 deep tier (specs 086/088): The Instruction Loop, The
+Heat Wall, The Branch Predictor, The TLB Toll, False Sharing.
 Backlog (v2): Transistor Switch, NAND Charge Levels, TCP Handshake+Slow Start,
 DNS Resolution, GC Pause, Row vs Column layout, Bloom Filter, Quorum Overlap,
 The Gappy Number Line (floating point), Syscall Toll Booth, ground-truth panels

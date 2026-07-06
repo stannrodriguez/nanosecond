@@ -196,6 +196,15 @@ test('lab: the map walks the request journey and deep-links its toys', async ({ 
   await expect(page.getByText('THE CLICK')).toBeVisible()
 })
 
+test('lab: the receipts surface a number derivation on the toy page', async ({ page }) => {
+  await page.goto('/#/lab/queue')
+  await page.getByRole('button', { name: /THE RECEIPTS/ }).click()
+  // the bounding-physics label proves a derivation expanded
+  await expect(page.getByText('BOUNDED BY').first()).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-receipts.png', fullPage: true })
+})
+
 test('lab: the stack view shows the floors, their promises, and deep-links', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: 'THE STACK', exact: true }).click()

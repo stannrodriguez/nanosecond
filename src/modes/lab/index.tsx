@@ -8,6 +8,7 @@ import { BRIEFINGS } from '../../content/briefings'
 import { STATIONS, stationForToy } from '../../content/journey'
 import { FLOORS, floorForToy } from '../../content/stack'
 import { COMPONENTS } from '../../content/components'
+import { NUMBERS } from '../../content/numbers'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
 import { MANUAL } from '../../content/manual'
 import { GLOSSARY } from '../../content/glossary'
@@ -452,6 +453,72 @@ function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
   )
 }
 
+// Spec 082 — THE RECEIPTS: every number the toy extrapolates already carries a
+// 3-step derivation + bounding physics in numbers.ts; this surfaces it right
+// where the hands are, so a number is never a fact to accept. Collapsed by
+// default so the page stays sim-first (docs/content-pipeline.md §2, law L1).
+function Receipts({ toy }: { toy: ToyEntry }) {
+  const [open, setOpen] = useState(false)
+  const col = CH_COLOR[toy.ch]
+  // dedupe while preserving the toy's declared order
+  const nums = [...new Set(toy.targetNumbers)].map((id) => NUMBERS.find((n) => n.id === id)).filter(Boolean) as typeof NUMBERS
+  if (!nums.length) return null
+  return (
+    <section aria-label="The receipts" style={{ marginTop: 12 }}>
+      <button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="mono"
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: C.dim, fontSize: 11.5, fontWeight: 600, letterSpacing: 0.5 }}
+      >
+        {open ? '▾' : '▸'} THE RECEIPTS — where these {nums.length === 1 ? 'numbers come' : `${nums.length} numbers come`} from
+      </button>
+      {open && (
+        <div style={{ marginTop: 10, display: 'grid', gap: 12 }}>
+          {nums.map((n) => (
+            <div key={n.id} style={{ borderLeft: `2px solid ${col}`, borderRadius: 2, paddingLeft: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: col }}>
+                  {fmtValue(n.value)} {n.unit}
+                </span>
+                <span className="mono" style={{ fontSize: 10.5, color: C.faint, letterSpacing: 0.5 }}>{n.id}</span>
+              </div>
+              <ol style={{ margin: '6px 0 0', paddingLeft: 18, display: 'grid', gap: 3 }}>
+                {n.derivation.map((step, i) => (
+                  <li key={i} style={{ fontSize: 12.5, lineHeight: 1.5, color: C.text }}>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+              <div style={{ fontSize: 12, lineHeight: 1.5, color: C.dim, marginTop: 5 }}>
+                <span className="mono" style={{ color: C.faint, fontSize: 10.5, letterSpacing: 0.5 }}>BOUNDED BY </span>
+                {n.boundingPhysics}
+              </div>
+              {n.confusions && (
+                <div style={{ fontSize: 11.5, lineHeight: 1.5, color: C.dim, marginTop: 4 }}>
+                  <span className="mono" style={{ color: C.faint, fontSize: 10.5, letterSpacing: 0.5 }}>DON'T CONFUSE </span>
+                  {n.confusions}
+                </div>
+              )}
+            </div>
+          ))}
+          <Link to="/manual/ladder" className="mono" style={{ color: C.dim, fontSize: 11 }}>
+            the whole latency ladder, rung by rung →
+          </Link>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// Numbers span 0.3 ns → 70,000,000 ns; render them the way an engineer reads them.
+function fmtValue(v: number): string {
+  if (v < 1) return String(v)
+  if (v >= 1_000_000) return `${(v / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M`
+  if (v >= 1_000) return v.toLocaleString()
+  return String(v)
+}
+
 function ToyDetail({ toy }: { toy: ToyEntry }) {
   const { toysCompleted, completeToy } = useProgress()
   const Comp = TOY_COMPONENTS[toy.id]
@@ -504,6 +571,7 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
       )}
       <Comp onComplete={() => completeToy(toy.id)} />
       <FinePrint text={toy.simplifies} />
+      <Receipts toy={toy} />
       {concept && (
         <div
           className="mono"

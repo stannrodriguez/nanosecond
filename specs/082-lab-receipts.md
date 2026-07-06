@@ -8,19 +8,19 @@ each toy gains **THE RECEIPTS**, a disclosure listing every `targetNumber`
 with its value, derivation chain, and bounding physics. Zero new content —
 pure surfacing of the numbers database the game already trusts.
 
-- [ ] Toy detail pages render a "THE RECEIPTS — where these numbers come from"
+- [x] Toy detail pages render a "THE RECEIPTS — where these numbers come from"
       disclosure (FinePrint-style toggle, collapsed by default so the page
       stays sim-first), placed between the punchline area and KEEP THE LOOP
-- [ ] For each of the toy's `targetNumbers`: name + value + unit, the 3-step
+- [x] For each of the toy's `targetNumbers`: name + value + unit, the 3-step
       derivation (mechanism → math → result), and `boundingPhysics`; entries
       with `simplifies` show it as fine print
-- [ ] Works at 380px (no horizontal overflow), keyboard-toggleable with
+- [x] Works at 380px (no horizontal overflow), keyboard-toggleable with
       visible focus, honest under prefers-reduced-motion (no animation needed)
-- [ ] e2e: open the receipts on one toy, assert a derivation line is visible,
+- [x] e2e: open the receipts on one toy, assert a derivation line is visible,
       screenshot; existing toy screenshots unchanged while collapsed
-- [ ] No content files change; no schema change needed (derivations are
+- [x] No content files change; no schema change needed (derivations are
       already enforced 3-step by `tests/schema.test.ts`)
-- [ ] Balance suite untouched and green; `scripts/verify.sh` green; changed
+- [x] Balance suite untouched and green; `scripts/verify.sh` green; changed
       shots reviewed per autonomy rule 3
 
 ## Context (read this, not the whole repo)

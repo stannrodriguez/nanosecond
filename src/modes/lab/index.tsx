@@ -6,6 +6,7 @@ import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { BRIEFINGS } from '../../content/briefings'
 import { STATIONS, stationForToy } from '../../content/journey'
+import { FLOORS, floorForToy } from '../../content/stack'
 import { COMPONENTS } from '../../content/components'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
 import { MANUAL } from '../../content/manual'
@@ -95,21 +96,46 @@ function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: 
   )
 }
 
-// THE MAP: the advance organizer the toy grid needs. One concrete story — you
-// tap "Post" on a comment — told as stations (content/journey.tsx); every toy
-// lives at exactly one. Answers "what whole are these parts of?" BEFORE the
-// player meets the parts. Deterministic (no auto-advance) so it's calm,
-// reduced-motion-safe, and screenshot-stable.
+// THE MAP: the advance organizer the toy grid needs, in two views (ADR 0005).
+// THE JOURNEY is horizontal — one concrete story (you tap "Post" on a comment)
+// told as stations between machines. THE STACK is vertical — the floors of
+// machines-built-on-machines every station runs on, thin floors stating what
+// they owe. Deterministic (no auto-advance) so it's calm, reduced-motion-safe,
+// and screenshot-stable.
 function JourneyMap({ toysCompleted }: { toysCompleted: Record<string, boolean> }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(true)
+  const [view, setView] = useState<'journey' | 'stack'>('journey')
   const [stationId, setStationId] = useState(STATIONS[0].id)
   const station = STATIONS.find((s) => s.id === stationId)!
   const col = CH_COLOR[station.ch]
   const primer = station.manualId ? MANUAL.find((m) => m.id === station.manualId) : undefined
+  const toyChip = (id: string, color: string) => {
+    const t = toyById(id)!
+    return (
+      <button
+        key={id}
+        onClick={() => navigate(`/lab/${id}`)}
+        className="mono"
+        style={{
+          background: 'none',
+          border: `1px solid ${color}55`,
+          borderRadius: 7,
+          color: C.text,
+          padding: '4px 9px',
+          cursor: 'pointer',
+          fontSize: 11,
+          fontWeight: 600,
+        }}
+      >
+        {toysCompleted[id] && <span style={{ color: C.ok }}>✓ </span>}
+        {t.n} {t.name}
+      </button>
+    )
+  }
   return (
     <section
-      aria-label="The map: a request's journey"
+      aria-label="The map: the journey and the stack"
       style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '10px 14px 12px', marginBottom: 18 }}
     >
       <button
@@ -131,74 +157,114 @@ function JourneyMap({ toysCompleted }: { toysCompleted: Record<string, boolean> 
       >
         <span style={{ color: C.text, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5 }}>{open ? '▾' : '▸'} THE MAP</span>
         <span style={{ color: C.faint, fontSize: 10.5 }}>
-          you tap "Post" on a comment — every toy below is one station of that request's journey
+          one tap of "Post" — its journey across machines, and the stack of machines it runs on
         </span>
       </button>
       {open && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
-            {STATIONS.map((s, i) => {
-              const active = s.id === stationId
-              const sCol = CH_COLOR[s.ch]
-              return (
-                <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {i > 0 && <span style={{ color: C.faint, fontSize: 10 }}>→</span>}
-                  <button
-                    onClick={() => setStationId(s.id)}
-                    aria-pressed={active}
-                    className="mono"
-                    style={{
-                      padding: '5px 9px',
-                      borderRadius: 7,
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      letterSpacing: 0.5,
-                      cursor: 'pointer',
-                      background: active ? sCol : 'transparent',
-                      color: active ? C.bg : C.dim,
-                      border: `1px solid ${active ? sCol : C.line}`,
-                    }}
-                  >
-                    {s.name}
-                  </button>
-                </span>
-              )
-            })}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            {(
+              [
+                ['journey', 'THE JOURNEY'],
+                ['stack', 'THE STACK'],
+              ] as const
+            ).map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+                className="mono"
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 7,
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  cursor: 'pointer',
+                  background: view === v ? C.text : 'transparent',
+                  color: view === v ? C.bg : C.dim,
+                  border: `1px solid ${view === v ? C.text : C.line}`,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
+              {view === 'journey'
+                ? 'where data moves — one request, station by station'
+                : 'what it moves through — machines built out of machines, top floor to bedrock'}
+            </span>
           </div>
-          <div style={{ borderLeft: `3px solid ${col}`, borderRadius: 2, paddingLeft: 12, marginTop: 12 }}>
-            <div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text }}>{station.tagline}</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
-              <Eyebrow color={col}>PROVED IN THE LAB BY</Eyebrow>
-              {station.toyIds.map((id) => {
-                const t = toyById(id)!
-                return (
-                  <button
-                    key={id}
-                    onClick={() => navigate(`/lab/${id}`)}
-                    className="mono"
-                    style={{
-                      background: 'none',
-                      border: `1px solid ${col}55`,
-                      borderRadius: 7,
-                      color: C.text,
-                      padding: '4px 9px',
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {toysCompleted[id] && <span style={{ color: C.ok }}>✓ </span>}
-                    {t.n} {t.name}
-                  </button>
-                )
-              })}
-              {primer && (
-                <Link to={`/manual/briefings/${primer.id}`} className="mono" style={{ color: C.dim, fontSize: 11 }}>
-                  need the vocabulary first? § {primer.title.toLowerCase()}
-                </Link>
-              )}
+          {view === 'journey' && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
+                {STATIONS.map((s, i) => {
+                  const active = s.id === stationId
+                  const sCol = CH_COLOR[s.ch]
+                  return (
+                    <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {i > 0 && <span style={{ color: C.faint, fontSize: 10 }}>→</span>}
+                      <button
+                        onClick={() => setStationId(s.id)}
+                        aria-pressed={active}
+                        className="mono"
+                        style={{
+                          padding: '5px 9px',
+                          borderRadius: 7,
+                          fontSize: 10.5,
+                          fontWeight: 600,
+                          letterSpacing: 0.5,
+                          cursor: 'pointer',
+                          background: active ? sCol : 'transparent',
+                          color: active ? C.bg : C.dim,
+                          border: `1px solid ${active ? sCol : C.line}`,
+                        }}
+                      >
+                        {s.name}
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+              <div style={{ borderLeft: `3px solid ${col}`, borderRadius: 2, paddingLeft: 12, marginTop: 12 }}>
+                <div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text }}>{station.tagline}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+                  <Eyebrow color={col}>PROVED IN THE LAB BY</Eyebrow>
+                  {station.toyIds.map((id) => toyChip(id, col))}
+                  {primer && (
+                    <Link to={`/manual/briefings/${primer.id}`} className="mono" style={{ color: C.dim, fontSize: 11 }}>
+                      need the vocabulary first? § {primer.title.toLowerCase()}
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          {view === 'stack' && (
+            <div>
+              <div className="mono" style={{ fontSize: 10.5, color: C.faint, margin: '10px 0 0' }}>
+                two verbs at every floor — transform data, move data — and moving is the expensive one
+              </div>
+              {FLOORS.map((f, i) => (
+                <div key={f.id} style={{ borderTop: i > 0 ? `1px solid ${C.line}` : 'none', padding: '9px 0 8px', marginTop: i === 0 ? 6 : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: C.text }}>
+                      {f.name}
+                    </span>
+                    <span style={{ fontSize: 12, color: C.dim }}>{f.gist}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {f.toyIds.map((id) => toyChip(id, CH_COLOR[toyById(id)!.ch]))}
+                    {f.promised && (
+                      <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
+                        {f.promised}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </>
       )}
     </section>
@@ -281,6 +347,7 @@ function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
   const concept = conceptForToy(toy.id)
   const station = stationForToy(toy.id)
   const stationIdx = station ? STATIONS.indexOf(station) : -1
+  const floor = floorForToy(toy.id)
   const [open, setOpen] = useState(!done)
   if (!briefing) return null
   const col = CH_COLOR[toy.ch]
@@ -359,6 +426,12 @@ function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
                   {stationIdx > 0 && <>… {STATIONS[stationIdx - 1].name} → </>}
                   <b style={{ color: col }}>{station.name}</b>
                   {stationIdx < STATIONS.length - 1 && <> → {STATIONS[stationIdx + 1].name} …</>}
+                  {floor && (
+                    <>
+                      {' '}
+                      · floor: <b style={{ color: col }}>{floor.name}</b> of the stack
+                    </>
+                  )}
                 </span>
               </div>
             )}
@@ -366,6 +439,12 @@ function FieldBriefing({ toy, done }: { toy: ToyEntry; done: boolean }) {
               <Eyebrow color={C.gold}>THE CLICK</Eyebrow>
               <span style={{ fontSize: 12.5, lineHeight: 1.55, color: C.text, flex: '1 1 260px' }}>{toy.click}</span>
             </div>
+            {briefing.echo && (
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+                <Eyebrow color={C.dim}>THE ECHO</Eyebrow>
+                <span style={{ fontSize: 12, lineHeight: 1.55, color: C.dim, flex: '1 1 260px' }}>{briefing.echo}</span>
+              </div>
+            )}
           </div>
         </>
       )}

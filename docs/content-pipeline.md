@@ -36,6 +36,16 @@ lives at EXACTLY ONE station; the station order tells the journey end to end. Th
 renders at the top of the Lab index; each toy's field briefing shows its "YOU ARE
 HERE" position and its `click`. New toy? Assign its station in the same change.
 
+The stack (`content/stack.tsx`, ADR 0005 / spec 081 — the map's vertical axis):
+floors from THE PLANET down to THE PHYSICS; fields { id, name, gist (the two verbs
+at this floor, one line), toyIds[], promised (spec refs / v2 owed, or null) }.
+Every toy lives on EXACTLY ONE floor — a claim about where its MECHANISM lives,
+not its channel (LSM vs B-tree = one box organizing a disk = THE MACHINE). Thin
+floors state what they owe. Briefings may carry `echo` — the same pattern
+recurring on other floors (caching, queues, batching, Little's law) — authored
+only where the echo is TRUE; ≥6 exist bank-wide (enforced). New toy? Assign its
+floor in the same change.
+
 Catalog (v1 = rows 1–12):
 1. Race Light — latency ladder vs speed of light (built)
 2. The Disk — random vs sequential, 120 IOPS (built)

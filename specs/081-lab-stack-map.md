@@ -9,28 +9,28 @@ get a floor; dark floors show their promises; briefings gain cross-floor
 ECHO lines (the same pattern recurring floors apart — caching, queues,
 batching — which IS the "understand computers" insight).
 
-- [ ] New content type `src/content/stack.tsx`: ordered floors (planet →
+- [x] New content type `src/content/stack.tsx`: ordered floors (planet →
       network → machine → chip → cell → physics), each { id, name, gist
       (the two verbs at this floor, one line), toyIds[], promised (what's
       coming/spec refs/v2, or null) }; `floorForToy` helper
-- [ ] The Lab index map panel gains a JOURNEY / STACK view toggle; stack
+- [x] The Lab index map panel gains a JOURNEY / STACK view toggle; stack
       view lists floors top to bottom with their toy chips (deep-linking,
       ✓ when done) and faint "coming: …" promises — thin floors are shown
       honestly, never hidden
-- [ ] A one-line thesis sits above the floors: two verbs at every floor —
+- [x] A one-line thesis sits above the floors: two verbs at every floor —
       transform data, move data — and moving is the expensive one
-- [ ] Toy briefings' YOU ARE HERE gains the stack coordinate (journey
+- [x] Toy briefings' YOU ARE HERE gains the stack coordinate (journey
       station + floor)
-- [ ] `ToyBriefing` gains optional `echo` — "this same pattern, floors
+- [x] `ToyBriefing` gains optional `echo` — "this same pattern, floors
       apart" — authored for every toy with a TRUE echo (≥6 at launch:
       cache recursion, the universal waiting line, batching, Little's law,
       staleness/coherence, overload); no echo is invented to hit a quota
-- [ ] Schema tests: floor ids unique, every toy on exactly ONE floor,
+- [x] Schema tests: floor ids unique, every toy on exactly ONE floor,
       non-empty gists, echoes render 40–300 chars, ≥6 echoes exist
-- [ ] Contracts documented in `docs/content-pipeline.md` §2
-- [ ] e2e: toggle to STACK, floors + a promise visible, a toy chip
+- [x] Contracts documented in `docs/content-pipeline.md` §2
+- [x] e2e: toggle to STACK, floors + a promise visible, a toy chip
       deep-links; new `lab-stack.png` screenshot; 380px no overflow
-- [ ] Balance suite untouched and green; verify.sh green; changed shots
+- [x] Balance suite untouched and green; verify.sh green; changed shots
       reviewed per autonomy rule 3
 
 ## Context (read this, not the whole repo)

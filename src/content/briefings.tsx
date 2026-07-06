@@ -14,6 +14,12 @@ export interface ToyBriefing {
   setting: ReactNode
   /** where you'll meet it: 2–4 real technologies, each with a one-clause "how" */
   meetIt: { name: string; how: ReactNode }[]
+  /**
+   * spec 081: the same pattern recurring on OTHER floors of the stack —
+   * caching, queues, batching, Little's law. Author only where the echo is
+   * TRUE (≥6 exist bank-wide, enforced); never invent one to fill the field.
+   */
+  echo?: ReactNode
 }
 
 /** Keyed by toy id (src/content/toys.ts); tests/schema.test.ts enforces 1:1 coverage. */
@@ -33,6 +39,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'AWS regions', how: '"which region?" really asks how many milliseconds of light-travel your users will tolerate' },
       { name: 'Redis', how: 'answers from RAM specifically to stay on the short rungs of this ladder' },
     ],
+    echo: 'The ladder is the whole stack read as distances: L1 to DRAM to disk to cross-region — each rung is just the next floor down (or up), at the end of a longer wire.',
   },
   disk: {
     setting: (
@@ -48,6 +55,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL', how: <>commits hit the sequential <T k="wal">write-ahead log</T> first, so the random page work can wait</> },
       { name: 'RocksDB / Cassandra', how: 'LSM engines that batch random writes into sequential flushes (toy 09 races them)' },
     ],
+    echo: "Batching to dodge per-item cost is every floor's move: 64-byte cache lines, 4 KB pages, network packets, replication streams — never move one thing when the trip costs more than the cargo.",
   },
   dram: {
     setting: (
@@ -80,6 +88,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL under load', how: '"CPU at 90% and latency tripled" is this curve, live in production' },
       { name: 'Load balancers', how: <>spreading requests is really buying lower <T k="util">utilization</T> per server</> },
     ],
+    echo: 'Every floor rediscovered the waiting line: instruction buffers in the chip, run queues in the OS, connection pools at the database, Kafka between services — and the knee travels with it.',
   },
   hotpartition: {
     setting: (
@@ -112,6 +121,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL streaming replication', how: <>the primary ships its <T k="wal">WAL</T>; replicas replay it as fast as they can</> },
       { name: 'Rails / Django read–write splitting', how: 'frameworks pin your reads to the primary right after you write — this bug is that common' },
     ],
+    echo: 'Every copy on every floor drifts: CPU caches need coherence protocols for the same reason replicas need care — a copy is always a bet that the original will hold still.',
   },
   pipe: {
     setting: (
@@ -127,6 +137,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'S3 multipart / aria2', how: 'parallel streams are the standard workaround: many windows in flight at once' },
       { name: 'BBR', how: "Google's congestion control estimates the bandwidth-delay product instead of probing for loss" },
     ],
+    echo: "Throughput = in-flight ÷ round-trip is Little's law, and it governs every floor: TCP windows here, outstanding cache misses inside your CPU, replication streams between cities.",
   },
   consensus: {
     setting: (
@@ -190,6 +201,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'Kafka consumer lag', how: <>the buffer made visible — a <T k="backlog">backlog</T> on a dashboard with an alarm attached</> },
       { name: 'Envoy / NGINX rate limits', how: 'choosing to drop a little now rather than everything later' },
     ],
+    echo: 'Overload has the same three answers on every floor: TCP receiver windows block, load shedders drop, unbounded buffers crash — only the names change between floors.',
   },
   stampede: {
     setting: (
@@ -221,5 +233,6 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'Column stores (Parquet, ClickHouse)', how: 'lay each column out contiguously so a scan touches only the bytes it needs, all cache-line-friendly' },
       { name: 'Data-oriented design (game engines)', how: 'struct-of-arrays over array-of-structs so the hot fields pack into the lines the CPU actually loads' },
     ],
+    echo: <>L1 is to DRAM what Redis is to Postgres what a CDN edge is to your origin — the same bet (small, fast, nearby, allowed to forget) placed on three different floors of the stack. Master one <T k="cache">cache</T> and you've met them all.</>,
   },
 }

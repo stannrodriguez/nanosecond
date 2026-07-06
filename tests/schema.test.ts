@@ -9,6 +9,7 @@ import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
 import { BRIEFINGS } from '../src/content/briefings'
 import { STATIONS } from '../src/content/journey'
+import { FLOORS } from '../src/content/stack'
 import { COMPONENTS } from '../src/content/components'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
@@ -95,6 +96,46 @@ describe('schema: the Lab map (docs/content-pipeline.md §2)', () => {
   it('station primers resolve to Concept Library sections', () => {
     const manualIds = new Set(MANUAL.map((m) => m.id))
     for (const s of STATIONS) if (s.manualId) expect(manualIds.has(s.manualId), `${s.id} → ${s.manualId}`).toBe(true)
+  })
+})
+
+describe('schema: the stack (spec 081, ADR 0005)', () => {
+  it('floor ids are unique and every floor has a name + gist', () => {
+    const ids = FLOORS.map((f) => f.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const f of FLOORS) {
+      expect(f.name.trim().length, f.id).toBeGreaterThan(0)
+      expect(f.gist.trim().length, `${f.id} needs a two-verbs gist`).toBeGreaterThan(20)
+      if (f.promised !== null) expect(f.promised.trim().length, `${f.id} promised`).toBeGreaterThan(0)
+    }
+  })
+
+  it('every toy lives on exactly one floor', () => {
+    const seen = new Map<string, string>()
+    for (const f of FLOORS)
+      for (const id of f.toyIds) {
+        expect(seen.has(id), `toy ${id} on both ${seen.get(id)} and ${f.id}`).toBe(false)
+        seen.set(id, f.id)
+      }
+    for (const t of TOYS) expect(seen.has(t.id), `toy ${t.id} is on no floor of the stack`).toBe(true)
+    for (const id of seen.keys()) expect(TOYS.some((t) => t.id === id), `floor toy ${id} does not exist`).toBe(true)
+  })
+
+  it('briefing echoes are short, and enough exist to teach the recursion', () => {
+    const render = (node: unknown) => renderToStaticMarkup(createElement(Fragment, null, node as ReactNode))
+    let count = 0
+    for (const [id, b] of Object.entries(BRIEFINGS)) {
+      if (!b.echo) continue
+      count++
+      const text = render(b.echo)
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      expect(text.length, `${id} echo too thin`).toBeGreaterThan(40)
+      expect(text.length, `${id} echo is a wall of text`).toBeLessThan(300)
+    }
+    // the cross-floor recursion is the point of the stack — keep it taught
+    expect(count, 'need ≥6 true echoes across the bank').toBeGreaterThanOrEqual(6)
   })
 })
 

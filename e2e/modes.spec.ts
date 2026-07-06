@@ -196,6 +196,20 @@ test('lab: the map walks the request journey and deep-links its toys', async ({ 
   await expect(page.getByText('THE CLICK')).toBeVisible()
 })
 
+test('lab: the stack view shows the floors, their promises, and deep-links', async ({ page }) => {
+  await page.goto('/#/lab')
+  await page.getByRole('button', { name: 'THE STACK', exact: true }).click()
+  // floors render top to bottom with their gists…
+  await expect(page.getByText('code becoming electricity', { exact: false })).toBeVisible()
+  // …and thin floors state what they owe
+  await expect(page.getByText(/coming: THE INSTRUCTION LOOP/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-stack.png', fullPage: true })
+  // a floor's toy chip deep-links into the lab
+  await page.getByRole('button', { name: /13 THE CACHE CLIFF/ }).click()
+  await expect(page).toHaveURL(/#\/lab\/cachecliff$/)
+})
+
 test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {
   await page.goto('/#/lab/cachecliff')
   await expect(page.getByText(/avg access/).first()).toBeVisible()

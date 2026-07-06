@@ -5,6 +5,7 @@ import { Eyebrow } from '../../ui/kit'
 import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { BRIEFINGS } from '../../content/briefings'
+import { FORECASTS } from '../../content/forecasts'
 import { STATIONS, stationForToy } from '../../content/journey'
 import { FLOORS, floorForToy } from '../../content/stack'
 import { COMPONENTS } from '../../content/components'
@@ -15,6 +16,7 @@ import { GLOSSARY } from '../../content/glossary'
 import { FinePrint } from '../../ui/FinePrint'
 import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
+import { useScars } from '../../state/scars'
 import { DailyIncidentCard } from '../review/DailyIncidentCard'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
@@ -519,8 +521,97 @@ function fmtValue(v: number): string {
   return String(v)
 }
 
+// Spec 084 — CALL IT (law L3: predict before run). The bet sits above the sim,
+// and the sim stays behind it until a call is locked in — predict-before-peek,
+// so an auto-playing sim can't leak its own answer. A wrong call, once the sim
+// settles it, lands in the Scar Journal. Content: content/forecasts.ts.
+function ForecastPanel({
+  toy,
+  forecast,
+  chosenIx,
+  done,
+  onCall,
+}: {
+  toy: ToyEntry
+  forecast: (typeof FORECASTS)[string]
+  chosenIx: number | undefined
+  done: boolean
+  onCall: (ix: number) => void
+}) {
+  const col = CH_COLOR[toy.ch]
+  const called = chosenIx !== undefined
+  const correct = called && chosenIx === forecast.correctIx
+  return (
+    <section
+      aria-label="Forecast"
+      style={{ background: C.panel, border: `1px solid ${C.gold}44`, borderRadius: 10, padding: '10px 14px 12px', margin: '10px 0 4px' }}
+    >
+      <Eyebrow color={C.gold}>CALL IT — predict before you run</Eyebrow>
+      <div style={{ fontSize: 14, lineHeight: 1.5, color: C.text, margin: '6px 0 10px' }}>{forecast.question}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {forecast.options.map((o, i) => {
+          const isPick = chosenIx === i
+          const isAnswer = i === forecast.correctIx
+          let bg: string = C.panelUp
+          let brd: string = C.line
+          let fg: string = C.dim
+          if (called && done && isAnswer) {
+            bg = C.ok
+            brd = C.ok
+            fg = C.bg
+          } else if (called && done && isPick) {
+            bg = C.alert
+            brd = C.alert
+            fg = '#fff'
+          } else if (called && isPick) {
+            bg = col
+            brd = col
+            fg = C.bg
+          }
+          return (
+            <button
+              key={i}
+              onClick={() => !called && onCall(i)}
+              disabled={called}
+              className="mono"
+              style={{
+                padding: '7px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: called ? 'default' : 'pointer',
+                background: bg,
+                color: fg,
+                border: `1px solid ${brd}`,
+              }}
+            >
+              {o}
+              {done && isAnswer && ' ✓'}
+              {done && isPick && !isAnswer && ' ✗'}
+            </button>
+          )
+        })}
+      </div>
+      {called && !done && (
+        <div className="mono" style={{ fontSize: 11, color: C.faint, marginTop: 9 }}>
+          locked in — now run the sim below and watch what actually happens.
+        </div>
+      )}
+      {done && (
+        <div style={{ marginTop: 10 }}>
+          <span className="mono" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, color: correct ? C.ok : called ? C.alert : C.dim }}>
+            {correct ? '✓ YOU CALLED IT' : called ? '✗ THE SIM DISAGREED' : 'THE VERDICT'}
+          </span>
+          <span style={{ fontSize: 13, lineHeight: 1.55, color: C.text }}> — {forecast.reveal}</span>
+        </div>
+      )}
+    </section>
+  )
+}
+
 function ToyDetail({ toy }: { toy: ToyEntry }) {
-  const { toysCompleted, completeToy } = useProgress()
+  const { toysCompleted, completeToy, forecasts, recordForecast } = useProgress()
+  const addScar = useScars((s) => s.addScar)
   const Comp = TOY_COMPONENTS[toy.id]
   const done = !!toysCompleted[toy.id]
   const col = CH_COLOR[toy.ch]
@@ -532,6 +623,26 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
   const concept = conceptForToy(toy.id)
   const briefing = concept?.manualId ? MANUAL.find((m) => m.id === concept.manualId) : undefined
   const drillCount = concept ? drillsForConcept(concept).length : 0
+  const forecast = FORECASTS[toy.id]
+  const chosenIx = forecasts[toy.id]
+  const called = chosenIx !== undefined
+  // predict-before-peek: hold the sim until the call is locked (or already done)
+  const showSim = !forecast || called || done
+  const handleComplete = () => {
+    const st = useProgress.getState()
+    const firstTime = !st.toysCompleted[toy.id]
+    const pick = st.forecasts[toy.id]
+    completeToy(toy.id)
+    if (firstTime && forecast && pick !== undefined && pick !== forecast.correctIx) {
+      addScar({
+        mode: 'lab',
+        theme: toy.name,
+        what: `“${forecast.options[pick]}”`,
+        truth: `“${forecast.options[forecast.correctIx]}”`,
+        lesson: forecast.reveal,
+      })
+    }
+  }
   return (
     <div>
       <ModeHeader title="INTUITION LAB" thesis="numbers don't stick — mechanisms do">
@@ -551,57 +662,69 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
       </ModeHeader>
       <p style={{ color: C.text, fontSize: 14.5, margin: '0 0 6px', fontWeight: 500 }}>{toy.oneLiner}</p>
       <FieldBriefing key={toy.id} toy={toy} done={done} />
-      {done && toy.forgeUnlocks && (
-        <span
-          className="mono"
-          style={{
-            display: 'inline-block',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 1,
-            color: C.gold,
-            border: `1px solid ${C.gold}66`,
-            borderRadius: 6,
-            padding: '3px 8px',
-            marginBottom: 4,
-          }}
-        >
-          ⚒ FORGED: {String(forgedName).toUpperCase()} — unlocked for the Builder
-        </span>
+      {forecast && (
+        <ForecastPanel toy={toy} forecast={forecast} chosenIx={chosenIx} done={done} onCall={(ix) => recordForecast(toy.id, ix)} />
       )}
-      <Comp onComplete={() => completeToy(toy.id)} />
-      <FinePrint text={toy.simplifies} />
-      <Receipts toy={toy} />
-      {concept && (
-        <div
-          className="mono"
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 14,
-            flexWrap: 'wrap',
-            fontSize: 11.5,
-            color: C.dim,
-            borderTop: `1px solid ${C.line}`,
-            marginTop: 12,
-            paddingTop: 10,
-          }}
-        >
-          <Eyebrow color={col}>KEEP THE LOOP</Eyebrow>
-          {briefing && (
-            <Link to={`/manual/briefings/${briefing.id}`} style={{ color: C.dim }}>
-              read the briefing: {briefing.title}
-            </Link>
+      {!showSim && (
+        <p className="mono" style={{ color: C.faint, fontSize: 12, margin: '10px 2px' }}>
+          ↑ lock in your call to run the sim
+        </p>
+      )}
+      {showSim && (
+        <>
+          {done && toy.forgeUnlocks && (
+            <span
+              className="mono"
+              style={{
+                display: 'inline-block',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 1,
+                color: C.gold,
+                border: `1px solid ${C.gold}66`,
+                borderRadius: 6,
+                padding: '3px 8px',
+                margin: '4px 0',
+              }}
+            >
+              ⚒ FORGED: {String(forgedName).toUpperCase()} — unlocked for the Builder
+            </span>
           )}
-          <Link to="/drills/session" style={{ color: C.dim }}>
-            {drillCount} drills use these numbers
-          </Link>
-          {MANUAL.filter((m) => (m.related.toys ?? []).includes(toy.id) && m.id !== concept.manualId).map((sec) => (
-            <Link key={sec.id} to={`/manual/briefings/${sec.id}`} style={{ color: C.dim }}>
-              § {sec.title.toLowerCase()}
-            </Link>
-          ))}
-        </div>
+          <Comp onComplete={handleComplete} />
+          <FinePrint text={toy.simplifies} />
+          <Receipts toy={toy} />
+          {concept && (
+            <div
+              className="mono"
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 14,
+                flexWrap: 'wrap',
+                fontSize: 11.5,
+                color: C.dim,
+                borderTop: `1px solid ${C.line}`,
+                marginTop: 12,
+                paddingTop: 10,
+              }}
+            >
+              <Eyebrow color={col}>KEEP THE LOOP</Eyebrow>
+              {briefing && (
+                <Link to={`/manual/briefings/${briefing.id}`} style={{ color: C.dim }}>
+                  read the briefing: {briefing.title}
+                </Link>
+              )}
+              <Link to="/drills/session" style={{ color: C.dim }}>
+                {drillCount} drills use these numbers
+              </Link>
+              {MANUAL.filter((m) => (m.related.toys ?? []).includes(toy.id) && m.id !== concept.manualId).map((sec) => (
+                <Link key={sec.id} to={`/manual/briefings/${sec.id}`} style={{ color: C.dim }}>
+                  § {sec.title.toLowerCase()}
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

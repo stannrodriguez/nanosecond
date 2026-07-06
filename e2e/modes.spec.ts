@@ -1,11 +1,18 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // Deeper per-mode smoke: exercise one real interaction per ported prototype
 // and screenshot the resulting screen for the parity check.
 
+// Spec 084: a toy's sim is held behind its CALL IT forecast (predict-before-peek).
+// Tests that drive a sim must lock in a call first — click any option to reveal it.
+async function callIt(page: Page) {
+  await page.locator('section[aria-label="Forecast"] button').first().click()
+}
+
 test('lab: switch to The Queue toy and see the knee chart', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /THE QUEUE/ }).click()
+  await callIt(page)
   await expect(page.getByText('80% — the knee')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-queue.png', fullPage: true })
@@ -169,6 +176,7 @@ test('lab: 13 toys registered; hot partition throttles and forges shards', async
   await expect(page.getByRole('button', { name: /12 · TTL & STAMPEDE/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /13 · THE CACHE CLIFF/ })).toBeVisible()
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
+  await callIt(page)
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
   await expect(page.getByText(/FORGED: DB SHARD/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -179,6 +187,7 @@ test('lab: ttl stampede spikes the DB', async ({ page }) => {
   test.setTimeout(45_000)
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /12 · TTL & STAMPEDE/ }).click()
+  await callIt(page)
   await expect(page.getByText(/× capacity/)).toBeVisible({ timeout: 15_000 })
   await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
 })
@@ -196,8 +205,27 @@ test('lab: the map walks the request journey and deep-links its toys', async ({ 
   await expect(page.getByText('THE CLICK')).toBeVisible()
 })
 
+test('lab: a wrong forecast on the Consensus toy lands as a scar', async ({ page }) => {
+  await page.goto('/#/lab/consensus')
+  // the sim is held behind the call: the place chips are not shown yet
+  await expect(page.getByRole('button', { name: 'cross-region (US E↔W)' })).toBeHidden()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-forecast.png', fullPage: true })
+  // make a deliberately wrong call (correct answer is "round trips × distance")
+  await page.getByRole('button', { name: 'CPU speed', exact: true }).click()
+  // the sim is revealed; commit a cross-region write so the toy completes
+  await page.getByRole('button', { name: 'cross-region (US E↔W)' }).click()
+  await page.getByRole('button', { name: 'Commit one write' }).click()
+  // the verdict lands
+  await expect(page.getByText('THE SIM DISAGREED', { exact: false })).toBeVisible({ timeout: 20_000 })
+  // …and the miss is in the Scar Journal, tagged to the toy
+  await page.goto('/#/journal/log')
+  await expect(page.getByText('CONSENSUS ROUND-TRIPS', { exact: false }).first()).toBeVisible()
+})
+
 test('lab: the receipts surface a number derivation on the toy page', async ({ page }) => {
   await page.goto('/#/lab/queue')
+  await callIt(page)
   await page.getByRole('button', { name: /THE RECEIPTS/ }).click()
   // the bounding-physics label proves a derivation expanded
   await expect(page.getByText('BOUNDED BY').first()).toBeVisible()
@@ -221,6 +249,7 @@ test('lab: the stack view shows the floors, their promises, and deep-links', asy
 
 test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {
   await page.goto('/#/lab/cachecliff')
+  await callIt(page)
   await expect(page.getByText(/avg access/).first()).toBeVisible()
   // drag the working set to the far end (into DRAM) on the random curve
   const slider = page.getByRole('slider', { name: /working set/ })
@@ -234,6 +263,7 @@ test('lab: the cache cliff plots the memory staircase and falls off it', async (
 test('lab: consensus toy commits a cross-region write', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /08 · CONSENSUS/ }).click()
+  await callIt(page)
   await page.getByRole('button', { name: 'cross-region (US E↔W)' }).click()
   await page.getByRole('button', { name: 'Commit one write' }).click()
   await expect(page.getByText('141 ms')).toBeVisible({ timeout: 15_000 })

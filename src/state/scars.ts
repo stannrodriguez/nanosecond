@@ -7,9 +7,10 @@ import { DRILLS } from '../content/drills'
 import { DRILL_CATEGORIES, type DrillCategory } from '../content/drills'
 import type { AnswerRecord } from './drillProgress'
 
-export type ScarMode = 'drills' | 'flaw' | 'predict' | 'taste' | 'builder' | 'oncall' | 'interrogation'
+export type ScarMode = 'drills' | 'flaw' | 'predict' | 'taste' | 'builder' | 'oncall' | 'interrogation' | 'lab'
 
 export const SCAR_MODE_LABEL: Record<ScarMode, string> = {
+  lab: 'Intuition Lab',
   drills: 'Drills',
   flaw: 'Find the Flaw',
   predict: 'Predict & Run',

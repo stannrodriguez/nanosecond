@@ -1,7 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // Spec 042: sub-content URLs (ADR 0004), the channel-grouped Lab index, and
 // the registry-derived cross-links.
+
+// Spec 084: a toy's sim + cross-links sit behind its CALL IT forecast; lock a
+// call in (any option) to reveal them.
+const callIt = (page: Page) => page.locator('section[aria-label="Forecast"] button').first().click()
 
 test('lab index groups toys by channel with a completion count', async ({ page }) => {
   await page.goto('/#/lab')
@@ -15,8 +19,9 @@ test('lab index groups toys by channel with a completion count', async ({ page }
 
 test('a toy deep link renders the toy directly and back returns to the index', async ({ page }) => {
   await page.goto('/#/lab/queue')
+  await callIt(page)
   await expect(page.getByText('80% — the knee')).toBeVisible()
-  // reload keeps your place
+  // reload keeps your place (the call persists, so the sim stays revealed)
   await page.reload()
   await expect(page.getByText('80% — the knee')).toBeVisible()
   await page.getByRole('link', { name: '← all toys' }).click()
@@ -35,6 +40,7 @@ test('toy detail prev/next walks the catalog', async ({ page }) => {
 
 test('toy detail cross-links into the manual briefing (concept registry)', async ({ page }) => {
   await page.goto('/#/lab/replag')
+  await callIt(page)
   await page.getByRole('link', { name: /read the briefing/ }).click()
   await expect(page).toHaveURL(/#\/manual\/briefings\/relational-db$/)
   await expect(page.getByText('Relational databases').first()).toBeVisible()

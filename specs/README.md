@@ -19,7 +19,7 @@ this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080
 | 055 | interrogation | ✅ |
 | 081 | lab-stack-map (ADR 0005 arc) | ✅ |
 | 082 | lab-receipts (ADR 0005 arc) | ✅ |
-| 084 | lab-forecast (ADR 0005 arc) | ☐ |
+| 084 | lab-forecast (ADR 0005 arc) | ✅ |
 | 086 | deep-tier-compute (ADR 0005 arc) | ☐ |
 | 088 | deep-tier-memory (ADR 0005 arc) | ☐ |
 | 060 | on-call | ☐ |

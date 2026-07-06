@@ -36,6 +36,15 @@ lives at EXACTLY ONE station; the station order tells the journey end to end. Th
 renders at the top of the Lab index; each toy's field briefing shows its "YOU ARE
 HERE" position and its `click`. New toy? Assign its station in the same change.
 
+The forecast (`content/forecasts.ts`, spec 084 — law L3, predict before run):
+{ question (one line, a BET not a quiz), options[3–4] (one-tap), correctIx, reveal
+(one sentence said once the sim settles it) }, keyed by toy id, 1:1 with toys
+(enforced). The CALL IT panel sits above the sim and the sim stays behind it until
+a call is locked in (predict-before-peek — an auto-playing sim can't leak its own
+answer); a wrong call logs a Scar (mode 'lab') with the reveal as its lesson.
+Numbers come from numbers.ts; keep jargon light (the field briefing already dots
+the terms on the same page). New toy? Add its forecast in the same change.
+
 The stack (`content/stack.tsx`, ADR 0005 / spec 081 — the map's vertical axis):
 floors from THE PLANET down to THE PHYSICS; fields { id, name, gist (the two verbs
 at this floor, one line), toyIds[], promised (spec refs / v2 owed, or null) }.

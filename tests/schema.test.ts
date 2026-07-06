@@ -10,6 +10,7 @@ import { TOYS } from '../src/content/toys'
 import { BRIEFINGS } from '../src/content/briefings'
 import { STATIONS } from '../src/content/journey'
 import { FLOORS } from '../src/content/stack'
+import { FORECASTS } from '../src/content/forecasts'
 import { COMPONENTS } from '../src/content/components'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
@@ -120,7 +121,29 @@ describe('schema: the stack (spec 081, ADR 0005)', () => {
     for (const t of TOYS) expect(seen.has(t.id), `toy ${t.id} is on no floor of the stack`).toBe(true)
     for (const id of seen.keys()) expect(TOYS.some((t) => t.id === id), `floor toy ${id} does not exist`).toBe(true)
   })
+})
 
+describe('schema: lab forecasts (law L3, spec 084)', () => {
+  it('every toy has a forecast and every forecast has a toy', () => {
+    const toyIds = new Set(TOYS.map((t) => t.id))
+    for (const t of TOYS) expect(FORECASTS[t.id], `missing forecast: ${t.id}`).toBeDefined()
+    for (const id of Object.keys(FORECASTS)) expect(toyIds.has(id), `forecast without a toy: ${id}`).toBe(true)
+  })
+
+  it('each forecast is a bet: a question, 3–4 options, one valid answer, a reveal', () => {
+    for (const [id, f] of Object.entries(FORECASTS)) {
+      expect(f.question.trim().length, `${id} question`).toBeGreaterThan(15)
+      expect(f.options.length, `${id} options`).toBeGreaterThanOrEqual(3)
+      expect(f.options.length, `${id} options`).toBeLessThanOrEqual(4)
+      f.options.forEach((o, i) => expect(o.trim().length, `${id} option ${i}`).toBeGreaterThan(0))
+      expect(new Set(f.options).size, `${id} duplicate options`).toBe(f.options.length)
+      expect(Number.isInteger(f.correctIx) && f.correctIx >= 0 && f.correctIx < f.options.length, `${id} correctIx range`).toBe(true)
+      expect(f.reveal.trim().length, `${id} reveal too thin`).toBeGreaterThan(20)
+    }
+  })
+})
+
+describe('schema: the stack — echoes', () => {
   it('briefing echoes are short, and enough exist to teach the recursion', () => {
     const render = (node: unknown) => renderToStaticMarkup(createElement(Fragment, null, node as ReactNode))
     let count = 0

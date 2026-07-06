@@ -16,6 +16,16 @@ forgeUnlocks (component id | null) }.
 Quality bar: playable in <10s, one clear manipulable variable, counters show real-world
 extrapolated rates, punchline names at least one famous technology this explains.
 
+Field briefing (`content/briefings.tsx`, law L2 — the background layer above each sim,
+keyed by toy id): { setting (JSX, 2–4 plain-language sentences, every jargon word a
+<Term>: what the mechanism IS, where it lives in a real system, why it matters —
+background, never sim instructions), meetIt[2–4] ({ name: a famous real technology,
+how: one plain-language clause on how the mechanism surfaces there }) }. The panel's
+glossary chips and Library cross-links derive from the concept registry (§9) — never
+author a second list. Quality bar: setting stays under ~700 rendered characters (a
+wall of text is a bug) and dots ≥1 term; the panel collapses to one line once the toy
+is done so replays stay sim-first.
+
 Catalog (v1 = rows 1–12):
 1. Race Light — latency ladder vs speed of light (built)
 2. The Disk — random vs sequential, 120 IOPS (built)

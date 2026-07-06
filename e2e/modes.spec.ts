@@ -171,10 +171,10 @@ test('library at 380px: shelves and the widest viz do not overflow', async ({ pa
   await page.screenshot({ path: 'e2e/shots/manual-380px.png', fullPage: true })
 })
 
-test('lab: 13 toys registered; hot partition throttles and forges shards', async ({ page }) => {
+test('lab: 16 toys registered; hot partition throttles and forges shards', async ({ page }) => {
   await page.goto('/#/lab')
-  await expect(page.getByRole('button', { name: /12 · TTL & STAMPEDE/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /13 · THE CACHE CLIFF/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /16 · THE BRANCH PREDICTOR/ })).toBeVisible()
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
   await callIt(page)
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
@@ -223,6 +223,28 @@ test('lab: a wrong forecast on the Consensus toy lands as a scar', async ({ page
   await expect(page.getByText('CONSENSUS ROUND-TRIPS', { exact: false }).first()).toBeVisible()
 })
 
+test('lab: the chip trio — instruction loop pipelines, heat wall throttles', async ({ page }) => {
+  // The Instruction Loop: pipelining collapses the cycle count
+  await page.goto('/#/lab/instruction-loop')
+  await callIt(page)
+  await expect(page.getByText('6 instructions in', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: /pipeline: OFF/ }).click()
+  await expect(page.getByText(/pipeline: ON/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-instruction-loop.png', fullPage: true })
+  // The Heat Wall: push the clock past the cooling budget
+  await page.goto('/#/lab/heat-wall')
+  await callIt(page)
+  await page.getByRole('slider', { name: /clock frequency/ }).evaluate((el) => {
+    const input = el as HTMLInputElement
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    setter.call(input, '6')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await expect(page.getByText('THROTTLING', { exact: false }).first()).toBeVisible()
+  await page.screenshot({ path: 'e2e/shots/lab-heat-wall.png', fullPage: true })
+})
+
 test('lab: the receipts surface a number derivation on the toy page', async ({ page }) => {
   await page.goto('/#/lab/queue')
   await callIt(page)
@@ -239,7 +261,7 @@ test('lab: the stack view shows the floors, their promises, and deep-links', asy
   // floors render top to bottom with their gists…
   await expect(page.getByText('code becoming electricity', { exact: false })).toBeVisible()
   // …and thin floors state what they owe
-  await expect(page.getByText(/coming: THE INSTRUCTION LOOP/)).toBeVisible()
+  await expect(page.getByText(/coming: FALSE SHARING/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-stack.png', fullPage: true })
   // a floor's toy chip deep-links into the lab

@@ -94,4 +94,22 @@ export const FORECASTS: Record<string, Forecast> = {
     correctIx: 2,
     reveal: 'Up to ~100×: as the working set spills L1 → L2 → L3 → DRAM the identical loop falls off a cliff. Speed is a layout decision, not a constant.',
   },
+  'instruction-loop': {
+    question: 'Fetch, decode, execute… switching ON the pipeline (same clock) does what to how long the program takes?',
+    options: ['no change — same instructions', 'a little faster', 'several times faster', 'slower — more overhead'],
+    correctIx: 2,
+    reveal: 'Several times faster: the pipeline overlaps the steps like an assembly line, retiring ~one instruction per cycle instead of one every five — same clock, far more work.',
+  },
+  'heat-wall': {
+    question: 'You double a CPU’s clock speed. Roughly what happens to the heat it makes?',
+    options: ['it doubles', 'it roughly quadruples', 'it roughly octuples (≈8×)', 'no change'],
+    correctIx: 2,
+    reveal: '≈8×: power scales like frequency cubed, so a fixed cooling budget caps clocks near ~4 GHz — which is why chips went multi-core instead of faster.',
+  },
+  'branch-predictor': {
+    question: 'The same loop over the same numbers, sorted vs shuffled — how different is the runtime?',
+    options: ['identical — same work', 'sorted is a few % faster', 'sorted is several times faster', 'shuffled is faster'],
+    correctIx: 2,
+    reveal: 'Several times faster on sorted data: a predictable branch is a guess the CPU wins, while random data makes it a coin flip and every wrong guess flushes ~15 cycles.',
+  },
 }

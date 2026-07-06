@@ -96,6 +96,32 @@ export const NUMBERS: NumberEntry[] = [
     confusions: 'A cache line (64 B, the hardware transfer unit) is not a page (4 KB, the virtual-memory mapping unit) — different mechanisms, often confused.',
   },
   {
+    id: 'clock-ceiling',
+    value: 4,
+    unit: 'GHz (air-cooled ceiling)',
+    derivation: [
+      'A transistor burns energy each time it switches, and a higher clock needs a higher voltage to switch cleanly — so dynamic power scales like frequency cubed (P ∝ V²·f, with V rising with f).',
+      'A mainstream package sheds roughly 100 W of heat; setting f³-power equal to that budget lands the ceiling near 4 GHz.',
+      'Double the clock ⇒ ~8× the heat, so stock clocks have sat at ~3–5 GHz for two decades while core COUNTS grew instead.',
+    ],
+    boundingPhysics: 'Heat: dynamic power ∝ f³ against a fixed cooling budget — the end of Dennard scaling (~2005), the reason CPUs went multi-core.',
+    toyId: 'heat-wall',
+    confusions: 'Turbo/boost briefly beats the steady ceiling by borrowing thermal headroom — it is not a higher sustainable clock. GPUs dodge the wall with many slow cores, not one fast one.',
+  },
+  {
+    id: 'mispredict-penalty',
+    value: 15,
+    unit: 'cycles (~5 ns)',
+    derivation: [
+      'A modern core has a deep pipeline (~15–20 stages) full of instructions it started on a GUESS about which way a branch would go.',
+      'Guess wrong and every stage after the branch is garbage: the pipeline flushes and refills — ~15 cycles of nothing.',
+      'At ~0.3 ns/cycle that is ~5 ns per miss — trivial once, brutal across a hot loop that mispredicts half its branches.',
+    ],
+    boundingPhysics: 'Pipeline depth: the deeper the pipeline (the price of a high clock), the more work a single wrong guess throws away.',
+    toyId: 'branch-predictor',
+    confusions: 'Real predictors are ~95%+ accurate on typical code — the toy shows the PENALTY, not the average. Data-dependent (unpredictable) branches are the ones that hurt.',
+  },
+  {
     id: 'compress-1kb',
     value: 2_000,
     unit: 'ns',

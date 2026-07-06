@@ -44,8 +44,8 @@ export const FLOORS: StackFloor[] = [
     id: 'chip',
     name: 'THE CHIP',
     gist: 'code becoming electricity — a fetch-decode-execute loop racing its own memory',
-    toyIds: ['cachecliff'],
-    promised: 'coming: THE INSTRUCTION LOOP · THE HEAT WALL · THE BRANCH PREDICTOR (spec 086) · FALSE SHARING (spec 088)',
+    toyIds: ['instruction-loop', 'heat-wall', 'branch-predictor', 'cachecliff'],
+    promised: 'coming: FALSE SHARING (spec 088)',
   },
   {
     id: 'cell',

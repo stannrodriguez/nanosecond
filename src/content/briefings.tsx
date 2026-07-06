@@ -235,4 +235,55 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
     ],
     echo: <>L1 is to DRAM what Redis is to Postgres what a CDN edge is to your origin — the same bet (small, fast, nearby, allowed to forget) placed on three different floors of the stack. Master one <T k="cache">cache</T> and you've met them all.</>,
   },
+  'instruction-loop': {
+    setting: (
+      <>
+        Every program you have ever run is, at the bottom, this loop: the CPU{' '}
+        <T k="pipeline">fetches an instruction, decodes it, executes it</T>, and does it again — billions of times a second. A
+        pipeline overlaps those steps like an assembly line so a finished result pops out every clock tick. It is the engine
+        under every other floor of the stack; everything above is just arranging which instructions to run.
+      </>
+    ),
+    meetIt: [
+      { name: 'Every CPU (x86, ARM, RISC-V)', how: 'the fetch-decode-execute pipeline is the common shape beneath every instruction set' },
+      { name: 'perf / VTune counters', how: 'IPC — instructions per cycle — is the headline profiler number, a direct read on how full the pipeline runs' },
+      { name: 'GPUs', how: 'trade one deep clever pipeline for thousands of simple ones — the same loop, massively parallel' },
+    ],
+  },
+  'heat-wall': {
+    setting: (
+      <>
+        A faster clock is a hotter chip — power climbs like frequency cubed — so cooling puts a hard ceiling near ~4 GHz that
+        has barely moved in twenty years. The escape was never a faster core; it was more of them. This wall is the reason your
+        laptop has many <T k="core">cores</T> instead of one blazing one, and why parallelism stopped being optional.
+      </>
+    ),
+    meetIt: [
+      { name: 'The multicore era (~2005–)', how: 'the industry-wide pivot from selling GHz to selling core count happened the day this wall was hit' },
+      { name: 'Laptop / phone thermal throttling', how: 'the same curve live — sustained load heats the die and the clock drops to stay inside budget' },
+      { name: 'Data-center power bills', how: 'performance per watt, not per GHz, is what a real fleet is optimized against' },
+    ],
+  },
+  'branch-predictor': {
+    setting: (
+      <>
+        To keep its pipeline full, a CPU cannot wait to learn which way an <span className="mono">if</span> goes — it{' '}
+        <T k="speculation">guesses and runs ahead</T>. Right guesses are free; wrong ones flush the pipeline and cost ~15
+        cycles. The predictor is uncanny on predictable data and helpless on random data — which is why the very same code can
+        run several times faster on sorted input.
+      </>
+    ),
+    meetIt: [
+      { name: 'The famous “sorted array” speedup', how: 'the top-voted Stack Overflow question is exactly this — sort first and the branchy loop flies' },
+      { name: 'Spectre / Meltdown', how: 'speculative execution left traces in the cache — a whole class of security holes born of this trick' },
+      { name: 'Branchless programming', how: 'hot code rewrites if into arithmetic precisely to deny the predictor a branch to miss' },
+    ],
+    echo: (
+      <>
+        Speculation is caching's cousin: both spend a cheap resource on a bet about the near future — a <T k="cache">cache</T>{' '}
+        bets you'll ask again, a predictor bets the branch goes the way it went last time. Right bets are most of why computers
+        feel fast.
+      </>
+    ),
+  },
 }

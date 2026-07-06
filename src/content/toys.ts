@@ -178,6 +178,45 @@ export const TOYS: ToyEntry[] = [
       'A clean four-level staircase with fixed capacities; real caches are set-associative with eviction policies, hardware prefetchers, and TLB effects, so the cliff is a slope with sub-steps — but the order-of-magnitude spread and the sequential-vs-random gap are real.',
     click: "It's clicked when \"how big is the working set, and do we walk it in order?\" becomes your first performance question — before the profiler, before the algorithm.",
   },
+  {
+    id: 'instruction-loop',
+    n: '14',
+    name: 'THE INSTRUCTION LOOP',
+    sub: 'what "running code" is',
+    oneLiner: 'Fetch, decode, execute — then switch on the pipeline and watch the same work finish 3× sooner at the same clock.',
+    ch: 'compute',
+    targetNumbers: ['cpu-cycle'],
+    forgeUnlocks: null,
+    simplifies:
+      'A textbook 5-stage pipeline with no hazards, stalls, or forwarding; real cores are 15–20 stages with out-of-order, superscalar issue — the assembly-line idea survives, the tidy diagonal does not.',
+    click: "It's clicked when \"the computer runs my code\" stops being a black box and becomes a loop you can see — fetch, decode, execute — pipelined into one result per tick.",
+  },
+  {
+    id: 'heat-wall',
+    n: '15',
+    name: 'THE HEAT WALL',
+    sub: 'why clocks stopped at ~4 GHz',
+    oneLiner: 'Drag the clock up and watch power grow like frequency cubed until it slams into the cooling budget.',
+    ch: 'compute',
+    targetNumbers: ['clock-ceiling', 'cpu-cycle'],
+    forgeUnlocks: null,
+    simplifies:
+      'Pure dynamic power (P ∝ f³) against a fixed budget; ignores leakage, turbo/boost, undervolting, and process shrinks — all of which nudge the wall without moving it.',
+    click: "It's clicked when \"just clock it faster\" makes you think of heat first — and \"why do we have so many cores?\" answers itself: heat, cubed.",
+  },
+  {
+    id: 'branch-predictor',
+    n: '16',
+    name: 'THE BRANCH PREDICTOR',
+    sub: 'the CPU guesses the future',
+    oneLiner: 'Same loop, sorted vs shuffled data — and the sorted run is several times faster. Find out why.',
+    ch: 'compute',
+    targetNumbers: ['mispredict-penalty', 'cpu-cycle'],
+    forgeUnlocks: null,
+    simplifies:
+      'A two-state caricature (right ~always vs coin-flip); real predictors are history-based and ~95%+ accurate — the toy shows the penalty of the branches they still miss, the data-dependent ones.',
+    click: "It's clicked when a mysterious speedup from sorting an array makes total sense — a predictable branch is a guess the CPU wins, and a wrong guess flushes the pipeline.",
+  },
 ]
 
 export const toyById = (id: string): ToyEntry | undefined => TOYS.find((t) => t.id === id)

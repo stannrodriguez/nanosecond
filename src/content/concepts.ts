@@ -140,6 +140,33 @@ export const CONCEPTS: ConceptEntry[] = [
     termKeys: ['cacheline', 'locality', 'cache'],
     numberIds: ['l1-hit', 'l2-hit', 'l3-hit', 'dram-access', 'cache-line'],
   },
+  {
+    id: 'instruction-pipeline',
+    name: 'The instruction pipeline',
+    ch: 'compute',
+    toyId: 'instruction-loop',
+    manualId: null,
+    termKeys: ['pipeline', 'throughput'],
+    numberIds: ['cpu-cycle'],
+  },
+  {
+    id: 'the-heat-wall',
+    name: 'The heat wall',
+    ch: 'compute',
+    toyId: 'heat-wall',
+    manualId: null,
+    termKeys: ['core', 'pipeline'],
+    numberIds: ['clock-ceiling', 'cpu-cycle'],
+  },
+  {
+    id: 'branch-prediction',
+    name: 'Branch prediction',
+    ch: 'compute',
+    toyId: 'branch-predictor',
+    manualId: null,
+    termKeys: ['speculation', 'pipeline'],
+    numberIds: ['mispredict-penalty', 'cpu-cycle'],
+  },
 ]
 
 export const conceptById = (id: string): ConceptEntry | undefined => CONCEPTS.find((c) => c.id === id)

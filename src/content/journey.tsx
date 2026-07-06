@@ -49,13 +49,26 @@ export const STATIONS: JourneyStation[] = [
     manualId: 'load-balancer',
   },
   {
-    id: 'chip',
-    name: 'INSIDE EVERY CHIP',
+    id: 'clock',
+    name: 'THE CLOCK',
+    ch: 'compute',
+    tagline: (
+      <>
+        Meanwhile, inside the box: the server's code becomes electricity — <T k="pipeline">fetched, decoded, executed</T>{' '}
+        billions of times a second, and bounded by heat.
+      </>
+    ),
+    toyIds: ['instruction-loop', 'heat-wall', 'branch-predictor'],
+    manualId: null,
+  },
+  {
+    id: 'memory',
+    name: 'THE MEMORY LADDER',
     ch: 'mem',
     tagline: (
       <>
-        Meanwhile, physics: every line of code that "runs" here is mostly a CPU waiting on memory — and memory is leaking
-        charge at the end of a wire.
+        And nearly every one of those instructions is really the CPU <i>waiting</i> on memory — a stack of tiny fast caches
+        racing a big, leaking RAM at the end of a wire.
       </>
     ),
     toyIds: ['cachecliff', 'dram'],

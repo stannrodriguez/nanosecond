@@ -26,28 +26,28 @@ vs unsorted data. Same instructions, ~4× the time, because the deep pipeline
 from toy 14 runs on guesses and a wrong guess flushes it. Punchline: the CPU
 speculates to survive; Spectre is the day the guessing leaked.
 
-- [ ] All three toys meet the FULL toy contract in one change each: catalog entry
+- [x] All three toys meet the FULL toy contract in one change each: catalog entry
       (`toys.ts` incl. `click`), sim component registered in
       `TOY_COMPONENTS`, field briefing, concept row, station on the map,
       forecast (spec 084 contract), `simplifies`, playable in <10s with one
       clear manipulable variable, a stack floor (spec 081) alongside the
       journey station
-- [ ] New numbers with honest 3-step derivations: `clock-ceiling`
+- [x] New numbers with honest 3-step derivations: `clock-ceiling`
       (~4 GHz — P ∝ V²·f with V rising with f ⇒ ~f³ against a fixed cooling
       budget) and `mispredict-penalty` (~15–20 stages flushed ≈ 5 ns at
       0.3 ns/cycle) — values consistent with `cpu-cycle`'s existing
       derivation text ("clocks stalled near 3–5 GHz")
-- [ ] Concept rows stay drill-reachable without touching the 60-drill bank:
+- [x] Concept rows stay drill-reachable without touching the 60-drill bank:
       include `cpu-cycle` in each `numberIds` (per ADR 0005 consequences)
-- [ ] The map: all three join INSIDE EVERY CHIP; if that station now exceeds 4
+- [x] The map: all three join INSIDE EVERY CHIP; if that station now exceeds 4
       toys, split it (e.g. THE CLOCK / THE MEMORY LADDER) rather than crowd
       it — station coverage tests stay green
-- [ ] Toy count references update in the same change: e2e specs, CLAUDE.md
+- [x] Toy count references update in the same change: e2e specs, CLAUDE.md
       definition of done, product-spec §3.1
-- [ ] Glossary law holds (add entries for genuinely new jargon — e.g.
+- [x] Glossary law holds (add entries for genuinely new jargon — e.g.
       pipeline, speculation — and dot them in copy); every displayed number
       resolves to `numbers.ts`
-- [ ] Balance suite untouched and green; verify.sh green; new + changed
+- [x] Balance suite untouched and green; verify.sh green; new + changed
       shots reviewed at desktop and 380px
 
 ## Context (read this, not the whole repo)

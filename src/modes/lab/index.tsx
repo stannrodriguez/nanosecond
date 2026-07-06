@@ -31,6 +31,9 @@ import { ConnectionPool } from './ConnectionPool'
 import { Backpressure } from './Backpressure'
 import { TtlStampede } from './TtlStampede'
 import { CacheCliff } from './CacheCliff'
+import { InstructionLoop } from './InstructionLoop'
+import { HeatWall } from './HeatWall'
+import { BranchPredictor } from './BranchPredictor'
 
 // The toy registry: metadata lives in content/toys.ts, sims live here.
 const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> = {
@@ -47,6 +50,9 @@ const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> 
   backpressure: Backpressure,
   stampede: TtlStampede,
   cachecliff: CacheCliff,
+  'instruction-loop': InstructionLoop,
+  'heat-wall': HeatWall,
+  'branch-predictor': BranchPredictor,
 }
 
 // Index group order + each channel's physical wall (product-spec: every

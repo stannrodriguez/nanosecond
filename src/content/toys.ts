@@ -151,6 +151,18 @@ export const TOYS: ToyEntry[] = [
     forgeUnlocks: 'cache',
     simplifies: 'One key and one cache node; real stampedes multiply across keys expiring together, and real dogpile locks need their own timeout handling.',
   },
+  {
+    id: 'cachecliff',
+    n: '13',
+    name: 'THE CACHE CLIFF',
+    sub: 'why the same loop is 50× slower',
+    oneLiner: 'Grow the working set past each cache. Watch identical work fall off a cliff — then move the cliff with locality.',
+    ch: 'mem',
+    targetNumbers: ['l1-hit', 'l2-hit', 'l3-hit', 'dram-access', 'cache-line'],
+    forgeUnlocks: null,
+    simplifies:
+      'A clean four-level staircase with fixed capacities; real caches are set-associative with eviction policies, hardware prefetchers, and TLB effects, so the cliff is a slope with sub-steps — but the order-of-magnitude spread and the sequential-vs-random gap are real.',
+  },
 ]
 
 export const toyById = (id: string): ToyEntry | undefined => TOYS.find((t) => t.id === id)

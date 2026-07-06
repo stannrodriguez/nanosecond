@@ -25,6 +25,7 @@ import { LsmVsBtree } from './LsmVsBtree'
 import { ConnectionPool } from './ConnectionPool'
 import { Backpressure } from './Backpressure'
 import { TtlStampede } from './TtlStampede'
+import { CacheCliff } from './CacheCliff'
 
 // The toy registry: metadata lives in content/toys.ts, sims live here.
 const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> = {
@@ -40,6 +41,7 @@ const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> 
   connpool: ConnectionPool,
   backpressure: Backpressure,
   stampede: TtlStampede,
+  cachecliff: CacheCliff,
 }
 
 // Index group order + each channel's physical wall (product-spec: every
@@ -104,10 +106,10 @@ function LabIndex() {
         </div>
       </ModeHeader>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6, margin: '2px 0 16px', maxWidth: 760 }}>
-        Twelve toy mechanisms, four physical walls. Each toy hands you one variable to drag until one number stops being trivia
-        and starts being physics. New to one? Skim its <b style={{ color: C.text }}>field briefing</b> first — what the
-        mechanism is, where you'll meet it in real systems, and the words to know. Dotted words like{' '}
-        <T k="p99">p99</T> open the glossary, here and everywhere.
+        Each toy is a mechanism you operate — one variable to drag until a number stops being trivia and becomes physics —
+        sorted under the four physical walls every system negotiates with. New to one? Skim its{' '}
+        <b style={{ color: C.text }}>field briefing</b> first — what the mechanism is, where you'll meet it in real systems, and
+        the words to know. Dotted words like <T k="p99">p99</T> open the glossary, here and everywhere.
       </p>
       <DailyIncidentCard />
       {CHANNELS.map((ch) => (

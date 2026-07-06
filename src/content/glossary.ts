@@ -45,6 +45,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Hit rate',
     def: "The % of lookups the cache can answer itself. 80% hit rate = only 20% of reads reach the database. Driven by how often people ask for the SAME thing: a viral post → 99%+; random user profiles → much lower. This one percentage decides your database's fate.",
   },
+  cacheline: {
+    name: 'Cache line',
+    def: "The fixed 64-byte block the CPU moves between RAM and cache — it never fetches a lone byte. Touch one byte and its 63 neighbours come along free, so data you use together should SIT together. This is why a contiguous array can be an order of magnitude faster than a linked list of the same fields: the array hands the CPU eight useful values per line, the list one.",
+  },
+  locality: {
+    name: 'Locality',
+    def: "The two habits that make caches work. TEMPORAL: reuse the same data soon, while it's still cached. SPATIAL: use data that sits next to what you just touched, because it rode in on the same cache line. Code with good locality can run 10× faster than identical code without it — same instructions, same data, different memory layout.",
+  },
   replica: {
     name: 'Read replica',
     def: 'A live copy of the database that receives every write from the primary and serves reads. Scaling reads = photocopying the data. Each replica adds ~20k reads/s. The catch: copies lag slightly behind — a just-written comment might not appear on a replica for a moment.',

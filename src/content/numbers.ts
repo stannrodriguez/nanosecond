@@ -83,6 +83,19 @@ export const NUMBERS: NumberEntry[] = [
     simplifies: 'Row-buffer hits, prefetching, and NUMA distance all move this number in real machines.',
   },
   {
+    id: 'cache-line',
+    value: 64,
+    unit: 'bytes',
+    derivation: [
+      'The CPU never fetches a lone byte — it moves memory in fixed 64-byte blocks called cache lines (essentially every modern chip).',
+      'Touch one byte and its 63 neighbours ride along for free; with 8-byte numbers, one miss pre-pays the next 7 accesses.',
+      'So a sequential walk misses ~1 in 8, while a random walk drags in a fresh 64-byte line to use ~8 bytes of it — wasting 7/8 of the memory bandwidth it paid for.',
+    ],
+    boundingPhysics: 'DRAM is fastest in bursts — open a row, stream the whole line — so moving 64 B costs almost the same as 1 B. The line is free spatial locality, if you use it.',
+    toyId: 'cachecliff',
+    confusions: 'A cache line (64 B, the hardware transfer unit) is not a page (4 KB, the virtual-memory mapping unit) — different mechanisms, often confused.',
+  },
+  {
     id: 'compress-1kb',
     value: 2_000,
     unit: 'ns',

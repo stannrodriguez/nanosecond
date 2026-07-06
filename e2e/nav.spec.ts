@@ -8,7 +8,7 @@ test('lab index groups toys by channel with a completion count', async ({ page }
   for (const wall of ['NETWORK', 'COMPUTE', 'STORAGE', 'MEMORY']) {
     await expect(page.getByText(wall, { exact: true })).toBeVisible()
   }
-  await expect(page.getByText('0/12 mechanisms internalized')).toBeVisible()
+  await expect(page.getByText('0/13 mechanisms internalized')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-index.png', fullPage: true })
 })

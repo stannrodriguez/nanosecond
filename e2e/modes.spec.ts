@@ -164,9 +164,10 @@ test('library at 380px: shelves and the widest viz do not overflow', async ({ pa
   await page.screenshot({ path: 'e2e/shots/manual-380px.png', fullPage: true })
 })
 
-test('lab: 12 toys registered; hot partition throttles and forges shards', async ({ page }) => {
+test('lab: 13 toys registered; hot partition throttles and forges shards', async ({ page }) => {
   await page.goto('/#/lab')
   await expect(page.getByRole('button', { name: /12 · TTL & STAMPEDE/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /13 · THE CACHE CLIFF/ })).toBeVisible()
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
   await expect(page.getByText(/FORGED: DB SHARD/)).toBeVisible()
@@ -180,6 +181,18 @@ test('lab: ttl stampede spikes the DB', async ({ page }) => {
   await page.getByRole('button', { name: /12 · TTL & STAMPEDE/ }).click()
   await expect(page.getByText(/× capacity/)).toBeVisible({ timeout: 15_000 })
   await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
+})
+
+test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {
+  await page.goto('/#/lab/cachecliff')
+  await expect(page.getByText(/avg access/).first()).toBeVisible()
+  // drag the working set to the far end (into DRAM) on the random curve
+  const slider = page.getByRole('slider', { name: /working set/ })
+  await slider.focus()
+  for (let i = 0; i < 130; i++) await page.keyboard.press('ArrowRight')
+  await expect(page.getByText(/lives in DRAM/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-cachecliff.png', fullPage: true })
 })
 
 test('lab: consensus toy commits a cross-region write', async ({ page }) => {

@@ -206,4 +206,20 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'Fastly / Varnish', how: 'request coalescing collapses a thousand identical misses into one origin fetch' },
     ],
   },
+  cachecliff: {
+    setting: (
+      <>
+        Your CPU is thousands of times faster than the RAM it reads from, so it hides the gap behind a stack of small, fast
+        caches — L1, L2, L3, each bigger and slower than the last. Whether your data fits in one of them decides your program's
+        speed far more than how many instructions it runs. And the CPU always moves memory a 64-byte{' '}
+        <T k="cacheline">cache line</T> at a time, so data you use together should sit together — that's{' '}
+        <T k="locality">locality</T>, the gap between a loop that flies and the identical loop that crawls.
+      </>
+    ),
+    meetIt: [
+      { name: 'Arrays vs linked lists', how: 'a contiguous array streams whole cache lines; chasing a linked list misses on nearly every node' },
+      { name: 'Column stores (Parquet, ClickHouse)', how: 'lay each column out contiguously so a scan touches only the bytes it needs, all cache-line-friendly' },
+      { name: 'Data-oriented design (game engines)', how: 'struct-of-arrays over array-of-structs so the hot fields pack into the lines the CPU actually loads' },
+    ],
+  },
 }

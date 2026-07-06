@@ -131,6 +131,15 @@ export const CONCEPTS: ConceptEntry[] = [
     termKeys: ['cache', 'ttl', 'stampede', 'herd'],
     numberIds: ['redis-ops', 'pg-reads'],
   },
+  {
+    id: 'memory-hierarchy',
+    name: 'The memory hierarchy',
+    ch: 'mem',
+    toyId: 'cachecliff',
+    manualId: null,
+    termKeys: ['cacheline', 'locality', 'cache'],
+    numberIds: ['l1-hit', 'l2-hit', 'l3-hit', 'dram-access', 'cache-line'],
+  },
 ]
 
 export const conceptById = (id: string): ConceptEntry | undefined => CONCEPTS.find((c) => c.id === id)

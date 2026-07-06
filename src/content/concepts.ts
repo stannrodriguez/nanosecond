@@ -167,6 +167,24 @@ export const CONCEPTS: ConceptEntry[] = [
     termKeys: ['speculation', 'pipeline'],
     numberIds: ['mispredict-penalty', 'cpu-cycle'],
   },
+  {
+    id: 'virtual-memory',
+    name: 'Virtual memory & the TLB',
+    ch: 'mem',
+    toyId: 'tlb-toll',
+    manualId: null,
+    termKeys: ['virtualmemory', 'cacheline'],
+    numberIds: ['page-size', 'dram-access', 'hdd-seek'],
+  },
+  {
+    id: 'false-sharing',
+    name: 'False sharing',
+    ch: 'compute',
+    toyId: 'false-sharing',
+    manualId: null,
+    termKeys: ['cacheline', 'core'],
+    numberIds: ['cache-line', 'l1-hit'],
+  },
 ]
 
 export const conceptById = (id: string): ConceptEntry | undefined => CONCEPTS.find((c) => c.id === id)

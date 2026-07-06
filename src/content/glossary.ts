@@ -45,6 +45,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Hit rate',
     def: "The % of lookups the cache can answer itself. 80% hit rate = only 20% of reads reach the database. Driven by how often people ask for the SAME thing: a viral post → 99%+; random user profiles → much lower. This one percentage decides your database's fate.",
   },
+  virtualmemory: {
+    name: 'Virtual memory',
+    def: 'The illusion that each program owns a private, contiguous memory. The hardware translates every virtual address to a real physical one on the fly, one 4 KB page at a time, which is what lets many programs share one RAM safely — and what makes "it fits in RAM" quietly depend on fitting in the map of RAM (the TLB) too.',
+  },
   pipeline: {
     name: 'Pipeline',
     def: 'Executing instructions like an assembly line: while one is being decoded, the next is being fetched, so the core retires roughly one instruction per clock tick instead of waiting for each to finish. The catch — it must guess what comes next at every branch, and a wrong guess flushes the line.',

@@ -20,26 +20,26 @@ line. Punchline: the multicore turn (toy 15) sold you parallelism; the cache
 line (toy 13) fine-prints it — cores share memory in 64-byte bites, and
 "different variables" is not the same as "different lines".
 
-- [ ] Both toys meet the FULL toy contract (catalog + click, sim in
+- [x] Both toys meet the FULL toy contract (catalog + click, sim in
       `TOY_COMPONENTS`, briefing, concept row, station, stack floor
       (spec 081), forecast, `simplifies`, <10s playable, one manipulable
       variable)
-- [ ] New number `page-size` (4 KB — the fragmentation-vs-table-size bargain
+- [x] New number `page-size` (4 KB — the fragmentation-vs-table-size bargain
       virtual memory struck decades ago; note hugepages as the escape hatch
       in `simplifies`); False Sharing reuses `cache-line` + `l1-hit` — no
       new number needed
-- [ ] Concept rows drill-reachable via already-drilled numbers
+- [x] Concept rows drill-reachable via already-drilled numbers
       (`dram-access`, `l1-hit`) per ADR 0005 — drill bank stays 60
-- [ ] The map: station assignment follows spec 086's decision (INSIDE EVERY
+- [x] The map: station assignment follows spec 086's decision (INSIDE EVERY
       CHIP or its split successors); exactly-one-station coverage stays green
-- [ ] Cross-toy links land: TLB Toll's punchline links toy 02 (the disk
+- [x] Cross-toy links land: TLB Toll's punchline links toy 02 (the disk
       rungs it falls onto); False Sharing's briefing links toys 13/14 —
       the deep tier should feel like one story, not four cards
-- [ ] Toy count references update (e2e, CLAUDE.md, product-spec §3.1) —
+- [x] Toy count references update (e2e, CLAUDE.md, product-spec §3.1) —
       the arc ends at 18 toys
-- [ ] Glossary law holds (candidates: virtual memory / page table / TLB,
+- [x] Glossary law holds (candidates: virtual memory / page table / TLB,
       coherence); numbers law holds
-- [ ] Balance suite untouched and green; verify.sh green; shots reviewed at
+- [x] Balance suite untouched and green; verify.sh green; shots reviewed at
       desktop and 380px
 
 ## Context (read this, not the whole repo)

@@ -96,6 +96,19 @@ export const NUMBERS: NumberEntry[] = [
     confusions: 'A cache line (64 B, the hardware transfer unit) is not a page (4 KB, the virtual-memory mapping unit) — different mechanisms, often confused.',
   },
   {
+    id: 'page-size',
+    value: 4,
+    unit: 'KB (virtual-memory page)',
+    derivation: [
+      'The OS hands out memory in fixed pages, not bytes — 4 KB on essentially every system, each with one page-table entry mapping virtual → physical.',
+      'Smaller pages waste less on partial fills but need more table entries and TLB slots; 4 KB is the decades-old compromise.',
+      'A TLB of ~1500 entries therefore covers only ~6 MB (1500 × 4 KB) before translations start missing — a ceiling independent of how much RAM you have.',
+    ],
+    boundingPhysics: 'A fragmentation-vs-bookkeeping tradeoff: bigger pages waste more memory per allocation, smaller pages cost more page-table and TLB pressure.',
+    toyId: 'tlb-toll',
+    confusions: 'A page (4 KB, the OS mapping unit) is not a cache line (64 B, the hardware transfer unit). Huge pages (2 MB/1 GB) exist precisely to stretch TLB reach for big workloads.',
+  },
+  {
     id: 'clock-ceiling',
     value: 4,
     unit: 'GHz (air-cooled ceiling)',

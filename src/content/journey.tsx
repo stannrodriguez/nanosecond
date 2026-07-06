@@ -58,7 +58,7 @@ export const STATIONS: JourneyStation[] = [
         billions of times a second, and bounded by heat.
       </>
     ),
-    toyIds: ['instruction-loop', 'heat-wall', 'branch-predictor'],
+    toyIds: ['instruction-loop', 'heat-wall', 'branch-predictor', 'false-sharing'],
     manualId: null,
   },
   {
@@ -68,10 +68,10 @@ export const STATIONS: JourneyStation[] = [
     tagline: (
       <>
         And nearly every one of those instructions is really the CPU <i>waiting</i> on memory — a stack of tiny fast caches
-        racing a big, leaking RAM at the end of a wire.
+        racing a big, leaking RAM, reached through a map the hardware has to translate first.
       </>
     ),
-    toyIds: ['cachecliff', 'dram'],
+    toyIds: ['cachecliff', 'dram', 'tlb-toll'],
     manualId: null,
   },
   {

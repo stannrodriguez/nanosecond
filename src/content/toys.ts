@@ -217,6 +217,32 @@ export const TOYS: ToyEntry[] = [
       'A two-state caricature (right ~always vs coin-flip); real predictors are history-based and ~95%+ accurate — the toy shows the penalty of the branches they still miss, the data-dependent ones.',
     click: "It's clicked when a mysterious speedup from sorting an array makes total sense — a predictable branch is a guess the CPU wins, and a wrong guess flushes the pipeline.",
   },
+  {
+    id: 'tlb-toll',
+    n: '17',
+    name: 'THE TLB TOLL',
+    sub: 'RAM has a second cliff',
+    oneLiner: 'Every access is translate-then-fetch. Grow the working set past the TLB and pay a toll on every one.',
+    ch: 'mem',
+    targetNumbers: ['page-size', 'dram-access', 'hdd-seek'],
+    forgeUnlocks: null,
+    simplifies:
+      'One-level TLB and a single page-walk cost; real CPUs have multi-level TLBs, cached page-table walks, and huge pages — the toll is softer and stepped, but the reach ceiling and the swap cliff are real.',
+    click: "It's clicked when \"it fits in RAM\" stops feeling sufficient — you also ask whether it fits in the TLB's reach, and \"the box is swapping\" reads as \"the box is dead.\"",
+  },
+  {
+    id: 'false-sharing',
+    n: '18',
+    name: 'FALSE SHARING',
+    sub: 'adding a thread made it slower',
+    oneLiner: 'Two cores, two different counters, one cache line — and parallelism goes backwards. Then pad them apart.',
+    ch: 'compute',
+    targetNumbers: ['cache-line', 'l1-hit'],
+    forgeUnlocks: null,
+    simplifies:
+      'Idealized coherence (a flat serialize on the shared line); real MESI traffic, store buffers, and NUMA distance make it messier — but the "different variables ≠ different lines" trap is exactly this.',
+    click: "It's clicked when a scaling mystery makes you check whether two hot variables share a 64-byte line — and per-core state or padding becomes a reflex.",
+  },
 ]
 
 export const toyById = (id: string): ToyEntry | undefined => TOYS.find((t) => t.id === id)

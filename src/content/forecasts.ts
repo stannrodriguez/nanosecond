@@ -112,4 +112,16 @@ export const FORECASTS: Record<string, Forecast> = {
     correctIx: 2,
     reveal: 'Several times faster on sorted data: a predictable branch is a guess the CPU wins, while random data makes it a coin flip and every wrong guess flushes ~15 cycles.',
   },
+  'tlb-toll': {
+    question: 'Your working set fits in RAM but outgrows what the TLB can map. What happens to each access?',
+    options: ['nothing — it fits in RAM', 'it pays an extra translation on nearly every access', 'it gets faster', 'it fails'],
+    correctIx: 1,
+    reveal: 'It pays a page-walk on nearly every access: the TLB covers only ~6 MB, so beyond it translation stops being free — and past physical RAM you fall onto disk (swap).',
+  },
+  'false-sharing': {
+    question: 'Two cores each increment their OWN counter — but both counters share one cache line. Add cores and throughput…',
+    options: ['scales up, linearly', 'stays flat or gets worse', 'doubles exactly', 'is unaffected'],
+    correctIx: 1,
+    reveal: 'Stays flat or worse: the cores ping-pong the shared 64-byte line through the coherence protocol, serializing writes meant to be independent. Padding onto separate lines fixes it.',
+  },
 }

@@ -171,10 +171,10 @@ test('library at 380px: shelves and the widest viz do not overflow', async ({ pa
   await page.screenshot({ path: 'e2e/shots/manual-380px.png', fullPage: true })
 })
 
-test('lab: 16 toys registered; hot partition throttles and forges shards', async ({ page }) => {
+test('lab: 18 toys registered; hot partition throttles and forges shards', async ({ page }) => {
   await page.goto('/#/lab')
   await expect(page.getByRole('button', { name: /13 · THE CACHE CLIFF/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /16 · THE BRANCH PREDICTOR/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /18 · FALSE SHARING/ })).toBeVisible()
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
   await callIt(page)
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
@@ -223,6 +223,27 @@ test('lab: a wrong forecast on the Consensus toy lands as a scar', async ({ page
   await expect(page.getByText('CONSENSUS ROUND-TRIPS', { exact: false }).first()).toBeVisible()
 })
 
+test('lab: the memory pair — tlb toll falls into swap, false sharing stalls', async ({ page }) => {
+  // The TLB Toll: drag the working set past RAM into swap
+  await page.goto('/#/lab/tlb-toll')
+  await callIt(page)
+  await page.getByRole('slider', { name: /working set/ }).evaluate((el) => {
+    const input = el as HTMLInputElement
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    setter.call(input, '26')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await expect(page.getByText('swap', { exact: false }).first()).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-tlb-toll.png', fullPage: true })
+  // False Sharing: padding restores scaling
+  await page.goto('/#/lab/false-sharing')
+  await callIt(page)
+  await page.getByRole('button', { name: 'padded apart' }).click()
+  await expect(page.getByText('padded: scales', { exact: false })).toBeVisible()
+  await page.screenshot({ path: 'e2e/shots/lab-false-sharing.png', fullPage: true })
+})
+
 test('lab: the chip trio — instruction loop pipelines, heat wall throttles', async ({ page }) => {
   // The Instruction Loop: pipelining collapses the cycle count
   await page.goto('/#/lab/instruction-loop')
@@ -260,8 +281,8 @@ test('lab: the stack view shows the floors, their promises, and deep-links', asy
   await page.getByRole('button', { name: 'THE STACK', exact: true }).click()
   // floors render top to bottom with their gists…
   await expect(page.getByText('code becoming electricity', { exact: false })).toBeVisible()
-  // …and thin floors state what they owe
-  await expect(page.getByText(/coming: FALSE SHARING/)).toBeVisible()
+  // …and thin floors state what they owe (the network floor still owes v2 toys)
+  await expect(page.getByText(/a packet's life/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-stack.png', fullPage: true })
   // a floor's toy chip deep-links into the lab

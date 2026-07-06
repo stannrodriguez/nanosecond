@@ -286,4 +286,40 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       </>
     ),
   },
+  'tlb-toll': {
+    setting: (
+      <>
+        Programs never see real memory — each gets a private map, and the hardware translates every address through{' '}
+        <T k="virtualmemory">virtual memory</T> before it can fetch. A little cache (the TLB) keeps recent translations instant,
+        but it only covers a few megabytes. Outgrow it and every access pays a translation toll on top of the fetch — a cliff
+        the data <T k="cacheline">caches</T> can't hide.
+      </>
+    ),
+    meetIt: [
+      { name: 'Huge pages (2 MB / 1 GB)', how: 'databases and JVMs enable them to stretch TLB reach so big heaps stop paying the toll' },
+      { name: '"The box started swapping"', how: 'the swap cliff live — once pages spill to disk, every touch is a fault and latency dies' },
+      { name: 'mmap / page faults', how: 'lazily mapping a file means the first touch of each page takes the translate-and-load hit' },
+    ],
+  },
+  'false-sharing': {
+    setting: (
+      <>
+        The multicore turn promised that more <T k="core">cores</T> mean more work — but cores share memory a 64-byte{' '}
+        <T k="cacheline">cache line</T> at a time, and they trade whole lines. Put two busy variables in one line and two cores
+        fight over it even though they never touch the same data, quietly serializing your "parallel" code.
+      </>
+    ),
+    meetIt: [
+      { name: 'Java @Contended / Go padding', how: 'runtimes and hot data structures pad fields to a full line precisely to dodge this' },
+      { name: 'Striped counters (LongAdder)', how: 'give each core its own cell so their writes land on different lines, summed at the end' },
+      { name: 'Any "why won\'t it scale?" profile', how: 'flat throughput as cores rise, with coherence-miss counters climbing, is the tell' },
+    ],
+    echo: (
+      <>
+        It's the coherence tax the caches quietly levy: the same reason a <T k="replica">replica</T> needs care to agree with
+        its primary, a CPU core needs permission to write a line another core holds. Every copy, on every floor, must be kept
+        honest.
+      </>
+    ),
+  },
 }

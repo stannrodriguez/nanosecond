@@ -34,6 +34,8 @@ import { CacheCliff } from './CacheCliff'
 import { InstructionLoop } from './InstructionLoop'
 import { HeatWall } from './HeatWall'
 import { BranchPredictor } from './BranchPredictor'
+import { TlbToll } from './TlbToll'
+import { FalseSharing } from './FalseSharing'
 
 // The toy registry: metadata lives in content/toys.ts, sims live here.
 const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> = {
@@ -53,6 +55,8 @@ const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> 
   'instruction-loop': InstructionLoop,
   'heat-wall': HeatWall,
   'branch-predictor': BranchPredictor,
+  'tlb-toll': TlbToll,
+  'false-sharing': FalseSharing,
 }
 
 // Index group order + each channel's physical wall (product-spec: every

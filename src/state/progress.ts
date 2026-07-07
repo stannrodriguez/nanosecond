@@ -3,7 +3,6 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { TOYS } from '../content/toys'
 
 interface ProgressState {
   /** toy id → completed (reached the punchline at least once) */
@@ -15,6 +14,9 @@ interface ProgressState {
   /** toy id → the forecast option index the player locked in (spec 084) */
   forecasts: Record<string, number>
   recordForecast: (id: string, ix: number) => void
+  /** component id → forged (toy done + mini-challenge passed, spec 070) */
+  forged: Record<string, boolean>
+  forgeComponent: (component: string) => void
 }
 
 export const useProgress = create<ProgressState>()(
@@ -30,11 +32,14 @@ export const useProgress = create<ProgressState>()(
       // lock-in: a call, once made, is the record — never silently overwritten
       recordForecast: (id, ix) =>
         set((s) => (s.forecasts[id] !== undefined ? s : { forecasts: { ...s.forecasts, [id]: ix } })),
+      forged: {},
+      forgeComponent: (component) =>
+        set((s) => (s.forged[component] ? s : { forged: { ...s.forged, [component]: true } })),
     }),
     { name: 'nanosecond-progress' },
   ),
 )
 
-/** Component ids the player has forged by completing the owning toy. */
-export const forgedComponents = (toysCompleted: Record<string, boolean>): string[] =>
-  TOYS.filter((t) => t.forgeUnlocks && toysCompleted[t.id]).map((t) => t.forgeUnlocks!)
+/** Component ids the player has forged (mini-challenge passed). */
+export const forgedComponents = (forged: Record<string, boolean>): string[] =>
+  Object.keys(forged).filter((c) => forged[c])

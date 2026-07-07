@@ -15,6 +15,7 @@ import {
   type ManualSection,
 } from '../../content/manual'
 import { COMPONENTS } from '../../content/components'
+import { forgeForComponent } from '../../content/forge'
 import { GLOSSARY } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
@@ -159,8 +160,14 @@ function SectionView({ s }: { s: ManualSection }) {
   )
 }
 
+// Parts-bin id → Forge component id (the parts bin uses singular ids; the
+// unlock graph uses the product-spec plurals). Entries not listed are
+// foundational (load balancer, app server) and never locked.
+const PART_TO_FORGE: Record<string, string> = { cache: 'cache', replica: 'replicas', shard: 'shards', queue: 'queue' }
+
 function PartsBin() {
   const [open, setOpen] = useState(false)
+  const forged = useProgress((s) => s.forged)
   return (
     <div style={{ marginTop: 28, borderTop: `1px solid ${C.line}`, paddingTop: 16 }}>
       <button
@@ -171,19 +178,35 @@ function PartsBin() {
         {open ? '▾' : '▸'} PARTS BIN — the technologies at a glance
       </button>
       {open &&
-        COMPONENTS.map((p) => (
-          <div key={p.id} style={{ padding: '10px 0', borderBottom: `1px solid ${C.line}` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 150px) 1fr', gap: 12 }}>
-              <div style={{ color: CH_COLOR[p.ch], fontWeight: 600, fontSize: 13.5 }}>
-                <T k={p.termKey}>{p.name}</T>
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                <span style={{ color: C.text }}>{p.when}</span> <span style={{ color: C.dim }}>{p.risk}</span>
-                <FinePrint text={p.simplifies} />
+        COMPONENTS.map((p) => {
+          const forge = PART_TO_FORGE[p.id] ? forgeForComponent(PART_TO_FORGE[p.id]) : undefined
+          const locked = forge && !forged[forge.component]
+          return (
+            <div key={p.id} style={{ padding: '10px 0', borderBottom: `1px solid ${C.line}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 150px) 1fr', gap: 12 }}>
+                <div style={{ color: locked ? C.faint : CH_COLOR[p.ch], fontWeight: 600, fontSize: 13.5 }}>
+                  {locked && <span aria-hidden>🔒 </span>}
+                  <T k={p.termKey}>{p.name}</T>
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                  <span style={{ color: C.text }}>{p.when}</span> <span style={{ color: C.dim }}>{p.risk}</span>
+                  {forge && (
+                    <div className="mono" style={{ fontSize: 11, marginTop: 4 }}>
+                      {locked ? (
+                        <Link to={`/lab/${forge.toyId}`} style={{ color: C.gold, textDecoration: 'none' }}>
+                          🔒 locked — ⚒ forge it in the Lab: {forge.toyName.toLowerCase()} →
+                        </Link>
+                      ) : (
+                        <span style={{ color: C.ok }}>⚒ forged — unlocked in the Builder &amp; On-Call</span>
+                      )}
+                    </div>
+                  )}
+                  <FinePrint text={p.simplifies} />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
     </div>
   )
 }

@@ -55,6 +55,9 @@ test('builder: briefing gate then workbench renders steppers', async ({ page }) 
   await page.getByRole('button', { name: /open the workbench/ }).click()
   await expect(page.getByText('YOUR ARCHITECTURE')).toBeVisible()
   await expect(page.getByText('MONTHLY COST')).toBeVisible()
+  // The Forge: unforged parts render locked, never hidden, and deep-link to the toy
+  await expect(page.getByText('Forge in the Lab').first()).toBeVisible()
+  await expect(page.locator('a[href="#/lab/stampede"]').first()).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/builder-workbench.png', fullPage: true })
 })
@@ -178,9 +181,17 @@ test('lab: 18 toys registered; hot partition throttles and forges shards', async
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
   await callIt(page)
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
+  // forge the DB shard: the toy is done, now pass the key-choice mini-challenge
+  await expect(page.getByText(/FORGE THE DB SHARD/)).toBeVisible()
+  await page.getByRole('button', { name: /partition melts while seven idle/ }).click()
   await expect(page.getByText(/FORGED: DB SHARD/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-hotpartition.png', fullPage: true })
+  // the forge carries into the Builder: DB shards unlock, the rest stay locked
+  await page.goto('/#/builder')
+  await page.getByRole('button', { name: /open the workbench/ }).click()
+  await expect(page.locator('a[href="#/lab/hotpartition"]')).toHaveCount(0)
+  await expect(page.locator('a[href="#/lab/stampede"]').first()).toBeVisible()
 })
 
 test('lab: ttl stampede spikes the DB', async ({ page }) => {

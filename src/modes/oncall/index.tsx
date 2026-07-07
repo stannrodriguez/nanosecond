@@ -17,6 +17,8 @@ import {
   type EventChoice,
 } from '../../content/oncall'
 import { useScars } from '../../state/scars'
+import { useProgress } from '../../state/progress'
+import { LockedPart } from '../../ui/LockedPart'
 import { bestScore, useOnCallRun, type RunSummary } from '../../state/oncallRun'
 import { encounterDamage, freshGame, oncallTick, PRICE, type GameState } from './engine'
 import { ThisActuallyHappened } from '../../ui/ThisActuallyHappened'
@@ -32,6 +34,8 @@ export { oncallTick, encounterDamage } from './engine'
 
 export default function OnCall() {
   const addScar = useScars((s) => s.addScar)
+  const forged = useProgress((s) => s.forged)
+  const isForged = (c: string) => !!forged[c]
   const saveActive = useOnCallRun((s) => s.saveActive)
   const finishRun = useOnCallRun((s) => s.finishRun)
   const history = useOnCallRun((s) => s.history)
@@ -107,8 +111,11 @@ export default function OnCall() {
     setResult(null)
   }
 
+  // The CDN pattern is a forgeable component (Race Light) — keep it out of the
+  // draft/shop until it's forged. Every other pattern is a run-earned relic.
+  const patternAvailable = (k: string) => k !== 'cdn' || isForged('cdn')
   const makeDraft = () => {
-    const pool = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k))
+    const pool = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k) && patternAvailable(k))
     const picks = pool.sort(() => Math.random() - 0.5).slice(0, 2)
     return [...picks.map((k) => ({ kind: 'pat' as const, k })), { kind: 'gold' as const, amt: RUN.draftGold }]
   }
@@ -317,7 +324,7 @@ export default function OnCall() {
 
   /* ---------------- shop ---------------- */
   if (g.phase === 'shop') {
-    const forSale = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k)).slice(0, 3)
+    const forSale = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k) && patternAvailable(k)).slice(0, 3)
     return (
       <div>
         {header}
@@ -394,28 +401,47 @@ export default function OnCall() {
             STACK · sell refunds {Math.round(RUN.sellRefund * 100)}%
           </div>
           <Step label="App servers" price={PRICE.app} val={g.cfg.app} col={C.compute} canDec={!running && g.cfg.app > 1} canInc={!running && g.gold >= PRICE.app} onDec={() => sell('app', PRICE.app)} onInc={() => buy('app', PRICE.app)} />
-          <Step label="Cache nodes" price={PRICE.cache} val={g.cfg.cache} col={C.mem} canDec={!running && g.cfg.cache > 0} canInc={!running && g.gold >= PRICE.cache} onDec={() => sell('cache', PRICE.cache)} onInc={() => buy('cache', PRICE.cache)} />
-          <Step label="DB shards" price={PRICE.shard} val={g.cfg.shards} col={C.storage} canDec={!running && g.cfg.shards > 1} canInc={!running && g.gold >= PRICE.shard} onDec={() => sell('shards', PRICE.shard)} onInc={() => buy('shards', PRICE.shard)} />
-          <Step label="Read replicas" price={PRICE.replica} val={g.cfg.replicas} col={C.storage} canDec={!running && g.cfg.replicas > 0} canInc={!running && g.gold >= PRICE.replica} onDec={() => sell('replicas', PRICE.replica)} onInc={() => buy('replicas', PRICE.replica)} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: g.cfg.queue ? `1px solid ${C.line}` : 'none' }}>
-            <span style={{ fontSize: 12.5 }}>
-              Write queue{' '}
-              <span className="mono" style={{ color: C.gold, fontSize: 11 }}>
-                ${PRICE.queue}
-              </span>
-            </span>
-            <Chip
-              active={g.cfg.queue}
-              disabled={running || (!g.cfg.queue && g.gold < PRICE.queue)}
-              onClick={() => (g.cfg.queue ? sell('queue', PRICE.queue) : buy('queue', PRICE.queue))}
-              style={{ padding: '3px 11px', borderRadius: 6, fontSize: 11.5 }}
-            >
-              {g.cfg.queue ? 'ON' : 'OFF'}
-            </Chip>
-          </div>
-          {g.cfg.queue && (
-            <Step label="Workers" price={PRICE.worker} val={g.cfg.workers} col={C.net} canDec={!running && g.cfg.workers > 1} canInc={!running && g.gold >= PRICE.worker} onDec={() => sell('workers', PRICE.worker)} onInc={() => buy('workers', PRICE.worker)} />
+          {isForged('cache') ? (
+            <Step label="Cache nodes" price={PRICE.cache} val={g.cfg.cache} col={C.mem} canDec={!running && g.cfg.cache > 0} canInc={!running && g.gold >= PRICE.cache} onDec={() => sell('cache', PRICE.cache)} onInc={() => buy('cache', PRICE.cache)} />
+          ) : (
+            <LockedPart component="cache" price={PRICE.cache} />
           )}
+          {isForged('shards') ? (
+            <Step label="DB shards" price={PRICE.shard} val={g.cfg.shards} col={C.storage} canDec={!running && g.cfg.shards > 1} canInc={!running && g.gold >= PRICE.shard} onDec={() => sell('shards', PRICE.shard)} onInc={() => buy('shards', PRICE.shard)} />
+          ) : (
+            <LockedPart component="shards" price={PRICE.shard} />
+          )}
+          {isForged('replicas') ? (
+            <Step label="Read replicas" price={PRICE.replica} val={g.cfg.replicas} col={C.storage} canDec={!running && g.cfg.replicas > 0} canInc={!running && g.gold >= PRICE.replica} onDec={() => sell('replicas', PRICE.replica)} onInc={() => buy('replicas', PRICE.replica)} />
+          ) : (
+            <LockedPart component="replicas" price={PRICE.replica} />
+          )}
+          {isForged('queue') ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: g.cfg.queue ? `1px solid ${C.line}` : 'none' }}>
+              <span style={{ fontSize: 12.5 }}>
+                Write queue{' '}
+                <span className="mono" style={{ color: C.gold, fontSize: 11 }}>
+                  ${PRICE.queue}
+                </span>
+              </span>
+              <Chip
+                active={g.cfg.queue}
+                disabled={running || (!g.cfg.queue && g.gold < PRICE.queue)}
+                onClick={() => (g.cfg.queue ? sell('queue', PRICE.queue) : buy('queue', PRICE.queue))}
+                style={{ padding: '3px 11px', borderRadius: 6, fontSize: 11.5 }}
+              >
+                {g.cfg.queue ? 'ON' : 'OFF'}
+              </Chip>
+            </div>
+          ) : (
+            <LockedPart component="queue" price={PRICE.queue} />
+          )}
+          {isForged('queue') && g.cfg.queue &&
+            (isForged('workers') ? (
+              <Step label="Workers" price={PRICE.worker} val={g.cfg.workers} col={C.net} canDec={!running && g.cfg.workers > 1} canInc={!running && g.gold >= PRICE.worker} onDec={() => sell('workers', PRICE.worker)} onInc={() => buy('workers', PRICE.worker)} />
+            ) : (
+              <LockedPart component="workers" price={PRICE.worker} />
+            ))}
           {g.cfg.queue && g.cfg.workers >= RUN.workerSynergyCount && (
             <div className="mono" style={{ fontSize: 10.5, color: C.net, marginTop: 6 }}>
               ⚡ SYNERGY: {RUN.workerSynergyCount}+ workers → drain ×{RUN.workerSynergyMult}

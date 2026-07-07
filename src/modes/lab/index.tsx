@@ -8,7 +8,7 @@ import { BRIEFINGS } from '../../content/briefings'
 import { FORECASTS } from '../../content/forecasts'
 import { STATIONS, stationForToy } from '../../content/journey'
 import { FLOORS, floorForToy } from '../../content/stack'
-import { COMPONENTS } from '../../content/components'
+import { forgeForToy, type ForgeEntry } from '../../content/forge'
 import { NUMBERS } from '../../content/numbers'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
 import { MANUAL } from '../../content/manual'
@@ -78,7 +78,7 @@ export default function Lab() {
   return <ToyDetail toy={toy} />
 }
 
-function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: () => void }) {
+function ToyCard({ toy, done, forged, onOpen }: { toy: ToyEntry; done: boolean; forged: boolean; onOpen: () => void }) {
   const col = CH_COLOR[toy.ch]
   return (
     <button
@@ -101,8 +101,8 @@ function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: 
       </div>
       <div style={{ fontSize: 12, color: C.dim, marginTop: 4, lineHeight: 1.4 }}>{toy.sub}</div>
       {toy.forgeUnlocks && (
-        <div className="mono" style={{ fontSize: 10, color: done ? C.gold : C.faint, marginTop: 6 }}>
-          ⚒ {done ? 'forged a Builder part' : 'forges a Builder part'}
+        <div className="mono" style={{ fontSize: 10, color: forged ? C.gold : C.faint, marginTop: 6 }}>
+          ⚒ {forged ? 'forged a Builder part' : 'forges a Builder part'}
         </div>
       )}
     </button>
@@ -286,7 +286,7 @@ function JourneyMap({ toysCompleted }: { toysCompleted: Record<string, boolean> 
 
 function LabIndex() {
   const navigate = useNavigate()
-  const { toysCompleted } = useProgress()
+  const { toysCompleted, forged } = useProgress()
   const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
   return (
     <div>
@@ -313,7 +313,13 @@ function LabIndex() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
             {TOYS.filter((t) => t.ch === ch).map((t) => (
-              <ToyCard key={t.id} toy={t} done={!!toysCompleted[t.id]} onOpen={() => navigate(`/lab/${t.id}`)} />
+              <ToyCard
+                key={t.id}
+                toy={t}
+                done={!!toysCompleted[t.id]}
+                forged={!!t.forgeUnlocks && !!forged[t.forgeUnlocks]}
+                onOpen={() => navigate(`/lab/${t.id}`)}
+              />
             ))}
           </div>
         </section>
@@ -619,17 +625,133 @@ function ForecastPanel({
   )
 }
 
+// Spec 070 — THE FORGE. You may not USE a component you haven't understood:
+// each of the six buildable components is locked in the Builder + On-Call until
+// you forge it here. Forging = complete the toy (you've operated the mechanism)
+// AND pass a one-question mini-challenge (you can reason about it). Content:
+// content/forge.ts. The badge text ("FORGED: …") is what the Builder unlock reads.
+function ForgeSection({ forge, done, forged, onForge }: { forge: ForgeEntry; done: boolean; forged: boolean; onForge: () => void }) {
+  const [pick, setPick] = useState<number | null>(null)
+  const settled = pick !== null || forged
+  const correct = forged || pick === forge.correctIx
+  const choose = (i: number) => {
+    if (settled) return
+    setPick(i)
+    if (i === forge.correctIx) onForge()
+  }
+  if (forged) {
+    return (
+      <section aria-label="Forge" style={{ margin: '12px 0 4px' }}>
+        <span
+          className="mono"
+          style={{
+            display: 'inline-block',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1,
+            color: C.gold,
+            border: `1px solid ${C.gold}66`,
+            borderRadius: 6,
+            padding: '3px 8px',
+          }}
+        >
+          ⚒ FORGED: {forge.label.toUpperCase()} — unlocked for the Builder &amp; On-Call
+        </span>
+      </section>
+    )
+  }
+  return (
+    <section
+      aria-label="Forge challenge"
+      style={{ background: C.panel, border: `1px solid ${C.gold}44`, borderRadius: 10, padding: '10px 14px 12px', margin: '12px 0 4px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <Eyebrow color={C.gold}>⚒ FORGE THE {forge.label.toUpperCase()} — {forge.challenge}</Eyebrow>
+        <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
+          pass this to unlock the part in the Builder &amp; On-Call
+        </span>
+      </div>
+      {!done ? (
+        <div className="mono" style={{ fontSize: 12, color: C.faint, marginTop: 8 }}>
+          run the sim above to the end first — then prove the mechanism clicked.
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: C.text, margin: '8px 0 10px' }}>{forge.prompt}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {forge.options.map((o, i) => {
+              const isPick = pick === i
+              const isAnswer = i === forge.correctIx
+              let bg: string = C.panelUp
+              let brd: string = C.line
+              let fg: string = C.dim
+              if (settled && isAnswer) {
+                bg = C.ok
+                brd = C.ok
+                fg = C.bg
+              } else if (settled && isPick) {
+                bg = C.alert
+                brd = C.alert
+                fg = '#fff'
+              }
+              return (
+                <button
+                  key={i}
+                  onClick={() => choose(i)}
+                  disabled={settled}
+                  className="mono"
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: settled ? 'default' : 'pointer',
+                    background: bg,
+                    color: fg,
+                    border: `1px solid ${brd}`,
+                  }}
+                >
+                  {o}
+                  {settled && isAnswer && ' ✓'}
+                  {settled && isPick && !isAnswer && ' ✗'}
+                </button>
+              )
+            })}
+          </div>
+          {settled && (
+            <div style={{ marginTop: 10 }}>
+              <span
+                className="mono"
+                style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, color: correct ? C.gold : C.alert }}
+              >
+                {correct ? '⚒ FORGED' : '✗ NOT YET'}
+              </span>
+              <span style={{ fontSize: 13, lineHeight: 1.55, color: C.text }}> — {forge.reveal}</span>
+              {!correct && (
+                <button
+                  onClick={() => setPick(null)}
+                  className="mono"
+                  style={{ display: 'block', marginTop: 8, background: 'none', border: `1px solid ${C.line}`, borderRadius: 7, color: C.dim, padding: '5px 10px', cursor: 'pointer', fontSize: 11 }}
+                >
+                  try again
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
 function ToyDetail({ toy }: { toy: ToyEntry }) {
-  const { toysCompleted, completeToy, forecasts, recordForecast } = useProgress()
+  const { toysCompleted, completeToy, forecasts, recordForecast, forged, forgeComponent } = useProgress()
   const addScar = useScars((s) => s.addScar)
   const Comp = TOY_COMPONENTS[toy.id]
   const done = !!toysCompleted[toy.id]
   const col = CH_COLOR[toy.ch]
-  // forge ids use the product-spec plural names; map to parts-bin components
-  const FORGE_TO_COMPONENT: Record<string, string> = { shards: 'shard', replicas: 'replica', cache: 'cache', queue: 'queue' }
-  const forgedComp = toy.forgeUnlocks ? COMPONENTS.find((c) => c.id === FORGE_TO_COMPONENT[toy.forgeUnlocks!]) : null
-  const forgedName =
-    forgedComp?.name ?? (toy.forgeUnlocks === 'workers' ? 'Workers' : toy.forgeUnlocks === 'cdn' ? 'CDN' : toy.forgeUnlocks)
+  const forge = forgeForToy(toy.id)
+  const isForged = forge ? !!forged[forge.component] : false
   const concept = conceptForToy(toy.id)
   const briefing = concept?.manualId ? MANUAL.find((m) => m.id === concept.manualId) : undefined
   const drillCount = concept ? drillsForConcept(concept).length : 0
@@ -682,26 +804,9 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
       )}
       {showSim && (
         <>
-          {done && toy.forgeUnlocks && (
-            <span
-              className="mono"
-              style={{
-                display: 'inline-block',
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 1,
-                color: C.gold,
-                border: `1px solid ${C.gold}66`,
-                borderRadius: 6,
-                padding: '3px 8px',
-                margin: '4px 0',
-              }}
-            >
-              ⚒ FORGED: {String(forgedName).toUpperCase()} — unlocked for the Builder
-            </span>
-          )}
           <Comp onComplete={handleComplete} />
           <FinePrint text={toy.simplifies} />
+          {forge && <ForgeSection forge={forge} done={done} forged={isForged} onForge={() => forgeComponent(forge.component)} />}
           <Receipts toy={toy} />
           {concept && (
             <div

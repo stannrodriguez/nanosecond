@@ -12,6 +12,7 @@ import { STATIONS } from '../src/content/journey'
 import { FLOORS } from '../src/content/stack'
 import { FORECASTS } from '../src/content/forecasts'
 import { COMPONENTS } from '../src/content/components'
+import { FORGE } from '../src/content/forge'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
 import { PUZZLES } from '../src/content/puzzles'
@@ -68,6 +69,31 @@ describe('schema: toys', () => {
     for (const t of TOYS) {
       expect(t.click.startsWith("It's clicked when "), `${t.id} click must open with the shared phrasing`).toBe(true)
       expect(t.click.length, `${t.id} click too thin to self-test against`).toBeGreaterThan(60)
+    }
+  })
+})
+
+describe('schema: the Forge (spec 070)', () => {
+  it('covers all six forgeable components, exactly once each', () => {
+    const forgeable = ['cache', 'queue', 'replicas', 'shards', 'workers', 'cdn'].sort()
+    const covered = FORGE.map((f) => f.component).sort()
+    expect(covered).toEqual(forgeable)
+  })
+  it('every forge entry matches a real toy that declares the same forgeUnlocks', () => {
+    for (const f of FORGE) {
+      const toy = TOYS.find((t) => t.id === f.toyId)
+      expect(toy, `${f.component} → toy ${f.toyId}`).toBeTruthy()
+      expect(toy!.forgeUnlocks, `${f.toyId} must forge ${f.component}`).toBe(f.component)
+    }
+  })
+  it('every mini-challenge has a valid correct answer and honest copy', () => {
+    for (const f of FORGE) {
+      expect(f.options.length, `${f.component} needs ≥2 options`).toBeGreaterThanOrEqual(2)
+      expect(f.correctIx, `${f.component} correctIx in range`).toBeGreaterThanOrEqual(0)
+      expect(f.correctIx, `${f.component} correctIx in range`).toBeLessThan(f.options.length)
+      expect(f.challenge.trim().length, `${f.component} challenge name`).toBeGreaterThan(0)
+      expect(f.prompt.trim().length, `${f.component} prompt`).toBeGreaterThan(20)
+      expect(f.reveal.trim().length, `${f.component} reveal`).toBeGreaterThan(20)
     }
   })
 })

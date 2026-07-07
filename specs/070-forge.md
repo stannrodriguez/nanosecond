@@ -1,8 +1,8 @@
 # 070 — The Forge
-- [ ] Unlock graph per product-spec §3.8; components locked in Builder + On-Call
+- [x] Unlock graph per product-spec §3.8; components locked in Builder + On-Call
       until forged
-- [ ] 6 forge mini-challenges (one per component)
-- [ ] Parts bin shows locked state with deep link to the toy
+- [x] 6 forge mini-challenges (one per component)
+- [x] Parts bin shows locked state with deep link to the toy
 
 ## Context (read this, not the whole repo)
 - **Read**: product-spec §3.8 (the unlock graph, verbatim). The forge seams

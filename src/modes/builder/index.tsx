@@ -10,6 +10,8 @@ import { fmtNum } from '../../ui/fmt'
 import { diagnoseTiers, simTick, stackCost, type Frame, type StackConfig } from '../../engine/capacity'
 import { SCENARIOS, SCENARIO_TICKS } from '../../content/scenarios'
 import { useScars } from '../../state/scars'
+import { useProgress } from '../../state/progress'
+import { LockedPart } from '../../ui/LockedPart'
 
 interface Verdict {
   pass: boolean
@@ -21,12 +23,25 @@ const DEFAULT_CFG: StackConfig = { app: 2, cache: 0, hitRate: 0.8, replicas: 0, 
 
 export default function Builder() {
   const addScar = useScars((s) => s.addScar)
+  const forged = useProgress((s) => s.forged)
+  const isForged = (c: string) => !!forged[c]
   const [scIdx, setScIdx] = useState(0)
   const [stage, setStage] = useState<'brief' | 'build'>('brief')
   const sc = SCENARIOS[scIdx]
   const [cfg, setCfg] = useState<StackConfig>(DEFAULT_CFG)
   const [verdict, setVerdict] = useState<Verdict | null>(null)
-  const cost = stackCost(cfg)
+  // The Forge: a component you haven't forged isn't deployable — clamp it to its
+  // baseline so neither the sim nor the cost can spend what's still locked.
+  const lockCfg = (c: StackConfig): StackConfig => ({
+    ...c,
+    cache: isForged('cache') ? c.cache : 0,
+    replicas: isForged('replicas') ? c.replicas : 0,
+    shards: isForged('shards') ? c.shards : 1,
+    queue: isForged('queue') ? c.queue : false,
+    workers: isForged('workers') ? c.workers : 1,
+  })
+  const eff = lockCfg(cfg)
+  const cost = stackCost(eff)
 
   const runner = useTickRunner<Frame>({
     ticks: SCENARIO_TICKS + 1, // frames for t = 0..SCENARIO_TICKS
@@ -34,7 +49,7 @@ export default function Builder() {
     step: (t, frames) => {
       const mult = sc.profile(t)
       const prevBacklog = frames.length ? frames[frames.length - 1].backlog : 0
-      return simTick(cfg, sc.rps * mult * sc.readPct, sc.rps * mult * (1 - sc.readPct), prevBacklog)
+      return simTick(eff, sc.rps * mult * sc.readPct, sc.rps * mult * (1 - sc.readPct), prevBacklog)
     },
     onDone: (frames) => {
       const worstP99 = Math.max(...frames.map((f) => f.p99))
@@ -44,7 +59,7 @@ export default function Builder() {
         { name: `p99 ≤ ${sc.p99Target} ms`, pass: worstP99 <= sc.p99Target, detail: `worst p99: ${worstP99.toFixed(0)} ms` },
         { name: 'error rate ≤ 0.5%', pass: worstErr <= 0.005, detail: `worst: ${(worstErr * 100).toFixed(1)}%` },
         { name: `cost ≤ $${sc.budget}/mo`, pass: cost <= sc.budget, detail: `$${cost}/mo` },
-        ...(cfg.queue
+        ...(eff.queue
           ? [
               {
                 name: 'backlog drained by end',
@@ -65,7 +80,7 @@ export default function Builder() {
         addScar({
           mode: 'builder',
           theme: sc.name,
-          what: `${cfg.app} app · ${cfg.cache} cache · ${cfg.shards} shard(s) · ${cfg.replicas} repl${cfg.queue ? ` · queue+${cfg.workers}w` : ''} ($${cost})`,
+          what: `${eff.app} app · ${eff.cache} cache · ${eff.shards} shard(s) · ${eff.replicas} repl${eff.queue ? ` · queue+${eff.workers}w` : ''} ($${cost})`,
           truth: checks
             .filter((c) => !c.pass)
             .map((c) => `${c.name} — ${c.detail}`)
@@ -155,8 +170,12 @@ export default function Builder() {
           <Panel>
             <Eyebrow style={{ marginBottom: 6 }}>YOUR ARCHITECTURE</Eyebrow>
             <Stepper label={<><T k="appserver">App servers</T> · $150 · 10k rps</>} val={cfg.app} set={(v) => set('app')(v)} min={1} max={12} col={C.compute} />
-            <Stepper label={<><T k="cache">Cache nodes</T> · $200 · 100k ops</>} val={cfg.cache} set={(v) => set('cache')(v)} min={0} max={6} col={C.mem} />
-            {cfg.cache > 0 && (
+            {isForged('cache') ? (
+              <Stepper label={<><T k="cache">Cache nodes</T> · $200 · 100k ops</>} val={cfg.cache} set={(v) => set('cache')(v)} min={0} max={6} col={C.mem} />
+            ) : (
+              <LockedPart component="cache" price={200} />
+            )}
+            {isForged('cache') && cfg.cache > 0 && (
               <div style={{ padding: '8px 0', borderBottom: `1px solid ${C.line}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
                   <span style={{ color: C.dim }}>
@@ -169,17 +188,34 @@ export default function Builder() {
                 <input type="range" min={50} max={95} value={cfg.hitRate * 100} onChange={(e) => set('hitRate')(+e.target.value / 100)} aria-label="cache hit rate" />
               </div>
             )}
-            <Stepper label={<><T k="shard">DB shards</T> · $600 · 10k w/s</>} val={cfg.shards} set={(v) => set('shards')(v)} min={1} max={4} col={C.storage} />
-            <Stepper label={<><T k="replica">Read replicas</T> · $400 · 20k r/s</>} val={cfg.replicas} set={(v) => set('replicas')(v)} min={0} max={6} col={C.storage} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: cfg.queue ? `1px solid ${C.line}` : 'none' }}>
-              <span style={{ fontSize: 13 }}>
-                <T k="queue">Write queue</T> · $300
-              </span>
-              <Chip active={cfg.queue} onClick={() => set('queue')(!cfg.queue)} style={{ padding: '4px 12px', borderRadius: 6 }}>
-                {cfg.queue ? 'ON' : 'OFF'}
-              </Chip>
-            </div>
-            {cfg.queue && <Stepper label={<><T k="worker">Workers</T> · $100 · 5k w/s</>} val={cfg.workers} set={(v) => set('workers')(v)} min={1} max={8} col={C.net} />}
+            {isForged('shards') ? (
+              <Stepper label={<><T k="shard">DB shards</T> · $600 · 10k w/s</>} val={cfg.shards} set={(v) => set('shards')(v)} min={1} max={4} col={C.storage} />
+            ) : (
+              <LockedPart component="shards" price={600} />
+            )}
+            {isForged('replicas') ? (
+              <Stepper label={<><T k="replica">Read replicas</T> · $400 · 20k r/s</>} val={cfg.replicas} set={(v) => set('replicas')(v)} min={0} max={6} col={C.storage} />
+            ) : (
+              <LockedPart component="replicas" price={400} />
+            )}
+            {isForged('queue') ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: cfg.queue ? `1px solid ${C.line}` : 'none' }}>
+                <span style={{ fontSize: 13 }}>
+                  <T k="queue">Write queue</T> · $300
+                </span>
+                <Chip active={cfg.queue} onClick={() => set('queue')(!cfg.queue)} style={{ padding: '4px 12px', borderRadius: 6 }}>
+                  {cfg.queue ? 'ON' : 'OFF'}
+                </Chip>
+              </div>
+            ) : (
+              <LockedPart component="queue" price={300} />
+            )}
+            {isForged('queue') && cfg.queue &&
+              (isForged('workers') ? (
+                <Stepper label={<><T k="worker">Workers</T> · $100 · 5k w/s</>} val={cfg.workers} set={(v) => set('workers')(v)} min={1} max={8} col={C.net} />
+              ) : (
+                <LockedPart component="workers" price={100} />
+              ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'baseline' }}>
               <Eyebrow style={{ fontSize: 11 }}>MONTHLY COST</Eyebrow>
               <span className="mono" style={{ fontSize: 18, fontWeight: 600, color: cost > sc.budget ? C.alert : C.ok }}>

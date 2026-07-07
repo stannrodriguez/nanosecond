@@ -136,7 +136,7 @@ test('lab landing surfaces the Daily Incident card', async ({ page }) => {
 test('on-call: map renders and first encounter opens', async ({ page }) => {
   await page.goto('/#/on-call')
   await expect(page.getByRole('heading', { name: 'ON-CALL' })).toBeVisible()
-  await expect(page.getByText('node 1/10')).toBeVisible()
+  await expect(page.getByText('act 1/3')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/oncall-map.png', fullPage: true })
   await page.getByRole('button', { name: /Launch Day/ }).click()

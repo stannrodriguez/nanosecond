@@ -1,6 +1,7 @@
 import { C } from '../../theme'
 import { Panel } from '../../ui/kit'
 import { TIER_LABEL, type Puzzle } from '../../content/puzzles'
+import { ThisActuallyHappened } from '../../ui/ThisActuallyHappened'
 
 /** Format a solve time against par (no fail state — pacing is just a signal). */
 export function paceLabel(par: number, solveSecs: number): { text: string; col: string } {
@@ -45,6 +46,7 @@ export function Postmortem({ p }: { p: Puzzle }) {
         </span>
         {p.line}
       </div>
+      {p.happened && <ThisActuallyHappened ids={[p.happened]} />}
     </Panel>
   )
 }

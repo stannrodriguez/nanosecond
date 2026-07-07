@@ -55,6 +55,8 @@ export interface Puzzle {
   explain: string
   fix: string
   line: string
+  /** optional real public post-mortem (key into HAPPENED, spec 060) */
+  happened?: string
 }
 
 /** Sentinel picked-value for "this design is sound — ship it". */
@@ -551,6 +553,7 @@ const RAW: Puzzle[] = [
       'Exponential backoff without JITTER makes every client retry on the same schedule. A shared trigger (the blip) synchronizes them and the deterministic delays keep them synchronized, so retries arrive as one coordinated thundering herd — worse than the original blip — and re-synchronize on every wave. The retry policy is right in spirit and wrong in timing.',
     fix: 'Add jitter: wait a RANDOM duration in [0, backoff] instead of exactly backoff. The 5000 retries then smear across the window rather than stacking on one instant. “Exponential backoff AND jitter” is a single idea — it is the canonical retry recipe for a reason.',
     line: '“Backoff without jitter just reschedules the stampede. I pair exponential backoff with randomized jitter so retries spread out instead of resonating into a self-inflicted DDoS.”',
+    happened: 'slack-2021',
   },
 
   {
@@ -730,6 +733,7 @@ const RAW: Puzzle[] = [
       "Two decisions collide: a node promotes itself on a TIMEOUT (which cannot distinguish a dead peer from an unreachable one), and clients retry to whichever node answers. A mere partition then yields two primaries — split brain — each taking conflicting writes. The timeout is a liveness guess; acting on it unilaterally is the bug.",
     fix: 'Require a QUORUM (a majority of voters, or an external witness/arbiter) to elect a primary. With an odd number of voters a minority partition can never promote itself, so at most one primary exists at a time. Consensus — Raft/Paxos, or Patroni + etcd — decides leadership, not a local timeout.',
     line: '“Never let a node promote itself on a timeout — a timeout can\'t tell dead from unreachable. Leadership needs a quorum so a partition yields zero or one primary, never two.”',
+    happened: 'github-2018',
   },
 
   {

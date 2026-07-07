@@ -12,6 +12,9 @@ interface ProgressState {
   /** Concept Library section id → read (spec 047) */
   sectionsRead: Record<string, boolean>
   markSectionRead: (id: string) => void
+  /** toy id → the forecast option index the player locked in (spec 084) */
+  forecasts: Record<string, number>
+  recordForecast: (id: string, ix: number) => void
 }
 
 export const useProgress = create<ProgressState>()(
@@ -23,6 +26,10 @@ export const useProgress = create<ProgressState>()(
       sectionsRead: {},
       markSectionRead: (id) =>
         set((s) => (s.sectionsRead[id] ? s : { sectionsRead: { ...s.sectionsRead, [id]: true } })),
+      forecasts: {},
+      // lock-in: a call, once made, is the record — never silently overwritten
+      recordForecast: (id, ix) =>
+        set((s) => (s.forecasts[id] !== undefined ? s : { forecasts: { ...s.forecasts, [id]: ix } })),
     }),
     { name: 'nanosecond-progress' },
   ),

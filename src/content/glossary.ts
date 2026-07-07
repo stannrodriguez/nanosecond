@@ -45,6 +45,30 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Hit rate',
     def: "The % of lookups the cache can answer itself. 80% hit rate = only 20% of reads reach the database. Driven by how often people ask for the SAME thing: a viral post → 99%+; random user profiles → much lower. This one percentage decides your database's fate.",
   },
+  virtualmemory: {
+    name: 'Virtual memory',
+    def: 'The illusion that each program owns a private, contiguous memory. The hardware translates every virtual address to a real physical one on the fly, one 4 KB page at a time, which is what lets many programs share one RAM safely — and what makes "it fits in RAM" quietly depend on fitting in the map of RAM (the TLB) too.',
+  },
+  pipeline: {
+    name: 'Pipeline',
+    def: 'Executing instructions like an assembly line: while one is being decoded, the next is being fetched, so the core retires roughly one instruction per clock tick instead of waiting for each to finish. The catch — it must guess what comes next at every branch, and a wrong guess flushes the line.',
+  },
+  speculation: {
+    name: 'Speculative execution',
+    def: "The CPU running instructions it only THINKS it will need — guessing which way a branch goes and executing ahead before it knows for sure. Right guesses are free speed; wrong ones are thrown away. Almost all modern CPU performance depends on it, and its side effects leaked in Spectre.",
+  },
+  core: {
+    name: 'Core',
+    def: 'One independent processor on a chip — its own pipeline, able to run a program by itself. When heat capped clock speed near ~4 GHz, chipmakers stopped making one core faster and started stamping down MORE cores, which is why using them all at once (parallelism) became every programmer’s problem.',
+  },
+  cacheline: {
+    name: 'Cache line',
+    def: "The fixed 64-byte block the CPU moves between RAM and cache — it never fetches a lone byte. Touch one byte and its 63 neighbours come along free, so data you use together should SIT together. This is why a contiguous array can be an order of magnitude faster than a linked list of the same fields: the array hands the CPU eight useful values per line, the list one.",
+  },
+  locality: {
+    name: 'Locality',
+    def: "The two habits that make caches work. TEMPORAL: reuse the same data soon, while it's still cached. SPATIAL: use data that sits next to what you just touched, because it rode in on the same cache line. Code with good locality can run 10× faster than identical code without it — same instructions, same data, different memory layout.",
+  },
   replica: {
     name: 'Read replica',
     def: 'A live copy of the database that receives every write from the primary and serves reads. Scaling reads = photocopying the data. Each replica adds ~20k reads/s. The catch: copies lag slightly behind — a just-written comment might not appear on a replica for a moment.',

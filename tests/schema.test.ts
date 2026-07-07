@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest'
 import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
 import { BRIEFINGS } from '../src/content/briefings'
+import { STATIONS } from '../src/content/journey'
+import { FLOORS } from '../src/content/stack'
+import { FORECASTS } from '../src/content/forecasts'
 import { COMPONENTS } from '../src/content/components'
 import { GLOSSARY } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
@@ -59,6 +62,103 @@ describe('schema: toys', () => {
   it('forgeUnlocks reference known forgeable components', () => {
     const forgeable = new Set(['cache', 'queue', 'replicas', 'shards', 'workers', 'cdn'])
     for (const t of TOYS) if (t.forgeUnlocks) expect(forgeable.has(t.forgeUnlocks), `${t.id} → ${t.forgeUnlocks}`).toBe(true)
+  })
+
+  it('every toy declares its click — the "It\'s clicked when …" exit criterion', () => {
+    for (const t of TOYS) {
+      expect(t.click.startsWith("It's clicked when "), `${t.id} click must open with the shared phrasing`).toBe(true)
+      expect(t.click.length, `${t.id} click too thin to self-test against`).toBeGreaterThan(60)
+    }
+  })
+})
+
+describe('schema: the Lab map (docs/content-pipeline.md §2)', () => {
+  it('station ids are unique and every station has a name, tagline, and ≥1 toy', () => {
+    const ids = STATIONS.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const s of STATIONS) {
+      expect(s.name.trim().length, s.id).toBeGreaterThan(0)
+      expect(s.tagline, `${s.id} needs a tagline`).toBeTruthy()
+      expect(s.toyIds.length, `${s.id} needs ≥1 toy`).toBeGreaterThan(0)
+    }
+  })
+
+  it('every toy lives at exactly one station', () => {
+    const seen = new Map<string, string>()
+    for (const s of STATIONS)
+      for (const id of s.toyIds) {
+        expect(seen.has(id), `toy ${id} at both ${seen.get(id)} and ${s.id}`).toBe(false)
+        seen.set(id, s.id)
+      }
+    for (const t of TOYS) expect(seen.has(t.id), `toy ${t.id} is on no station of the map`).toBe(true)
+    for (const id of seen.keys()) expect(TOYS.some((t) => t.id === id), `station toy ${id} does not exist`).toBe(true)
+  })
+
+  it('station primers resolve to Concept Library sections', () => {
+    const manualIds = new Set(MANUAL.map((m) => m.id))
+    for (const s of STATIONS) if (s.manualId) expect(manualIds.has(s.manualId), `${s.id} → ${s.manualId}`).toBe(true)
+  })
+})
+
+describe('schema: the stack (spec 081, ADR 0005)', () => {
+  it('floor ids are unique and every floor has a name + gist', () => {
+    const ids = FLOORS.map((f) => f.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const f of FLOORS) {
+      expect(f.name.trim().length, f.id).toBeGreaterThan(0)
+      expect(f.gist.trim().length, `${f.id} needs a two-verbs gist`).toBeGreaterThan(20)
+      if (f.promised !== null) expect(f.promised.trim().length, `${f.id} promised`).toBeGreaterThan(0)
+    }
+  })
+
+  it('every toy lives on exactly one floor', () => {
+    const seen = new Map<string, string>()
+    for (const f of FLOORS)
+      for (const id of f.toyIds) {
+        expect(seen.has(id), `toy ${id} on both ${seen.get(id)} and ${f.id}`).toBe(false)
+        seen.set(id, f.id)
+      }
+    for (const t of TOYS) expect(seen.has(t.id), `toy ${t.id} is on no floor of the stack`).toBe(true)
+    for (const id of seen.keys()) expect(TOYS.some((t) => t.id === id), `floor toy ${id} does not exist`).toBe(true)
+  })
+})
+
+describe('schema: lab forecasts (law L3, spec 084)', () => {
+  it('every toy has a forecast and every forecast has a toy', () => {
+    const toyIds = new Set(TOYS.map((t) => t.id))
+    for (const t of TOYS) expect(FORECASTS[t.id], `missing forecast: ${t.id}`).toBeDefined()
+    for (const id of Object.keys(FORECASTS)) expect(toyIds.has(id), `forecast without a toy: ${id}`).toBe(true)
+  })
+
+  it('each forecast is a bet: a question, 3–4 options, one valid answer, a reveal', () => {
+    for (const [id, f] of Object.entries(FORECASTS)) {
+      expect(f.question.trim().length, `${id} question`).toBeGreaterThan(15)
+      expect(f.options.length, `${id} options`).toBeGreaterThanOrEqual(3)
+      expect(f.options.length, `${id} options`).toBeLessThanOrEqual(4)
+      f.options.forEach((o, i) => expect(o.trim().length, `${id} option ${i}`).toBeGreaterThan(0))
+      expect(new Set(f.options).size, `${id} duplicate options`).toBe(f.options.length)
+      expect(Number.isInteger(f.correctIx) && f.correctIx >= 0 && f.correctIx < f.options.length, `${id} correctIx range`).toBe(true)
+      expect(f.reveal.trim().length, `${id} reveal too thin`).toBeGreaterThan(20)
+    }
+  })
+})
+
+describe('schema: the stack — echoes', () => {
+  it('briefing echoes are short, and enough exist to teach the recursion', () => {
+    const render = (node: unknown) => renderToStaticMarkup(createElement(Fragment, null, node as ReactNode))
+    let count = 0
+    for (const [id, b] of Object.entries(BRIEFINGS)) {
+      if (!b.echo) continue
+      count++
+      const text = render(b.echo)
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      expect(text.length, `${id} echo too thin`).toBeGreaterThan(40)
+      expect(text.length, `${id} echo is a wall of text`).toBeLessThan(300)
+    }
+    // the cross-floor recursion is the point of the stack — keep it taught
+    expect(count, 'need ≥6 true echoes across the bank').toBeGreaterThanOrEqual(6)
   })
 })
 

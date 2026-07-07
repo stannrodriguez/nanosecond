@@ -42,7 +42,8 @@ L8 **Requirements are extracted, not given.** At least one mode trains the
 ## 3. Modes
 
 ### 3.1 Intuition Lab (reference: `docs/reference/intuition-lab.jsx`)
-Playable physics/mechanism toys. v1: 12 toys (4 exist). Each toy makes ONE number
+Playable physics/mechanism toys. v1: 12 toys; the ADR 0005 deep tier grows this to
+18 (single-machine "understand computers" toys). Each toy makes ONE number
 impossible to forget. Framework + catalog: `content-pipeline.md` §2.
 
 ### 3.2 Concept Library — Field Manual + Glossary (reference: `docs/reference/builder-v0-3.jsx`)

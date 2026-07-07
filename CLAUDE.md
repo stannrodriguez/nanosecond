@@ -63,7 +63,8 @@ until verify.sh is green.**
 - Accessibility floor: visible keyboard focus, prefers-reduced-motion, 380px width.
 
 ## Definition of done (v1)
-Specs 000–080 done, verify green, and a human can: play 12 lab toys, browse 27
+Specs 000–080 done, verify green, and a human can: play 18 lab toys (12 v1 + the
+6-toy ADR 0005 deep tier), browse 27
 Concept Library sections (core concepts, key technologies, common patterns — each
 with an interactive visualization), answer 60 drills with spaced repetition, clear
 6 builder scenarios, solve

@@ -12,7 +12,9 @@ practical consequence. Never circular, never assumes another undefined term.
 A toy makes ONE number impossible to forget by letting the player operate the mechanism.
 Fields: { id, name, oneLiner, targetNumbers[], sim (rAF component), controls,
 punchline (3–5 sentences: mechanism → number → why the whole industry bends around it),
-forgeUnlocks (component id | null) }.
+forgeUnlocks (component id | null), click (the exit criterion: the recognizable mental
+event the toy exists to cause — always phrased "It's clicked when …", concrete enough
+that the player can test themselves against it) }.
 Quality bar: playable in <10s, one clear manipulable variable, counters show real-world
 extrapolated rates, punchline names at least one famous technology this explains.
 
@@ -25,6 +27,33 @@ glossary chips and Library cross-links derive from the concept registry (§9) �
 author a second list. Quality bar: setting stays under ~700 rendered characters (a
 wall of text is a bug) and dots ≥1 term; the panel collapses to one line once the toy
 is done so replays stay sim-first.
+
+The Lab map (`content/journey.tsx`, the advance organizer): ONE concrete story — you
+tap "Post" on a comment — told as stations the request passes through. Station fields:
+{ id, name, ch (Channel), tagline (JSX, 1–2 plain sentences, jargon dotted), toyIds[],
+manualId (Concept Library primer | null) }. Rules (tests/schema.test.ts): every toy
+lives at EXACTLY ONE station; the station order tells the journey end to end. The map
+renders at the top of the Lab index; each toy's field briefing shows its "YOU ARE
+HERE" position and its `click`. New toy? Assign its station in the same change.
+
+The forecast (`content/forecasts.ts`, spec 084 — law L3, predict before run):
+{ question (one line, a BET not a quiz), options[3–4] (one-tap), correctIx, reveal
+(one sentence said once the sim settles it) }, keyed by toy id, 1:1 with toys
+(enforced). The CALL IT panel sits above the sim and the sim stays behind it until
+a call is locked in (predict-before-peek — an auto-playing sim can't leak its own
+answer); a wrong call logs a Scar (mode 'lab') with the reveal as its lesson.
+Numbers come from numbers.ts; keep jargon light (the field briefing already dots
+the terms on the same page). New toy? Add its forecast in the same change.
+
+The stack (`content/stack.tsx`, ADR 0005 / spec 081 — the map's vertical axis):
+floors from THE PLANET down to THE PHYSICS; fields { id, name, gist (the two verbs
+at this floor, one line), toyIds[], promised (spec refs / v2 owed, or null) }.
+Every toy lives on EXACTLY ONE floor — a claim about where its MECHANISM lives,
+not its channel (LSM vs B-tree = one box organizing a disk = THE MACHINE). Thin
+floors state what they owe. Briefings may carry `echo` — the same pattern
+recurring on other floors (caching, queues, batching, Little's law) — authored
+only where the echo is TRUE; ≥6 exist bank-wide (enforced). New toy? Assign its
+floor in the same change.
 
 Catalog (v1 = rows 1–12):
 1. Race Light — latency ladder vs speed of light (built)
@@ -39,8 +68,12 @@ Catalog (v1 = rows 1–12):
 10. Connection Pool — 100 conns vs 10k clients; why poolers exist
 11. Backpressure — fast producer, slow consumer, bounded buffer; drop, block, or shed
 12. TTL & Stampede — hot key expires, 10k misses race to the DB → dogpile lock/jitter → forges cache
+Rows 14–18 are the ADR 0005 deep tier (specs 086/088): The Instruction Loop, The
+Heat Wall, The Branch Predictor, The TLB Toll, False Sharing.
 Backlog (v2): Transistor Switch, NAND Charge Levels, TCP Handshake+Slow Start,
-DNS Resolution, GC Pause, Row vs Column layout, Bloom Filter, Quorum Overlap.
+DNS Resolution, GC Pause, Row vs Column layout, Bloom Filter, Quorum Overlap,
+The Gappy Number Line (floating point), Syscall Toll Booth, ground-truth panels
+(real bytes / assembly beside a viz).
 
 ## 3. Flaw puzzle template + the RECIPE
 Fields: { id, title, reqs (one line, MUST contain the number the flaw violates),

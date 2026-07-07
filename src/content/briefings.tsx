@@ -14,6 +14,12 @@ export interface ToyBriefing {
   setting: ReactNode
   /** where you'll meet it: 2–4 real technologies, each with a one-clause "how" */
   meetIt: { name: string; how: ReactNode }[]
+  /**
+   * spec 081: the same pattern recurring on OTHER floors of the stack —
+   * caching, queues, batching, Little's law. Author only where the echo is
+   * TRUE (≥6 exist bank-wide, enforced); never invent one to fill the field.
+   */
+  echo?: ReactNode
 }
 
 /** Keyed by toy id (src/content/toys.ts); tests/schema.test.ts enforces 1:1 coverage. */
@@ -33,6 +39,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'AWS regions', how: '"which region?" really asks how many milliseconds of light-travel your users will tolerate' },
       { name: 'Redis', how: 'answers from RAM specifically to stay on the short rungs of this ladder' },
     ],
+    echo: 'The ladder is the whole stack read as distances: L1 to DRAM to disk to cross-region — each rung is just the next floor down (or up), at the end of a longer wire.',
   },
   disk: {
     setting: (
@@ -48,6 +55,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL', how: <>commits hit the sequential <T k="wal">write-ahead log</T> first, so the random page work can wait</> },
       { name: 'RocksDB / Cassandra', how: 'LSM engines that batch random writes into sequential flushes (toy 09 races them)' },
     ],
+    echo: "Batching to dodge per-item cost is every floor's move: 64-byte cache lines, 4 KB pages, network packets, replication streams — never move one thing when the trip costs more than the cargo.",
   },
   dram: {
     setting: (
@@ -80,6 +88,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL under load', how: '"CPU at 90% and latency tripled" is this curve, live in production' },
       { name: 'Load balancers', how: <>spreading requests is really buying lower <T k="util">utilization</T> per server</> },
     ],
+    echo: 'Every floor rediscovered the waiting line: instruction buffers in the chip, run queues in the OS, connection pools at the database, Kafka between services — and the knee travels with it.',
   },
   hotpartition: {
     setting: (
@@ -112,6 +121,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'PostgreSQL streaming replication', how: <>the primary ships its <T k="wal">WAL</T>; replicas replay it as fast as they can</> },
       { name: 'Rails / Django read–write splitting', how: 'frameworks pin your reads to the primary right after you write — this bug is that common' },
     ],
+    echo: 'Every copy on every floor drifts: CPU caches need coherence protocols for the same reason replicas need care — a copy is always a bet that the original will hold still.',
   },
   pipe: {
     setting: (
@@ -127,6 +137,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'S3 multipart / aria2', how: 'parallel streams are the standard workaround: many windows in flight at once' },
       { name: 'BBR', how: "Google's congestion control estimates the bandwidth-delay product instead of probing for loss" },
     ],
+    echo: "Throughput = in-flight ÷ round-trip is Little's law, and it governs every floor: TCP windows here, outstanding cache misses inside your CPU, replication streams between cities.",
   },
   consensus: {
     setting: (
@@ -190,6 +201,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: 'Kafka consumer lag', how: <>the buffer made visible — a <T k="backlog">backlog</T> on a dashboard with an alarm attached</> },
       { name: 'Envoy / NGINX rate limits', how: 'choosing to drop a little now rather than everything later' },
     ],
+    echo: 'Overload has the same three answers on every floor: TCP receiver windows block, load shedders drop, unbounded buffers crash — only the names change between floors.',
   },
   stampede: {
     setting: (
@@ -205,5 +217,109 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       { name: "Facebook's memcache leases", how: 'the canonical fix at scale: one miss recomputes, everyone else briefly waits' },
       { name: 'Fastly / Varnish', how: 'request coalescing collapses a thousand identical misses into one origin fetch' },
     ],
+  },
+  cachecliff: {
+    setting: (
+      <>
+        Your CPU is thousands of times faster than the RAM it reads from, so it hides the gap behind a stack of small, fast
+        caches — L1, L2, L3, each bigger and slower than the last. Whether your data fits in one of them decides your program's
+        speed far more than how many instructions it runs. And the CPU always moves memory a 64-byte{' '}
+        <T k="cacheline">cache line</T> at a time, so data you use together should sit together — that's{' '}
+        <T k="locality">locality</T>, the gap between a loop that flies and the identical loop that crawls.
+      </>
+    ),
+    meetIt: [
+      { name: 'Arrays vs linked lists', how: 'a contiguous array streams whole cache lines; chasing a linked list misses on nearly every node' },
+      { name: 'Column stores (Parquet, ClickHouse)', how: 'lay each column out contiguously so a scan touches only the bytes it needs, all cache-line-friendly' },
+      { name: 'Data-oriented design (game engines)', how: 'struct-of-arrays over array-of-structs so the hot fields pack into the lines the CPU actually loads' },
+    ],
+    echo: <>L1 is to DRAM what Redis is to Postgres what a CDN edge is to your origin — the same bet (small, fast, nearby, allowed to forget) placed on three different floors of the stack. Master one <T k="cache">cache</T> and you've met them all.</>,
+  },
+  'instruction-loop': {
+    setting: (
+      <>
+        Every program you have ever run is, at the bottom, this loop: the CPU{' '}
+        <T k="pipeline">fetches an instruction, decodes it, executes it</T>, and does it again — billions of times a second. A
+        pipeline overlaps those steps like an assembly line so a finished result pops out every clock tick. It is the engine
+        under every other floor of the stack; everything above is just arranging which instructions to run.
+      </>
+    ),
+    meetIt: [
+      { name: 'Every CPU (x86, ARM, RISC-V)', how: 'the fetch-decode-execute pipeline is the common shape beneath every instruction set' },
+      { name: 'perf / VTune counters', how: 'IPC — instructions per cycle — is the headline profiler number, a direct read on how full the pipeline runs' },
+      { name: 'GPUs', how: 'trade one deep clever pipeline for thousands of simple ones — the same loop, massively parallel' },
+    ],
+  },
+  'heat-wall': {
+    setting: (
+      <>
+        A faster clock is a hotter chip — power climbs like frequency cubed — so cooling puts a hard ceiling near ~4 GHz that
+        has barely moved in twenty years. The escape was never a faster core; it was more of them. This wall is the reason your
+        laptop has many <T k="core">cores</T> instead of one blazing one, and why parallelism stopped being optional.
+      </>
+    ),
+    meetIt: [
+      { name: 'The multicore era (~2005–)', how: 'the industry-wide pivot from selling GHz to selling core count happened the day this wall was hit' },
+      { name: 'Laptop / phone thermal throttling', how: 'the same curve live — sustained load heats the die and the clock drops to stay inside budget' },
+      { name: 'Data-center power bills', how: 'performance per watt, not per GHz, is what a real fleet is optimized against' },
+    ],
+  },
+  'branch-predictor': {
+    setting: (
+      <>
+        To keep its pipeline full, a CPU cannot wait to learn which way an <span className="mono">if</span> goes — it{' '}
+        <T k="speculation">guesses and runs ahead</T>. Right guesses are free; wrong ones flush the pipeline and cost ~15
+        cycles. The predictor is uncanny on predictable data and helpless on random data — which is why the very same code can
+        run several times faster on sorted input.
+      </>
+    ),
+    meetIt: [
+      { name: 'The famous “sorted array” speedup', how: 'the top-voted Stack Overflow question is exactly this — sort first and the branchy loop flies' },
+      { name: 'Spectre / Meltdown', how: 'speculative execution left traces in the cache — a whole class of security holes born of this trick' },
+      { name: 'Branchless programming', how: 'hot code rewrites if into arithmetic precisely to deny the predictor a branch to miss' },
+    ],
+    echo: (
+      <>
+        Speculation is caching's cousin: both spend a cheap resource on a bet about the near future — a <T k="cache">cache</T>{' '}
+        bets you'll ask again, a predictor bets the branch goes the way it went last time. Right bets are most of why computers
+        feel fast.
+      </>
+    ),
+  },
+  'tlb-toll': {
+    setting: (
+      <>
+        Programs never see real memory — each gets a private map, and the hardware translates every address through{' '}
+        <T k="virtualmemory">virtual memory</T> before it can fetch. A little cache (the TLB) keeps recent translations instant,
+        but it only covers a few megabytes. Outgrow it and every access pays a translation toll on top of the fetch — a cliff
+        the data <T k="cacheline">caches</T> can't hide.
+      </>
+    ),
+    meetIt: [
+      { name: 'Huge pages (2 MB / 1 GB)', how: 'databases and JVMs enable them to stretch TLB reach so big heaps stop paying the toll' },
+      { name: '"The box started swapping"', how: 'the swap cliff live — once pages spill to disk, every touch is a fault and latency dies' },
+      { name: 'mmap / page faults', how: 'lazily mapping a file means the first touch of each page takes the translate-and-load hit' },
+    ],
+  },
+  'false-sharing': {
+    setting: (
+      <>
+        The multicore turn promised that more <T k="core">cores</T> mean more work — but cores share memory a 64-byte{' '}
+        <T k="cacheline">cache line</T> at a time, and they trade whole lines. Put two busy variables in one line and two cores
+        fight over it even though they never touch the same data, quietly serializing your "parallel" code.
+      </>
+    ),
+    meetIt: [
+      { name: 'Java @Contended / Go padding', how: 'runtimes and hot data structures pad fields to a full line precisely to dodge this' },
+      { name: 'Striped counters (LongAdder)', how: 'give each core its own cell so their writes land on different lines, summed at the end' },
+      { name: 'Any "why won\'t it scale?" profile', how: 'flat throughput as cores rise, with coherence-miss counters climbing, is the tell' },
+    ],
+    echo: (
+      <>
+        It's the coherence tax the caches quietly levy: the same reason a <T k="replica">replica</T> needs care to agree with
+        its primary, a CPU core needs permission to write a line another core holds. Every copy, on every floor, must be kept
+        honest.
+      </>
+    ),
   },
 }

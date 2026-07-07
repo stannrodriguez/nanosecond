@@ -17,7 +17,7 @@ import { DRILLS } from '../src/content/drills'
 import { PUZZLES } from '../src/content/puzzles'
 import { TASTES } from '../src/content/tastes'
 import { RUNGS } from '../src/content/ladder'
-import { PATTERNS } from '../src/content/oncall'
+import { ACTS, ENCOUNTERS, EVENTS, HAPPENED, PATTERNS, runScore } from '../src/content/oncall'
 import { INTERROGATIONS } from '../src/content/interrogations'
 import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 
@@ -445,5 +445,56 @@ describe('schema: ladder and patterns', () => {
       expect(p.irl.trim().length, p.key).toBeGreaterThan(40)
       expect(p.fx.trim().length, p.key).toBeGreaterThan(10)
     }
+  })
+})
+
+describe('schema: on-call run (spec 060)', () => {
+  it('has 3 acts, 18 encounters, 12 patterns, 6 events, 3 bosses', () => {
+    expect(ACTS).toHaveLength(3)
+    expect(Object.keys(ENCOUNTERS)).toHaveLength(18)
+    expect(Object.keys(PATTERNS)).toHaveLength(12)
+    expect(Object.keys(EVENTS)).toHaveLength(6)
+    expect(Object.values(ENCOUNTERS).filter((e) => e.boss)).toHaveLength(3)
+  })
+
+  it('every act references real encounters and events, with shops/rests per act', () => {
+    const encKeys = new Set(Object.keys(ENCOUNTERS))
+    const evKeys = new Set(Object.keys(EVENTS))
+    for (const act of ACTS) {
+      const kinds = act.layers.flat().map((n) => n.kind)
+      expect(kinds, act.name).toContain('shop')
+      expect(kinds, act.name).toContain('rest')
+      expect(act.layers.flat().filter((n) => n.kind === 'boss'), act.name).toHaveLength(1)
+      for (const node of act.layers.flat()) {
+        if (node.enc) expect(encKeys.has(node.enc), node.enc).toBe(true)
+        if (node.event) expect(evKeys.has(node.event), node.event).toBe(true)
+      }
+    }
+  })
+
+  it('every boss links a real "This Actually Happened" post-mortem with an official url', () => {
+    for (const e of Object.values(ENCOUNTERS).filter((x) => x.boss)) {
+      expect(e.happened && e.happened.length, e.name).toBeGreaterThan(0)
+      for (const id of e.happened!) {
+        expect(HAPPENED[id], id).toBeTruthy()
+        expect(HAPPENED[id].url.startsWith('https://'), id).toBe(true)
+      }
+    }
+  })
+
+  it('every event offers exactly two choices with a real effect', () => {
+    for (const ev of Object.values(EVENTS)) {
+      expect(ev.choices, ev.key).toHaveLength(2)
+      for (const c of ev.choices) expect((c.hp ?? 0) !== 0 || (c.gold ?? 0) !== 0, `${ev.key}:${c.title}`).toBe(true)
+    }
+  })
+
+  it('the score formula is monotone in every input', () => {
+    const base = { actsCleared: 1, hp: 50, gold: 500, patterns: 3, won: false }
+    expect(runScore({ ...base, actsCleared: 2 })).toBeGreaterThan(runScore(base))
+    expect(runScore({ ...base, hp: 60 })).toBeGreaterThan(runScore(base))
+    expect(runScore({ ...base, gold: 900 })).toBeGreaterThan(runScore(base))
+    expect(runScore({ ...base, patterns: 5 })).toBeGreaterThan(runScore(base))
+    expect(runScore({ ...base, won: true })).toBeGreaterThan(runScore(base))
   })
 })

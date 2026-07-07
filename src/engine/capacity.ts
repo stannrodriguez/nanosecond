@@ -246,12 +246,14 @@ export interface DamageMods {
   idem?: boolean
   /** Graceful Degradation: p99 breaches deal no damage */
   degrade?: boolean
+  /** Extra multiplier on write-failure damage (e.g. Dead-Letter Queue ×0.7). */
+  writeDamageMult?: number
 }
 
 /** Damage per tick: errRate × 30 (write portion ×0.6 with idem) + 1.5 per p99 breach. */
 export function tickDamage(frame: Frame, p99Target: number, mods: DamageMods = {}): number {
   const readPart = frame.readErr * frame.readShare
-  const writePart = frame.writeErr * (1 - frame.readShare) * (mods.idem ? 0.6 : 1)
+  const writePart = frame.writeErr * (1 - frame.readShare) * (mods.idem ? 0.6 : 1) * (mods.writeDamageMult ?? 1)
   let dmg = Math.min(1, readPart + writePart) * 30
   if (frame.p99 > p99Target && !mods.degrade) dmg += 1.5
   return dmg

@@ -3,11 +3,11 @@
 // content bug, not a test bug.
 
 import { describe, expect, it } from 'vitest'
-import { simTick, stackCost, tickDamage, BREAKER_CAP, type StackConfig } from '../src/engine/capacity'
+import { simTick, stackCost, type StackConfig } from '../src/engine/capacity'
 import { PREDICT_ROUNDS } from '../src/content/predict'
 import { firstPast80 } from '../src/modes/review/PredictRun'
 import { ENCOUNTERS, RUN } from '../src/content/oncall'
-import { oncallTick } from '../src/modes/oncall'
+import { encounterDamage, oncallTick } from '../src/modes/oncall/engine'
 
 const cfg = (over: Partial<StackConfig> = {}): StackConfig => ({
   app: 2,
@@ -115,40 +115,81 @@ describe('balance: queueing curve honesty', () => {
   })
 })
 
-describe('balance: the boss is beatable ≥2 distinct ways, affordably', () => {
-  const herd = ENCOUNTERS.herd
-
-  /** Run the full herd encounter, return total damage. */
-  const runHerd = (c: StackConfig, pats: string[] = []) => {
+describe('balance: every boss is beatable ≥2 distinct ways', () => {
+  /** Run a full boss encounter to completion, return total error-budget damage. */
+  const runBoss = (encKey: string, c: StackConfig, pats: string[] = []) => {
+    const enc = ENCOUNTERS[encKey]
+    const frames = []
     let backlog = 0
-    let dmg = 0
-    for (let t = 0; t <= herd.ticks; t++) {
-      const f = oncallTick(c, herd, t, pats, backlog)
+    for (let t = 0; t <= enc.ticks; t++) {
+      const f = oncallTick(c, enc, t, pats, backlog)
       backlog = f.backlog
-      dmg += tickDamage(f, herd.target, { idem: pats.includes('idem'), degrade: pats.includes('degrade') })
+      frames.push(f)
     }
-    if (pats.includes('breaker')) dmg = Math.min(BREAKER_CAP, dmg)
-    if (backlog > RUN.strandedLagThreshold) dmg += RUN.strandedLagDamage
-    return dmg
+    const { dmg, strandedLag } = encounterDamage(frames, enc, pats)
+    return Math.round(dmg) + strandedLag
   }
 
-  // Strategy A — buy capacity: shard the primary, no queue.
-  const capacityBuild = cfg({ app: 4, cache: 1, hitRate: 0.8, replicas: 1, shards: 2 })
-  // Strategy B — buy time: keep 1 shard, absorb the herd in a queue.
-  const queueBuild = cfg({ app: 4, cache: 1, hitRate: 0.9, replicas: 1, queue: true, workers: 3 })
+  // Two distinct strategy families per boss: buy CAPACITY (shards/replicas) or
+  // buy TIME (queue + workers). Every boss must survive both.
+  const bosses: { key: string; capacity: StackConfig; time: StackConfig }[] = [
+    {
+      key: 'herd',
+      capacity: cfg({ app: 5, cache: 2, hitRate: 0.85, replicas: 2, shards: 2 }),
+      time: cfg({ app: 6, cache: 3, hitRate: 0.9, replicas: 3, shards: 2, queue: true, workers: 4 }),
+    },
+    {
+      key: 'blackfriday',
+      capacity: cfg({ app: 6, cache: 3, hitRate: 0.88, replicas: 3, shards: 3 }),
+      time: cfg({ app: 6, cache: 3, hitRate: 0.9, replicas: 3, shards: 2, queue: true, workers: 4 }),
+    },
+    {
+      key: 'region',
+      capacity: cfg({ app: 6, cache: 3, hitRate: 0.88, replicas: 3, shards: 3 }),
+      time: cfg({ app: 6, cache: 3, hitRate: 0.9, replicas: 3, shards: 2, queue: true, workers: 4 }),
+    },
+  ]
 
-  it('capacity strategy (shards) survives', () => {
-    expect(runHerd(capacityBuild)).toBeLessThan(RUN.startHp)
-  })
+  for (const b of bosses) {
+    const name = ENCOUNTERS[b.key].name
+    it(`${name}: capacity strategy (shards + replicas) survives`, () => {
+      expect(runBoss(b.key, b.capacity)).toBeLessThan(RUN.startHp)
+    })
+    it(`${name}: time strategy (queue + workers) survives`, () => {
+      expect(runBoss(b.key, b.time)).toBeLessThan(RUN.startHp)
+    })
+  }
 
-  it('time strategy (queue + workers) survives', () => {
-    expect(runHerd(queueBuild)).toBeLessThan(RUN.startHp)
-  })
-
-  it('cheapest winning build ≤ starting gold + act income', () => {
-    const income =
-      RUN.startGold + RUN.fightReward * 3 + RUN.eliteReward + RUN.restGold
-    const cheapest = Math.min(stackCost(capacityBuild), stackCost(queueBuild))
+  it('act-1 boss (Thundering Herd) cheapest win ≤ starting gold + act-1 income', () => {
+    const herd = bosses[0]
+    // Guaranteed act-1 income: three fights, one elite, one sprint break.
+    const income = RUN.startGold + RUN.fightReward * 3 + RUN.eliteReward + RUN.restGold
+    const cheapest = Math.min(stackCost(herd.capacity), stackCost(herd.time))
+    expect(runBoss('herd', herd.capacity)).toBeLessThan(RUN.startHp)
     expect(cheapest).toBeLessThanOrEqual(income)
+  })
+})
+
+describe('balance: the on-call run is completable end-to-end', () => {
+  // Every non-boss encounter must be survivable with an affordable, adapted
+  // build — otherwise a run can dead-end. (Bosses covered above.)
+  const runEnc = (encKey: string, c: StackConfig, pats: string[] = []) => {
+    const enc = ENCOUNTERS[encKey]
+    const frames = []
+    let backlog = 0
+    for (let t = 0; t <= enc.ticks; t++) {
+      const f = oncallTick(c, enc, t, pats, backlog)
+      backlog = f.backlog
+      frames.push(f)
+    }
+    const { dmg, strandedLag } = encounterDamage(frames, enc, pats)
+    return Math.round(dmg) + strandedLag
+  }
+
+  const bigBuild = cfg({ app: 6, cache: 3, hitRate: 0.9, replicas: 3, shards: 3, queue: true, workers: 4 })
+  it('every encounter is survivable with a fully-scaled build + idempotency', () => {
+    for (const key of Object.keys(ENCOUNTERS)) {
+      expect(runEnc(key, bigBuild, ['idem', 'readthrough', 'ratelimit']), ENCOUNTERS[key].name).toBeLessThan(RUN.startHp)
+    }
   })
 })

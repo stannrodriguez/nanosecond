@@ -1,88 +1,57 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
 import { Term } from '../../ui/Term'
 import { Button, Chip } from '../../ui/kit'
 import { useTickRunner } from '../../ui/useTickRunner'
-import { BREAKER_CAP, CAP, simTick, tickDamage, type Frame, type StackConfig } from '../../engine/capacity'
-import { ENCOUNTERS, LAYERS, NODE_META, PATTERNS, RUN, type Encounter, type MapNode } from '../../content/oncall'
+import { type Frame } from '../../engine/capacity'
+import {
+  ACTS,
+  ENCOUNTERS,
+  EVENTS,
+  NODE_META,
+  PATTERNS,
+  RUN,
+  RUN_LAYERS,
+  type EventChoice,
+} from '../../content/oncall'
 import { useScars } from '../../state/scars'
+import { bestScore, useOnCallRun, type RunSummary } from '../../state/oncallRun'
+import { encounterDamage, freshGame, oncallTick, PRICE, type GameState } from './engine'
+import { ThisActuallyHappened } from '../../ui/ThisActuallyHappened'
+import { Card, Choice, Step } from './atoms'
+import { Recap } from './Recap'
 
-/* ON-CALL — a roguelike run. HP = error budget, gold = cloud budget,
-   relics = real patterns, bosses = real failure modes (law L7). */
+/* ON-CALL — a roguelike run across three acts. HP = error budget, gold = cloud
+   budget, relics = real patterns, bosses = real failure modes (law L7). */
 
-const PRICE = {
-  app: CAP.app.cost,
-  cache: CAP.cache.cost,
-  shard: CAP.db.cost,
-  replica: CAP.replica.cost,
-  queue: CAP.queue.cost,
-  worker: CAP.worker.cost,
-}
+const clampHp = (n: number) => Math.max(0, Math.min(100, n))
 
-interface DraftOption {
-  kind: 'pat' | 'gold'
-  k?: string
-  amt?: number
-}
-
-interface GameState {
-  phase: 'map' | 'encounter' | 'shop' | 'rest' | 'event'
-  layer: number
-  node: MapNode | null
-  hp: number
-  gold: number
-  cfg: StackConfig
-  pats: string[]
-  draft: DraftOption[] | null
-  over: { win: boolean; why?: string } | null
-}
-
-const freshGame = (): GameState => ({
-  phase: 'map',
-  layer: 0,
-  node: null,
-  hp: RUN.startHp,
-  gold: RUN.startGold,
-  cfg: { app: 2, cache: 0, hitRate: 0.8, replicas: 0, shards: 1, queue: false, workers: 2 },
-  pats: [],
-  draft: null,
-  over: null,
-})
-
-/** One encounter tick through the shared engine, with pattern effects applied. */
-export function oncallTick(cfg: StackConfig, enc: Encounter, t: number, pats: string[], backlog: number): Frame {
-  const m = enc.mod ? enc.mod(t) ?? {} : {}
-  const ramp = Math.min(1, t / 6)
-  const rps0 = enc.rps * ramp * (m.rpsMult ?? 1)
-  let reads = rps0 * enc.readPct
-  const writes = rps0 * (1 - enc.readPct) * (m.writeMult ?? 1)
-  if (pats.includes('cdn')) reads *= RUN.cdnReadMult
-
-  const effCfg: StackConfig =
-    pats.includes('cdn') && cfg.cache > 0 ? { ...cfg, hitRate: Math.min(0.95, cfg.hitRate + RUN.cdnHitBonus) } : cfg
-
-  return simTick(effCfg, reads, writes, backlog, {
-    hitRateOverride: m.hitZero ? 0 : undefined,
-    hitRateCap: m.hitCap,
-    appCount: pats.includes('autoscale') && rps0 > RUN.autoscaleTrigger * enc.rps ? cfg.app + RUN.autoscaleBonus : undefined,
-    drainMult: cfg.workers >= RUN.workerSynergyCount ? RUN.workerSynergyMult : 1,
-  })
-}
+export { oncallTick, encounterDamage } from './engine'
 
 export default function OnCall() {
   const addScar = useScars((s) => s.addScar)
-  const [g, setG] = useState<GameState>(freshGame)
+  const saveActive = useOnCallRun((s) => s.saveActive)
+  const finishRun = useOnCallRun((s) => s.finishRun)
+  const history = useOnCallRun((s) => s.history)
+
+  const [g, setG] = useState<GameState>(() => useOnCallRun.getState().active ?? freshGame())
   const [result, setResult] = useState<{ dmg: number; lagNote: boolean; reward: number; boss: boolean } | null>(null)
+  const [summary, setSummary] = useState<RunSummary | null>(null)
+
+  // Persist the active run; record it once when it ends.
+  useEffect(() => {
+    if (g.over) {
+      if (!summary) setSummary(finishRun(g))
+    } else {
+      saveActive(g)
+    }
+  }, [g, summary, finishRun, saveActive])
 
   const enc = g.node?.enc ? ENCOUNTERS[g.node.enc] : null
   const upd = (patch: Partial<GameState>) => setG((s) => ({ ...s, ...patch }))
-  const dmgOf = (frames: Frame[]) => {
-    if (!enc) return 0
-    const raw = frames.reduce((s, f) => s + tickDamage(f, enc.target, { idem: g.pats.includes('idem'), degrade: g.pats.includes('degrade') }), 0)
-    return g.pats.includes('breaker') ? Math.min(BREAKER_CAP, raw) : raw
-  }
+  const isFinalLayer = g.layer === RUN_LAYERS.length - 1
 
   /* ---- encounter runner (shared tick loop) ---- */
   const runner = useTickRunner<Frame>({
@@ -94,70 +63,85 @@ export default function OnCall() {
     },
     onDone: (frames) => {
       if (!enc) return
-      const dmg = Math.round(dmgOf(frames))
-      const strandedLag = frames.length ? frames[frames.length - 1].backlog : 0
-      const extraLag = strandedLag > RUN.strandedLagThreshold ? RUN.strandedLagDamage : 0
-      const total = dmg + extraLag
+      const { dmg, strandedLag } = encounterDamage(frames, enc, g.pats)
+      const total = Math.round(dmg) + strandedLag
       const hp = g.hp - total
       if (total >= 20 || hp <= 0)
         addScar({
           mode: 'oncall',
           theme: enc.name.replace('ELITE · ', '').replace('BOSS · ', ''),
           what: `${g.cfg.app} app · ${g.cfg.cache} cache · ${g.cfg.shards} shard(s) · ${g.cfg.replicas} repl${g.cfg.queue ? ` · queue+${g.cfg.workers}w` : ''}`,
-          truth: `−${total} error budget${extraLag ? ' (incl. stranded backlog)' : ''}`,
+          truth: `−${total} error budget${strandedLag ? ' (incl. stranded backlog)' : ''}`,
           lesson: enc.secret ?? 'The stack had no headroom for this traffic shape — buy capacity or buy time before taking it.',
         })
       if (hp <= 0) {
         upd({ hp: 0, over: { win: false, why: `${enc.name} burned through your remaining error budget. Users lost faith.` } })
       } else {
         const reward = enc.boss ? 0 : enc.elite ? RUN.eliteReward : RUN.fightReward
-        setResult({ dmg: total, lagNote: extraLag > 0, reward, boss: !!enc.boss })
+        setResult({ dmg: total, lagNote: strandedLag > 0, reward, boss: !!enc.boss })
         upd({ hp })
       }
     },
   })
   const { tick, frame, frames } = runner
-  const encDmg = Math.round(dmgOf(frames))
+  const encDmg = enc ? Math.round(encounterDamage(frames, enc, g.pats).dmg) : 0
 
   const startEnc = () => {
     setResult(null)
     runner.start()
   }
 
+  /** Advance past the current node; increments actsCleared when the finished
+   *  layer was the last of its act (i.e. a boss just fell). */
   const finishNode = (extra: Partial<GameState> = {}) => {
-    const nextLayer = g.layer + 1
-    if (nextLayer >= LAYERS.length) {
-      upd({ over: { win: true }, ...extra })
+    const cur = RUN_LAYERS[g.layer]
+    const next = RUN_LAYERS[g.layer + 1]
+    const clearedAct = !next || next.act !== cur.act
+    const actsCleared = clearedAct ? cur.act + 1 : g.actsCleared
+    if (!next) {
+      upd({ over: { win: true }, actsCleared, ...extra })
       return
     }
-    upd({ phase: 'map', layer: nextLayer, node: null, ...extra })
+    upd({ phase: 'map', layer: g.layer + 1, node: null, actsCleared, ...extra })
     runner.reset()
     setResult(null)
   }
 
-  const makeDraft = (): DraftOption[] => {
+  const makeDraft = () => {
     const pool = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k))
     const picks = pool.sort(() => Math.random() - 0.5).slice(0, 2)
     return [...picks.map((k) => ({ kind: 'pat' as const, k })), { kind: 'gold' as const, amt: RUN.draftGold }]
   }
 
-  const buy = (k: 'app' | 'cache' | 'shards' | 'replicas' | 'workers' | 'queue', price: number) => {
+  type Buyable = 'app' | 'cache' | 'shards' | 'replicas' | 'workers' | 'queue'
+  const buy = (k: Buyable, price: number) => {
     if (g.gold < price) return
     if (k === 'queue') upd({ gold: g.gold - price, cfg: { ...g.cfg, queue: true } })
     else upd({ gold: g.gold - price, cfg: { ...g.cfg, [k]: g.cfg[k] + 1 } })
   }
-  const sell = (k: 'app' | 'cache' | 'shards' | 'replicas' | 'workers' | 'queue', price: number) => {
+  const sell = (k: Buyable, price: number) => {
     const refund = Math.round(price * RUN.sellRefund)
     if (k === 'queue') upd({ gold: g.gold + refund, cfg: { ...g.cfg, queue: false } })
     else upd({ gold: g.gold + refund, cfg: { ...g.cfg, [k]: g.cfg[k] - 1 } })
   }
 
-  /* ---------------- screens ---------------- */
+  const newRun = () => {
+    setG(freshGame())
+    runner.reset()
+    setResult(null)
+    setSummary(null)
+  }
+
+  /* ---------------- header ---------------- */
+  const curAct = RUN_LAYERS[Math.min(g.layer, RUN_LAYERS.length - 1)].act
   const header = (
     <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', padding: '4px 0 14px', borderBottom: `1px solid ${C.line}`, marginBottom: 16 }}>
       <h1 style={{ fontSize: 19, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>ON-CALL</h1>
       <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-        node {Math.min(g.layer + 1, LAYERS.length)}/{LAYERS.length}
+        act {curAct + 1}/{ACTS.length}
+      </span>
+      <span className="mono" style={{ fontSize: 12, color: C.faint }}>
+        node {Math.min(g.layer + 1, RUN_LAYERS.length)}/{RUN_LAYERS.length}
       </span>
       <span className="mono" style={{ fontSize: 13 }}>
         <span style={{ color: C.faint }}>
@@ -172,7 +156,7 @@ export default function OnCall() {
       <span className="mono" style={{ fontSize: 13, color: C.gold }}>
         ${g.gold}
       </span>
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {g.pats.map((k) => (
           <span
             key={k}
@@ -199,117 +183,92 @@ export default function OnCall() {
     </div>
   )
 
-  if (g.over) {
-    const w = g.over.win
+  /* ---------------- end of run ---------------- */
+  if (g.over && summary) {
+    const killer = g.node?.enc ? ENCOUNTERS[g.node.enc] : null
     return (
       <div>
         {header}
-        <div style={{ maxWidth: 620, margin: '40px auto', textAlign: 'center' }}>
-          <div className="mono" style={{ fontSize: 30, fontWeight: 700, color: w ? C.ok : C.alert }}>
-            {w ? 'YOU SURVIVED TO IPO' : 'PAGED OUT'}
-          </div>
-          <p style={{ color: C.dim, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
-            {w
-              ? `The Thundering Herd came, resent everything, and your system held. Final error budget: ${g.hp}/100 with $${g.gold} unspent.`
-              : g.over.why}
-          </p>
-          {g.pats.length > 0 && (
-            <div style={{ textAlign: 'left', background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 20 }}>
-              <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 10 }}>
-                PATTERNS YOU NOW KNOW — THESE ARE REAL
-              </div>
-              {g.pats.map((k) => (
-                <div key={k} style={{ marginBottom: 10 }}>
-                  <span style={{ color: C.net, fontWeight: 600, fontSize: 13.5 }}>
-                    {PATTERNS[k].icon} {PATTERNS[k].name}
-                  </span>
-                  <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.5 }}>{PATTERNS[k].irl}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          <Button
-            size="lg"
-            style={{ marginTop: 22, padding: '12px 28px' }}
-            onClick={() => {
-              setG(freshGame())
-              runner.reset()
-              setResult(null)
-            }}
-          >
-            New run
-          </Button>
-        </div>
+        <Recap g={g} summary={summary} happened={killer?.happened ?? []} best={bestScore(history)} onNew={newRun} />
       </div>
     )
   }
 
+  /* ---------------- map ---------------- */
   if (g.phase === 'map') {
+    const act = ACTS[curAct]
+    const actStart = RUN_LAYERS.findIndex((e) => e.act === curAct)
     return (
       <div>
         {header}
-        <p style={{ color: C.dim, fontSize: 13.5, maxWidth: 640 }}>
-          Your route to IPO. Choose your path when it forks — elites hit harder but pay better. Your error budget does not
-          regenerate on its own: spend it wisely, defend it fiercely.
-        </p>
+        <div style={{ maxWidth: 640 }}>
+          <div className="mono" style={{ fontSize: 12, letterSpacing: 2, color: C.storage }}>
+            {act.name}
+          </div>
+          <p style={{ color: C.dim, fontSize: 13.5, margin: '6px 0 0' }}>{act.tagline}</p>
+        </div>
         <div style={{ maxWidth: 560, margin: '18px auto' }}>
-          {LAYERS.map((layer, li) => (
-            <div key={li} style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 10, opacity: li < g.layer ? 0.35 : 1 }}>
-              {layer.map((node, ni) => {
-                const meta = NODE_META[node.kind]
-                const metaCol = C[meta.colKey]
-                const active = li === g.layer
-                const e = node.enc ? ENCOUNTERS[node.enc] : null
-                return (
-                  <button
-                    key={ni}
-                    disabled={!active}
-                    onClick={() =>
-                      upd({
-                        phase: node.kind === 'fight' || node.kind === 'elite' || node.kind === 'boss' ? 'encounter' : node.kind,
-                        node,
-                      })
-                    }
-                    style={{
-                      flex: 1,
-                      maxWidth: 270,
-                      textAlign: 'left',
-                      background: active ? C.panelUp : C.panel,
-                      border: `1.5px solid ${active ? metaCol : C.line}`,
-                      borderRadius: 10,
-                      padding: '10px 14px',
-                      cursor: active ? 'pointer' : 'default',
-                      color: C.text,
-                      boxShadow: active ? `0 0 14px ${metaCol}33` : 'none',
-                    }}
-                  >
-                    <span className="mono" style={{ color: metaCol, fontSize: 12, fontWeight: 600 }}>
-                      {meta.icon} {meta.label}
-                    </span>
-                    <div style={{ fontSize: 13, marginTop: 3, color: active ? C.text : C.dim }}>
-                      {e
-                        ? e.name.replace('ELITE · ', '').replace('BOSS · ', '')
-                        : node.kind === 'shop'
-                          ? 'Buy patterns & capacity'
-                          : node.kind === 'rest'
-                            ? 'Recover trust or raise funds'
-                            : 'Something needs a decision'}
-                    </div>
-                    {e && (
-                      <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 2 }}>
-                        {fmtNum(e.rps)} req/s · {Math.round(e.readPct * 100)}% reads
+          {act.layers.map((layer, lj) => {
+            const gLayer = actStart + lj
+            const active = gLayer === g.layer
+            return (
+              <div key={lj} style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 10, opacity: gLayer < g.layer ? 0.35 : 1 }}>
+                {layer.map((node, ni) => {
+                  const meta = NODE_META[node.kind]
+                  const metaCol = C[meta.colKey]
+                  const e = node.enc ? ENCOUNTERS[node.enc] : null
+                  return (
+                    <button
+                      key={ni}
+                      disabled={!active}
+                      onClick={() =>
+                        upd({
+                          phase: node.kind === 'fight' || node.kind === 'elite' || node.kind === 'boss' ? 'encounter' : node.kind,
+                          node,
+                        })
+                      }
+                      style={{
+                        flex: 1,
+                        maxWidth: 270,
+                        textAlign: 'left',
+                        background: active ? C.panelUp : C.panel,
+                        border: `1.5px solid ${active ? metaCol : C.line}`,
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                        cursor: active ? 'pointer' : 'default',
+                        color: C.text,
+                        boxShadow: active ? `0 0 14px ${metaCol}33` : 'none',
+                      }}
+                    >
+                      <span className="mono" style={{ color: metaCol, fontSize: 12, fontWeight: 600 }}>
+                        {meta.icon} {meta.label}
+                      </span>
+                      <div style={{ fontSize: 13, marginTop: 3, color: active ? C.text : C.dim }}>
+                        {e
+                          ? e.name.replace('ELITE · ', '').replace('BOSS · ', '')
+                          : node.kind === 'shop'
+                            ? 'Buy patterns & capacity'
+                            : node.kind === 'rest'
+                              ? 'Recover trust or raise funds'
+                              : 'Something needs a decision'}
                       </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          ))}
+                      {e && (
+                        <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 2 }}>
+                          {fmtNum(e.rps)} req/s · {Math.round(e.readPct * 100)}% reads
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
     )
   }
 
+  /* ---------------- rest ---------------- */
   if (g.phase === 'rest') {
     return (
       <div>
@@ -317,7 +276,7 @@ export default function OnCall() {
         <Card title="SPRINT BREAK" col={C.mem}>
           <p style={{ fontSize: 14, lineHeight: 1.6 }}>A quiet week. The pager is silent. You can invest it one way:</p>
           <Choice
-            onClick={() => finishNode({ hp: Math.min(100, g.hp + RUN.restHp) })}
+            onClick={() => finishNode({ hp: clampHp(g.hp + RUN.restHp) })}
             title={`Reliability sprint · error budget +${RUN.restHp}`}
             sub="Fix the flaky retries, add the missing timeouts. Trust is rebuilt one boring fix at a time."
           />
@@ -331,31 +290,32 @@ export default function OnCall() {
     )
   }
 
+  /* ---------------- event (data-driven) ---------------- */
   if (g.phase === 'event') {
+    const ev = g.node?.event ? EVENTS[g.node.event] : null
+    if (!ev) return null
+    const apply = (c: EventChoice) =>
+      finishNode({ hp: clampHp(g.hp + (c.hp ?? 0)), gold: Math.max(0, g.gold + (c.gold ?? 0)) })
+    const line = (c: EventChoice) => {
+      const bits: string[] = []
+      if (c.hp) bits.push(`error budget ${c.hp > 0 ? '+' : '−'}${Math.abs(c.hp)}`)
+      if (c.gold) bits.push(`${c.gold > 0 ? '+' : '−'}$${Math.abs(c.gold)}`)
+      return `${c.title} · ${bits.join(' · ')}`
+    }
     return (
       <div>
         {header}
-        <Card title="PAGE AT 3AM" col={C.compute}>
-          <p style={{ fontSize: 14, lineHeight: 1.6 }}>
-            A schema migration must run before the next launch, and it takes a table lock. The safe way costs money; the fast way
-            costs trust. (This exact tradeoff has ruined a thousand real Tuesdays.)
-          </p>
-          <Choice
-            onClick={() => finishNode({ hp: Math.max(1, g.hp - RUN.eventHpCost) })}
-            title={`Run it live tonight · error budget −${RUN.eventHpCost}`}
-            sub="The lock stalls writes for 40 seconds. Some users see errors. It's over quickly."
-          />
-          <Choice
-            disabled={g.gold < RUN.eventGoldCost}
-            onClick={() => finishNode({ gold: g.gold - RUN.eventGoldCost })}
-            title={`Blue-green migration · −$${RUN.eventGoldCost}`}
-            sub="Stand up a copy, migrate it, switch traffic over. Zero user impact — paid for in cloud bills."
-          />
+        <Card title={ev.title} col={C[ev.col]}>
+          <p style={{ fontSize: 14, lineHeight: 1.6 }}>{ev.flavor}</p>
+          {ev.choices.map((c, i) => (
+            <Choice key={i} disabled={!!c.gold && c.gold < 0 && g.gold < -c.gold} onClick={() => apply(c)} title={line(c)} sub={c.sub} />
+          ))}
         </Card>
       </div>
     )
   }
 
+  /* ---------------- shop ---------------- */
   if (g.phase === 'shop') {
     const forSale = Object.keys(PATTERNS).filter((k) => !g.pats.includes(k)).slice(0, 3)
     return (
@@ -377,7 +337,7 @@ export default function OnCall() {
           })}
           <Choice
             disabled={g.gold < RUN.shopHealCost || g.hp >= 100}
-            onClick={() => upd({ hp: Math.min(100, g.hp + RUN.shopHealAmount), gold: g.gold - RUN.shopHealCost })}
+            onClick={() => upd({ hp: clampHp(g.hp + RUN.shopHealAmount), gold: g.gold - RUN.shopHealCost })}
             title={`Incident retro workshop · $${RUN.shopHealCost} · error budget +${RUN.shopHealAmount}`}
             sub="A blameless postmortem turns last week's outage into next week's safeguard."
           />
@@ -392,7 +352,7 @@ export default function OnCall() {
     )
   }
 
-  /* encounter */
+  /* ---------------- encounter ---------------- */
   if (!enc) return null
   const running = tick >= 0
   const showSecret = !!enc.secret && g.pats.includes('drills')
@@ -467,7 +427,7 @@ export default function OnCall() {
             </div>
           )}
           <Button variant="danger" full disabled={running || !!result} onClick={startEnc} style={{ marginTop: 12 }}>
-            {running ? `t=${tick}/${enc.ticks}` : result ? 'Survived' : enc.boss ? 'FACE THE HERD' : 'Take the traffic'}
+            {running ? `t=${tick}/${enc.ticks}` : result ? 'Survived' : enc.boss ? 'FACE THE BOSS' : 'Take the traffic'}
           </Button>
         </div>
 
@@ -516,144 +476,56 @@ export default function OnCall() {
                   funding +${result.reward}
                 </div>
               )}
-              {!result.boss ? (
-                !g.draft ? (
+              {result.boss ? (
+                <div style={{ marginTop: 10 }}>
+                  {enc.happened && <ThisActuallyHappened ids={enc.happened} />}
                   <button
-                    onClick={() => upd({ gold: g.gold + result.reward, draft: makeDraft() })}
-                    style={{ marginTop: 12, padding: '10px 20px', background: C.net, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                    onClick={() => (isFinalLayer ? finishNode() : finishNode({ gold: g.gold + RUN.bossReward }))}
+                    style={{ marginTop: 12, padding: '10px 20px', background: C.ok, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
                   >
-                    Collect & draft reward
+                    {isFinalLayer ? 'Ring the bell 🔔' : `Bank $${RUN.bossReward} & press on →`}
                   </button>
-                ) : (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 8 }}>
-                      CHOOSE ONE
-                    </div>
-                    {g.draft.map((d, i) =>
-                      d.kind === 'pat' ? (
-                        <Choice
-                          key={i}
-                          onClick={() => {
-                            upd({ pats: [...g.pats, d.k!], draft: null })
-                            finishNode()
-                          }}
-                          title={`${PATTERNS[d.k!].icon} ${PATTERNS[d.k!].name}`}
-                          sub={PATTERNS[d.k!].fx}
-                        />
-                      ) : (
-                        <Choice
-                          key={i}
-                          onClick={() => {
-                            upd({ gold: g.gold + d.amt!, draft: null })
-                            finishNode()
-                          }}
-                          title={`+$${d.amt} funding`}
-                          sub="Cash keeps options open. Patterns keep systems up."
-                        />
-                      ),
-                    )}
-                  </div>
-                )
-              ) : (
+                </div>
+              ) : !g.draft ? (
                 <button
-                  onClick={() => upd({ over: { win: true } })}
-                  style={{ marginTop: 12, padding: '10px 20px', background: C.ok, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                  onClick={() => upd({ gold: g.gold + result.reward, draft: makeDraft() })}
+                  style={{ marginTop: 12, padding: '10px 20px', background: C.net, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
                 >
-                  Ring the bell 🔔
+                  Collect & draft reward
                 </button>
+              ) : (
+                <div style={{ marginTop: 12 }}>
+                  <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 8 }}>
+                    CHOOSE ONE
+                  </div>
+                  {g.draft.map((d, i) =>
+                    d.kind === 'pat' ? (
+                      <Choice
+                        key={i}
+                        onClick={() => {
+                          upd({ pats: [...g.pats, d.k!], draft: null })
+                          finishNode()
+                        }}
+                        title={`${PATTERNS[d.k!].icon} ${PATTERNS[d.k!].name}`}
+                        sub={PATTERNS[d.k!].fx}
+                      />
+                    ) : (
+                      <Choice
+                        key={i}
+                        onClick={() => {
+                          upd({ gold: g.gold + d.amt!, draft: null })
+                          finishNode()
+                        }}
+                        title={`+$${d.amt} funding`}
+                        sub="Cash keeps options open. Patterns keep systems up."
+                      />
+                    ),
+                  )}
+                </div>
               )}
             </div>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* ---------------- local atoms ---------------- */
-function Card({ title, col, children }: { title: string; col: string; children: ReactNode }) {
-  return (
-    <div style={{ maxWidth: 620, margin: '20px auto', background: C.panel, border: `1px solid ${col}55`, borderRadius: 12, padding: 20 }}>
-      <div className="mono" style={{ fontSize: 11, letterSpacing: 2, color: col, marginBottom: 10 }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Choice({ title, sub, onClick, disabled }: { title: string; sub: string; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        background: C.panelUp,
-        border: `1px solid ${C.line}`,
-        borderRadius: 8,
-        padding: '11px 14px',
-        marginTop: 10,
-        cursor: disabled ? 'default' : 'pointer',
-        color: disabled ? C.faint : C.text,
-        opacity: disabled ? 0.55 : 1,
-      }}
-    >
-      <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: C.dim, marginTop: 3, lineHeight: 1.45 }}>{sub}</div>
-    </button>
-  )
-}
-
-function Step({
-  label,
-  val,
-  canDec,
-  canInc,
-  onDec,
-  onInc,
-  col,
-  price,
-}: {
-  label: string
-  val: number
-  canDec: boolean
-  canInc: boolean
-  onDec: () => void
-  onInc: () => void
-  col: string
-  price: number
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: `1px solid ${C.line}` }}>
-      <span style={{ fontSize: 12.5 }}>
-        {label}{' '}
-        <span className="mono" style={{ color: C.gold, fontSize: 11 }}>
-          ${price}
-        </span>
-      </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          disabled={!canDec}
-          onClick={onDec}
-          aria-label={`sell ${label}`}
-          style={{ width: 24, height: 24, borderRadius: 6, background: C.bg, color: canDec ? C.text : C.faint, border: `1px solid ${C.line}`, cursor: canDec ? 'pointer' : 'default', fontSize: 14 }}
-        >
-          −
-        </button>
-        <span className="mono" style={{ minWidth: 20, textAlign: 'center', color: col, fontWeight: 600, fontSize: 13 }}>
-          {val}
-        </span>
-        <button
-          disabled={!canInc}
-          onClick={onInc}
-          aria-label={`buy ${label}`}
-          style={{ width: 24, height: 24, borderRadius: 6, background: C.bg, color: canInc ? C.text : C.faint, border: `1px solid ${C.line}`, cursor: canInc ? 'pointer' : 'default', fontSize: 14 }}
-        >
-          +
-        </button>
       </div>
     </div>
   )

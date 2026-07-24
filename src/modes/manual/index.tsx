@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
-import { ModeHeader } from '../../ui/ModeHeader'
-import { TabNav } from '../../ui/TabNav'
-import { Eyebrow } from '../../ui/kit'
+import { Eyebrow, GhostButton, useHover } from '../../ui/kit'
 import { Term as T } from '../../ui/Term'
 import { FinePrint } from '../../ui/FinePrint'
 import {
@@ -14,12 +12,20 @@ import {
   resolveSectionId,
   type ManualSection,
 } from '../../content/manual'
-import { COMPONENTS } from '../../content/components'
+import type { Shelf } from '../../content/manual/types'
 import { GLOSSARY } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
 import { useProgress } from '../../state/progress'
 import { fmtTimeNs, fmtHuman } from '../../ui/fmt'
+
+// Each shelf owns a channel accent (spec: CORE CONCEPTS net, KEY TECHNOLOGIES
+// compute, COMMON PATTERNS storage).
+const SHELF_COLOR: Record<Shelf, string> = {
+  concepts: C.net,
+  technologies: C.compute,
+  patterns: C.storage,
+}
 
 const lightDistance = (ns: number) => {
   const m = ns * 0.2998
@@ -30,54 +36,61 @@ const lightDistance = (ns: number) => {
 
 /* ---------------- Concept Library: three shelves, viz-first sections ---------------- */
 
-function ShelfNav({ openId, onPick }: { openId: string; onPick: (id: string) => void }) {
-  const { sectionsRead } = useProgress()
+// One section link in the shelf columns: a full-width row with a shelf-colored
+// dot; a ✓ marks it read.
+function LibRow({ title, read, dotColor, onClick }: { title: string; read: boolean; dotColor: string; onClick: () => void }) {
+  const [h, bind] = useHover()
   return (
-    <nav aria-label="Concept Library shelves" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {SHELVES.map((sh) => {
-        const secs = sectionsForShelf(sh.id)
-        return (
-          <div key={sh.id}>
-            <div style={{ marginBottom: 6 }}>
-              <Eyebrow color={C.dim}>{sh.label.toUpperCase()}</Eyebrow>
-              <div className="mono" style={{ fontSize: 10, color: C.faint, marginTop: 2 }}>
-                {sh.blurb}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {secs.map((s) => {
-                const on = s.id === openId
-                const read = !!sectionsRead[s.id]
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => onPick(s.id)}
-                    aria-current={on}
-                    style={{
-                      textAlign: 'left',
-                      background: on ? C.panelUp : 'transparent',
-                      border: 'none',
-                      borderLeft: `3px solid ${on ? C.net : 'transparent'}`,
-                      color: on ? C.text : C.dim,
-                      padding: '7px 10px',
-                      borderRadius: 6,
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 7,
-                    }}
-                  >
-                    <span style={{ color: read ? C.ok : C.faint, fontSize: 11, width: 10 }}>{read ? '✓' : '·'}</span>
-                    {s.title}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
-    </nav>
+    <button
+      onClick={onClick}
+      {...bind}
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 10,
+        width: '100%',
+        textAlign: 'left',
+        background: 'none',
+        border: 'none',
+        borderBottom: `1px solid #1B2C48`,
+        padding: '8px 2px',
+        cursor: 'pointer',
+        color: h ? C.text : '#B9C6DE',
+        fontSize: 13.5,
+        fontFamily: 'inherit',
+        transition: 'color .15s',
+      }}
+    >
+      <span
+        style={{ width: 5, height: 5, borderRadius: '50%', background: dotColor, flexShrink: 0, position: 'relative', top: -2 }}
+      />
+      <span style={{ flex: 1 }}>{title}</span>
+      {read && <span style={{ color: C.ok, fontSize: 11 }}>✓</span>}
+    </button>
+  )
+}
+
+// The Ladder demoted to a quiet mono link at the foot of the library.
+function LadderLink({ onClick }: { onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      className="mono"
+      style={{
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        marginTop: 40,
+        cursor: 'pointer',
+        fontSize: 12,
+        color: h ? C.net : C.dim,
+        transition: 'color .15s',
+      }}
+    >
+      THE LADDER — derive every latency number, rung by rung →
+    </button>
   )
 }
 
@@ -159,73 +172,56 @@ function SectionView({ s }: { s: ManualSection }) {
   )
 }
 
-function PartsBin() {
-  const [open, setOpen] = useState(false)
-  return (
-    <div style={{ marginTop: 28, borderTop: `1px solid ${C.line}`, paddingTop: 16 }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="mono"
-        style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', padding: 0, fontSize: 12.5, fontWeight: 600 }}
-      >
-        {open ? '▾' : '▸'} PARTS BIN — the technologies at a glance
-      </button>
-      {open &&
-        COMPONENTS.map((p) => (
-          <div key={p.id} style={{ padding: '10px 0', borderBottom: `1px solid ${C.line}` }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 150px) 1fr', gap: 12 }}>
-              <div style={{ color: CH_COLOR[p.ch], fontWeight: 600, fontSize: 13.5 }}>
-                <T k={p.termKey}>{p.name}</T>
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                <span style={{ color: C.text }}>{p.when}</span> <span style={{ color: C.dim }}>{p.risk}</span>
-                <FinePrint text={p.simplifies} />
-              </div>
-            </div>
-          </div>
-        ))}
-    </div>
-  )
-}
-
-function ConceptLibrary({ openId }: { openId: string }) {
+// The library index: one organizing view — three shelf columns of pokeable
+// briefings. No sidebar, no intro paragraph, no summary cards.
+function ConceptLibrary() {
   const navigate = useNavigate()
   const { sectionsRead } = useProgress()
   const readCount = MANUAL.filter((m) => sectionsRead[m.id]).length
-  const open = openId ? sectionById(openId) : undefined
-  const setOpen = (id: string) => navigate(`/manual/briefings/${id}`)
   return (
     <div>
-      <div className="mono" style={{ fontSize: 12, color: readCount === MANUAL.length ? C.ok : C.dim, marginBottom: 14 }}>
-        {readCount}/{MANUAL.length} sections read · every one teaches through a visualization you can poke
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>CONCEPT LIBRARY</h1>
+        <span
+          className="mono"
+          style={{ marginLeft: 'auto', fontSize: 11.5, color: readCount === MANUAL.length ? C.ok : C.dim, whiteSpace: 'nowrap' }}
+        >
+          {readCount}/{MANUAL.length} read
+        </span>
       </div>
-      <div className="ns-lib-grid">
-        <ShelfNav openId={openId} onPick={setOpen} />
-        <div style={{ minWidth: 0 }}>
-          {open ? (
-            <SectionView s={open} />
-          ) : (
-            <div>
-              <p style={{ fontSize: 14.5, lineHeight: 1.6, color: C.text, marginTop: 0 }}>
-                The explanation layer — three shelves of short, pokeable briefings. Pick a section: each one leads with an
-                interactive visualization and ends with where the idea bites in the other modes. Dotted words are clickable
-                everywhere in the game.
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 12 }}>
-                {SHELVES.map((sh) => (
-                  <div key={sh.id} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '12px 14px' }}>
-                    <Eyebrow color={C.net}>{sh.label.toUpperCase()}</Eyebrow>
-                    <div style={{ fontSize: 12.5, color: C.dim, marginTop: 4 }}>{sh.blurb}</div>
-                    <div className="mono" style={{ fontSize: 11, color: C.faint, marginTop: 6 }}>
-                      {sectionsForShelf(sh.id).length} sections
-                    </div>
-                  </div>
+      <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
+        Short briefings, each led by a visualization you can poke. Dotted words are clickable everywhere.
+      </p>
+      <div
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 32, marginTop: 40 }}
+      >
+        {SHELVES.map((sh) => {
+          const col = SHELF_COLOR[sh.id]
+          return (
+            <section key={sh.id} aria-label={sh.label}>
+              <div className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: col }}>
+                {sh.label.toUpperCase()}
+              </div>
+              <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 3 }}>
+                {sh.blurb}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                {sectionsForShelf(sh.id).map((s) => (
+                  <LibRow
+                    key={s.id}
+                    title={s.title}
+                    read={!!sectionsRead[s.id]}
+                    dotColor={col + '55'}
+                    onClick={() => navigate(`/manual/briefings/${s.id}`)}
+                  />
                 ))}
               </div>
-              <PartsBin />
-            </div>
-          )}
-        </div>
+            </section>
+          )
+        })}
+      </div>
+      <div>
+        <LadderLink onClick={() => navigate('/manual/ladder')} />
       </div>
     </div>
   )
@@ -335,19 +331,32 @@ export default function Manual() {
     if (resolved !== sectionId) return <Navigate to={`/manual/briefings/${resolved}`} replace />
   }
   if (sectionId && tab === 'ladder') return <Navigate to="/manual/ladder" replace />
-  return (
-    <div>
-      <ModeHeader title="CONCEPT LIBRARY" thesis="explanations you can poke · dotted words are clickable">
-        <TabNav
-          tabs={[
-            { id: 'briefings', label: '01 · LIBRARY', sub: 'concepts · technologies · patterns' },
-            { id: 'ladder', label: '02 · THE LADDER', sub: 'derive the numbers' },
-          ]}
-          active={tab}
-          onPick={(id) => navigate(`/manual/${id}`)}
-        />
-      </ModeHeader>
-      {tab === 'briefings' ? <ConceptLibrary openId={sectionId ?? ''} /> : <Ladder />}
-    </div>
-  )
+
+  // The Ladder, reachable from the quiet link at the foot of the library.
+  if (tab === 'ladder') {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate('/manual/briefings')}>← the library</GhostButton>
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>THE LADDER</h1>
+        </div>
+        <Ladder />
+      </div>
+    )
+  }
+
+  // A single opened briefing (deep-linkable), with a back link to the shelves.
+  const open = sectionId ? sectionById(sectionId) : undefined
+  if (open) {
+    return (
+      <div>
+        <div style={{ marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate('/manual/briefings')}>← the library</GhostButton>
+        </div>
+        <SectionView s={open} />
+      </div>
+    )
+  }
+
+  return <ConceptLibrary />
 }

@@ -65,11 +65,13 @@ export default function About() {
     <div>
       <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>WHAT IS THIS?</h1>
       <p style={{ color: C.text, fontSize: 16.5, lineHeight: 1.65, margin: '20px 0 0', maxWidth: 640, fontWeight: 500, textWrap: 'pretty' }}>
-        Learn the physical constraints behind systems design. Operate the mechanisms — don't memorize the numbers.
+        Nanosecond teaches the physical constraints behind systems design — not by memorizing latency numbers, but by operating
+        the mechanisms that produce them.
       </p>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.7, margin: '16px 0 0', maxWidth: 640, textWrap: 'pretty' }}>
-        Every rule of thumb you carry is downstream of physics: speed of light, moving metal, leaking charge, heat. Drag the
-        variable yourself and the number stops being trivia.
+        Every rule of thumb an engineer carries — "don't run servers past 80%", "random disk reads are 1000× slower",
+        "cross-region writes cost round trips" — is downstream of physics: the speed of light, moving metal, leaking charge,
+        heat. When you've dragged the variable yourself and watched the curve bend, the number stops being trivia.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 36, maxWidth: 640 }}>
@@ -94,7 +96,7 @@ export default function About() {
           accent={C.gold}
           label="◈ JOURNAL"
           last
-          body="Your misses land here with their lessons. Review the journal before an interview."
+          body="Every miss, logged with its lesson. Misses are the curriculum — the journal is what you review before an interview."
         />
       </div>
 

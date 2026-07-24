@@ -256,9 +256,9 @@ export default function Builder() {
                   </div>
                 ))}
                 <div style={{ color: C.faint, fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>
-                  Traffic ramps to peak over the run. Bars go amber past 80% <T k="util">utilization</T> — where waiting stops
-                  being linear — and red at 100%, where requests die. Watch which component gets hot first: that's the story's
-                  real bottleneck telling on itself.
+                  Watch which component gets hot first — that's the story's bottleneck telling on itself. As traffic ramps to
+                  peak, bars go amber past 80% <T k="util">utilization</T> (where waiting stops being linear) and red at 100%
+                  (where requests die).
                 </div>
               </div>
             )}

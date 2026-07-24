@@ -39,7 +39,7 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   },
   cache: {
     name: 'Cache',
-    def: "A small, very fast memory (RAM) holding copies of recently-used answers, sitting in front of the database. If the answer is there (a 'hit'), you skip the database entirely — ~1ms instead of ~5–50ms, and 10× the capacity per dollar. Only helps reads.",
+    def: "A small, fast memory (RAM) holding copies of recently-used answers, sitting in front of the database. If the answer is there (a 'hit'), you skip the database entirely — ~1ms instead of ~5–50ms, and 10× the capacity per dollar. Only helps reads.",
   },
   hitrate: {
     name: 'Hit rate',

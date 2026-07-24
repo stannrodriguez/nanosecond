@@ -4,7 +4,7 @@ import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
 import { Term } from '../../ui/Term'
-import { Button, Chip, GhostButton } from '../../ui/kit'
+import { Button, Chip, GhostButton, useHover } from '../../ui/kit'
 import { useTickRunner } from '../../ui/useTickRunner'
 import { type Frame } from '../../engine/capacity'
 import {
@@ -30,6 +30,74 @@ import { Recap } from './Recap'
 const clampHp = (n: number) => Math.max(0, Math.min(100, n))
 
 export { oncallTick, encounterDamage } from './engine'
+
+// One encounter in the vertical map column: a lifting card with a type
+// eyebrow, name, and forecast stats. The active layer's cards carry the
+// current-node border + "YOU ARE HERE"; past layers dim.
+function EncounterCard({
+  node,
+  active,
+  past,
+  onPick,
+}: {
+  node: (typeof RUN_LAYERS)[number]['layer'][number]
+  active: boolean
+  past: boolean
+  onPick: () => void
+}) {
+  const [h, bind] = useHover()
+  const meta = NODE_META[node.kind]
+  const col = C[meta.colKey]
+  const e = node.enc ? ENCOUNTERS[node.enc] : null
+  const name = e
+    ? e.name.replace('ELITE · ', '').replace('BOSS · ', '')
+    : node.kind === 'shop'
+      ? 'Buy patterns & capacity'
+      : node.kind === 'rest'
+        ? 'Recover trust or raise funds'
+        : 'Something needs a decision'
+  const border = active ? (h ? C.net : C.net + '88') : h && !past ? col + '77' : C.line
+  return (
+    <button
+      disabled={!active}
+      onClick={active ? onPick : undefined}
+      {...(active ? bind : {})}
+      style={{
+        flex: 1,
+        width: '100%',
+        textAlign: 'left',
+        background: C.panel,
+        border: `1px solid ${border}`,
+        borderRadius: 12,
+        padding: '13px 16px',
+        cursor: active ? 'pointer' : 'default',
+        color: C.text,
+        fontFamily: 'inherit',
+        opacity: past ? 0.4 : 1,
+        transition: 'transform .15s, border-color .15s, box-shadow .15s',
+        transform: h && active ? 'translateY(-2px)' : 'none',
+        boxShadow: h && active ? '0 10px 26px rgba(0,0,0,.35)' : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <span className="mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1, color: col, whiteSpace: 'nowrap' }}>
+          {meta.icon} {meta.label.toUpperCase()}
+        </span>
+        {active && (
+          <span className="mono" style={{ marginLeft: 'auto', fontSize: 9.5, letterSpacing: 1, color: C.net, whiteSpace: 'nowrap' }}>
+            YOU ARE HERE
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 14.5, fontWeight: 600, marginTop: 4 }}>{name}</div>
+      {e && (
+        <div className="mono" style={{ fontSize: 11, color: C.faint, marginTop: 4 }}>
+          {fmtNum(e.rps)} req/s · {Math.round(e.readPct * 100)}% reads
+        </div>
+      )}
+    </button>
+  )
+}
 
 export default function OnCall() {
   const navigate = useNavigate()
@@ -136,52 +204,51 @@ export default function OnCall() {
 
   /* ---------------- header ---------------- */
   const curAct = RUN_LAYERS[Math.min(g.layer, RUN_LAYERS.length - 1)].act
+  const hpCol = g.hp > 50 ? C.ok : g.hp > 25 ? C.compute : C.alert
   const header = (
-    <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', padding: '4px 0 14px', borderBottom: `1px solid ${C.line}`, marginBottom: 16 }}>
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
       <GhostButton onClick={() => navigate('/practice')}>← practice</GhostButton>
-      <h1 style={{ fontSize: 19, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>ON-CALL</h1>
-      <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-        act {curAct + 1}/{ACTS.length}
-      </span>
-      <span className="mono" style={{ fontSize: 12, color: C.faint }}>
-        node {Math.min(g.layer + 1, RUN_LAYERS.length)}/{RUN_LAYERS.length}
-      </span>
-      <span className="mono" style={{ fontSize: 13 }}>
-        <span style={{ color: C.faint }}>
-          <Term k="errorbudget">error budget</Term>{' '}
+      <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>ON-CALL</h1>
+      <div
+        className="mono"
+        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontSize: 11.5, color: C.dim }}
+      >
+        <span style={{ whiteSpace: 'nowrap' }}>
+          act {curAct + 1}/{ACTS.length} · node {Math.min(g.layer + 1, RUN_LAYERS.length)}/{RUN_LAYERS.length}
         </span>
-        <b style={{ color: g.hp > 50 ? C.ok : g.hp > 25 ? C.compute : C.alert }}>{g.hp}</b>
-        <span style={{ color: C.faint }}>/100</span>
-      </span>
-      <div style={{ width: 110, height: 8, background: C.bg, borderRadius: 4, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${g.hp}%`, background: g.hp > 50 ? C.ok : g.hp > 25 ? C.compute : C.alert, transition: 'width .3s' }} />
-      </div>
-      <span className="mono" style={{ fontSize: 13, color: C.gold }}>
-        ${g.gold}
-      </span>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {g.pats.map((k) => (
-          <span
-            key={k}
-            title={`${PATTERNS[k].name}: ${PATTERNS[k].fx}`}
-            className="mono"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 6,
-              background: C.panelUp,
-              border: `1px solid ${C.net}55`,
-              color: C.net,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 13,
-              cursor: 'help',
-            }}
-          >
-            {PATTERNS[k].icon}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+          <Term k="errorbudget">error budget</Term>
+          <span style={{ display: 'inline-block', width: 90, height: 6, borderRadius: 3, background: C.line, overflow: 'hidden' }}>
+            <span style={{ display: 'block', width: `${g.hp}%`, height: '100%', background: hpCol, transition: 'width .3s' }} />
           </span>
-        ))}
+          <b style={{ color: hpCol }}>{g.hp}</b>
+        </span>
+        <span style={{ color: C.gold, whiteSpace: 'nowrap' }}>${g.gold}</span>
+        {g.pats.length > 0 && (
+          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {g.pats.map((k) => (
+              <span
+                key={k}
+                title={`${PATTERNS[k].name}: ${PATTERNS[k].fx}`}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 6,
+                  background: C.panelUp,
+                  border: `1px solid ${C.net}55`,
+                  color: C.net,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 12,
+                  cursor: 'help',
+                }}
+              >
+                {PATTERNS[k].icon}
+              </span>
+            ))}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -204,65 +271,38 @@ export default function OnCall() {
     return (
       <div>
         {header}
-        <div style={{ maxWidth: 640 }}>
-          <div className="mono" style={{ fontSize: 12, letterSpacing: 2, color: C.storage }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
+          <span className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: C.storage, whiteSpace: 'nowrap' }}>
             {act.name}
-          </div>
-          <p style={{ color: C.dim, fontSize: 13.5, margin: '6px 0 0' }}>{act.tagline}</p>
+          </span>
+          <span style={{ color: C.dim, fontSize: 13.5 }}>{act.tagline}</span>
         </div>
-        <div style={{ maxWidth: 560, margin: '18px auto' }}>
+        {/* the run as one centered vertical column */}
+        <div style={{ maxWidth: 440, margin: '36px auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {act.layers.map((layer, lj) => {
             const gLayer = actStart + lj
             const active = gLayer === g.layer
+            const past = gLayer < g.layer
+            const last = lj === act.layers.length - 1
             return (
-              <div key={lj} style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 10, opacity: gLayer < g.layer ? 0.35 : 1 }}>
-                {layer.map((node, ni) => {
-                  const meta = NODE_META[node.kind]
-                  const metaCol = C[meta.colKey]
-                  const e = node.enc ? ENCOUNTERS[node.enc] : null
-                  return (
-                    <button
+              <div key={lj} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '100%', display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  {layer.map((node, ni) => (
+                    <EncounterCard
                       key={ni}
-                      disabled={!active}
-                      onClick={() =>
+                      node={node}
+                      active={active}
+                      past={past}
+                      onPick={() =>
                         upd({
                           phase: node.kind === 'fight' || node.kind === 'elite' || node.kind === 'boss' ? 'encounter' : node.kind,
                           node,
                         })
                       }
-                      style={{
-                        flex: 1,
-                        maxWidth: 270,
-                        textAlign: 'left',
-                        background: active ? C.panelUp : C.panel,
-                        border: `1.5px solid ${active ? metaCol : C.line}`,
-                        borderRadius: 10,
-                        padding: '10px 14px',
-                        cursor: active ? 'pointer' : 'default',
-                        color: C.text,
-                        boxShadow: active ? `0 0 14px ${metaCol}33` : 'none',
-                      }}
-                    >
-                      <span className="mono" style={{ color: metaCol, fontSize: 12, fontWeight: 600 }}>
-                        {meta.icon} {meta.label}
-                      </span>
-                      <div style={{ fontSize: 13, marginTop: 3, color: active ? C.text : C.dim }}>
-                        {e
-                          ? e.name.replace('ELITE · ', '').replace('BOSS · ', '')
-                          : node.kind === 'shop'
-                            ? 'Buy patterns & capacity'
-                            : node.kind === 'rest'
-                              ? 'Recover trust or raise funds'
-                              : 'Something needs a decision'}
-                      </div>
-                      {e && (
-                        <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 2 }}>
-                          {fmtNum(e.rps)} req/s · {Math.round(e.readPct * 100)}% reads
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
+                    />
+                  ))}
+                </div>
+                {!last && <div style={{ width: 1, height: 22, background: C.line }} />}
               </div>
             )
           })}

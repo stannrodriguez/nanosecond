@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
+import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { C, FONT } from './theme'
 import { useHover } from './ui/kit'
 import { GlossaryProvider } from './ui/Term'
@@ -12,16 +12,25 @@ import Review from './modes/review'
 import OnCall from './modes/oncall'
 import Journal from './modes/journal'
 
-// The six learning modes — the game's verbs. This set is stable; content
-// grows INSIDE modes (ADR 0004), so new concepts never add tabs here.
-export const MODES = [
-  { path: '/lab', label: 'LAB', sub: 'mechanisms, not numbers' },
-  { path: '/manual', label: 'LIBRARY', sub: 'concepts · tech · patterns' },
-  { path: '/drills', label: 'DRILLS', sub: 'prove you own them' },
-  { path: '/builder', label: 'BUILDER', sub: 'story → numbers → system' },
-  { path: '/review', label: 'REVIEW', sub: 'the judgment gym' },
-  { path: '/on-call', label: 'ON-CALL', sub: 'survive to IPO' },
+// The top nav — five destinations (README-v3 IA restructure). Drills, Builder,
+// Review, and On-Call are no longer nav items; they live under PRACTICE, whose
+// pill stays lit while you're inside any of them. `match` lists the route
+// prefixes that light each pill.
+const NAV = [
+  { to: '/lab', label: 'LAB', match: ['/lab'] },
+  { to: '/manual', label: 'LIBRARY', match: ['/manual'] },
+  { to: '/practice', label: 'PRACTICE', match: ['/practice', '/drills', '/builder', '/review', '/on-call'] },
+  // Journal is reflection over your record, not a learning mode — gold, apart.
+  { to: '/journal', label: '◈ JOURNAL', match: ['/journal'], accent: C.gold },
+  // About is a quiet, dimmer pill — reference, not a place you work.
+  { to: '/about', label: 'ABOUT', match: ['/about'], quiet: true },
 ] as const
+
+// A pill is lit when the current path is (or is nested under) one of its
+// matches — this is what keeps PRACTICE lit across the four modes beneath it.
+function pathMatches(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(p + '/'))
+}
 
 export default function App() {
   return (
@@ -32,37 +41,50 @@ export default function App() {
 }
 
 // One organizing story per page starts at the top bar: a single sticky,
-// blurred row — brand left, mode pills right. Each pill is one mono line
-// (the two-line subtitles are gone); the active mode is tinted with its
-// accent, Journal is gold.
-function NavPill({ to, label, accent }: { to: string; label: string; accent: string }) {
+// blurred row — brand left, nav pills right. Each pill is one mono line; the
+// active pill is tinted with its accent (net by default, gold for Journal),
+// and About stays quiet until you're on it.
+function NavPill({
+  to,
+  label,
+  active,
+  accent = C.net,
+  quiet = false,
+}: {
+  to: string
+  label: string
+  active: boolean
+  accent?: string
+  quiet?: boolean
+}) {
   const [h, bind] = useHover()
+  // Inactive: gold pill keeps a dim-gold tint, the quiet pill goes faint,
+  // everything else is C.dim.
+  const idle = accent === C.gold ? C.gold + 'AA' : quiet ? C.faint : C.dim
   return (
-    <NavLink to={to} {...bind}>
-      {({ isActive }) => (
-        <span
-          className="mono"
-          style={{
-            display: 'inline-block',
-            padding: '5px 11px',
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            transition: 'background .15s, color .15s',
-            background: isActive ? accent + '14' : h ? C.panelUp : 'transparent',
-            // inactive Journal keeps a dim-gold tint; other modes go C.dim
-            color: isActive ? accent : h ? C.text : accent === C.gold ? C.gold + 'AA' : C.dim,
-          }}
-        >
-          {label}
-        </span>
-      )}
+    <NavLink to={to} {...bind} aria-current={active ? 'page' : undefined}>
+      <span
+        className="mono"
+        style={{
+          display: 'inline-block',
+          padding: '5px 11px',
+          borderRadius: 6,
+          fontSize: 12,
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+          transition: 'background .15s, color .15s',
+          background: active ? accent + '14' : h ? C.panelUp : 'transparent',
+          color: active ? accent : h ? C.text : idle,
+        }}
+      >
+        {label}
+      </span>
     </NavLink>
   )
 }
 
 function AppShell() {
+  const { pathname } = useLocation()
   return (
     <div style={{ minHeight: '100vh', color: C.text }}>
       <header
@@ -100,13 +122,17 @@ function AppShell() {
           >
             NANOSECOND
           </NavLink>
-          <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }} aria-label="Modes">
-            {MODES.map((m) => (
-              <NavPill key={m.path} to={m.path} label={m.label} accent={C.net} />
+          <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }} aria-label="Sections">
+            {NAV.map((m) => (
+              <NavPill
+                key={m.to}
+                to={m.to}
+                label={m.label}
+                active={pathMatches(pathname, m.match)}
+                accent={'accent' in m ? m.accent : C.net}
+                quiet={'quiet' in m ? m.quiet : false}
+              />
             ))}
-            {/* Journal is reflection over your record, not a learning mode —
-                it sits apart from the six verbs, gold like the Forge. */}
-            <NavPill to="/journal" label="◈ JOURNAL" accent={C.gold} />
           </nav>
         </div>
       </header>

@@ -11,10 +11,12 @@
 
 body {
   margin: 0;
-  background: #0f1930;
+  /* Calm redesign: a subtle top glow instead of the flat fill. */
+  background: radial-gradient(1100px 480px at 50% -8%, #14213a 0%, #0f1930 62%) #0f1930;
   color: #e9eef8;
   font-family: 'Space Grotesk', sans-serif;
   min-width: 380px;
+  min-height: 100vh;
 }
 
 .mono {

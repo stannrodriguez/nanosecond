@@ -125,12 +125,11 @@ test('review: interrogation extracts requirements and springs the unasked-questi
   await page.screenshot({ path: 'e2e/shots/review-interrogate.png', fullPage: true })
 })
 
-test('lab landing surfaces the Daily Incident card', async ({ page }) => {
+test('lab index progress bar reflects completed toys per channel', async ({ page }) => {
   await page.goto('/#/lab')
-  const card = page.getByRole('button', { name: 'Daily Incident' })
-  await expect(card).toBeVisible()
-  await card.click()
-  await expect(page).toHaveURL(/#\/review\/daily$/)
+  // the segmented progress bar has one cell per toy, tooltip = "NN · NAME"
+  await expect(page.getByTitle('01 · RACE LIGHT')).toBeVisible()
+  await expect(page.getByTitle('18 · FALSE SHARING')).toBeVisible()
 })
 
 test('on-call: map renders and first encounter opens', async ({ page }) => {
@@ -192,13 +191,11 @@ test('lab: ttl stampede spikes the DB', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
 })
 
-test('lab: the map walks the request journey and deep-links its toys', async ({ page }) => {
+test('lab: the journey spine deep-links its toys into the lab', async ({ page }) => {
   await page.goto('/#/lab')
-  // station 1 (THE WIRE) is selected by default with its toy chip
-  await expect(page.getByRole('button', { name: /01 RACE LIGHT/ })).toBeVisible()
-  // pick a later station, follow its toy into the lab
-  await page.getByRole('button', { name: "THE DATABASE'S DOOR" }).click()
-  await page.getByRole('button', { name: /10 CONNECTION POOL/ }).click()
+  // stations render top to bottom; each toy is a card under its station
+  await expect(page.getByText("THE DATABASE'S DOOR", { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '10 · CONNECTION POOL' }).click()
   await expect(page).toHaveURL(/#\/lab\/connpool$/)
   // the briefing situates the toy on the same journey and names its click
   await expect(page.getByText('YOU ARE HERE')).toBeVisible()
@@ -274,20 +271,6 @@ test('lab: the receipts surface a number derivation on the toy page', async ({ p
   await expect(page.getByText('BOUNDED BY').first()).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-receipts.png', fullPage: true })
-})
-
-test('lab: the stack view shows the floors, their promises, and deep-links', async ({ page }) => {
-  await page.goto('/#/lab')
-  await page.getByRole('button', { name: 'THE STACK', exact: true }).click()
-  // floors render top to bottom with their gists…
-  await expect(page.getByText('code becoming electricity', { exact: false })).toBeVisible()
-  // …and thin floors state what they owe (the network floor still owes v2 toys)
-  await expect(page.getByText(/a packet's life/)).toBeVisible()
-  await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: 'e2e/shots/lab-stack.png', fullPage: true })
-  // a floor's toy chip deep-links into the lab
-  await page.getByRole('button', { name: /13 THE CACHE CLIFF/ }).click()
-  await expect(page).toHaveURL(/#\/lab\/cachecliff$/)
 })
 
 test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {

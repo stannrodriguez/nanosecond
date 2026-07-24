@@ -7,12 +7,13 @@ import { expect, test, type Page } from '@playwright/test'
 // call in (any option) to reveal them.
 const callIt = (page: Page) => page.locator('section[aria-label="Forecast"] button').first().click()
 
-test('lab index groups toys by channel with a completion count', async ({ page }) => {
+test('lab index reads as a journey spine with a completion count', async ({ page }) => {
   await page.goto('/#/lab')
-  for (const wall of ['NETWORK', 'COMPUTE', 'STORAGE', 'MEMORY']) {
-    await expect(page.getByText(wall, { exact: true })).toBeVisible()
-  }
-  await expect(page.getByText('0/18 mechanisms internalized')).toBeVisible()
+  // stations of the request's journey, top to bottom
+  await expect(page.getByRole('heading', { name: 'INTUITION LAB' })).toBeVisible()
+  await expect(page.getByText('THE WIRE', { exact: true })).toBeVisible()
+  await expect(page.getByText('THE FRONT DOOR', { exact: true })).toBeVisible()
+  await expect(page.getByText('0/18 internalized')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-index.png', fullPage: true })
 })
@@ -25,7 +26,7 @@ test('a toy deep link renders the toy directly and back returns to the index', a
   await page.reload()
   await expect(page.getByText('80% — the knee')).toBeVisible()
   await page.getByRole('link', { name: '← all toys' }).click()
-  await expect(page.getByText('mechanisms internalized')).toBeVisible()
+  await expect(page.getByText(/internalized/)).toBeVisible()
   await page.goBack()
   await expect(page.getByText('80% — the knee')).toBeVisible()
 })

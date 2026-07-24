@@ -28,7 +28,7 @@ export const STATIONS: JourneyStation[] = [
     ch: 'net',
     tagline: (
       <>
-        Your tap becomes a <T k="request">request</T> and crosses the internet. Distance is the first cost.
+        Your <T k="request">request</T> crosses the internet as light in fiber. Distance is the first cost.
       </>
     ),
     toyIds: ['light'],

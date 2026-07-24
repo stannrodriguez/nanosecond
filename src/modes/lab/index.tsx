@@ -4,6 +4,7 @@ import { GhostButton, LiftCard } from '../../ui/kit'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { STATIONS } from '../../content/journey'
+import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
@@ -121,8 +122,10 @@ function LabIndex() {
       </div>
 
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '20px 0 0', maxWidth: 620 }}>
-        One tap of "Post" travels from your thumb to disks around the world. Every stop on that journey is a mechanism you can
-        operate — drag one variable until it clicks.
+        One tap of "Post" launches a single <T k="request">request</T>, and the stations below trace it in order: across
+        fiber, through a <T k="queue">queue</T>, onto a CPU, past a <T k="cache">cache</T>, down to a disk, out to the{' '}
+        <T k="replica">replicas</T>. Each toy isolates one mechanism on that path as a live simulation — drag its one
+        variable until the behavior clicks.
       </p>
 
       <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column' }}>

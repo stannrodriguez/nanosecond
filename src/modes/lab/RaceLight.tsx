@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { C } from '../../theme'
 import { Punchline } from '../../ui/Punchline'
 import { Chip } from '../../ui/kit'
@@ -73,6 +73,40 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
   const op = LIGHT_OPS[opIdx]
   const DUR = 4.5
 
+  // Measure the track so landmark labels can be collision-hidden by real
+  // pixel width (rules 3–4 of the app-wide label fix): keep the first and
+  // last, drop any intermediate whose label box would overlap a neighbour,
+  // and right-anchor the final label so it never spills past the edge.
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [trackW, setTrackW] = useState(800)
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setTrackW(el.clientWidth))
+    ro.observe(el)
+    setTrackW(el.clientWidth)
+    return () => ro.disconnect()
+  }, [])
+  const shownLandmarks = (() => {
+    const CHAR = 6.2 // ≈ px per mono char at this size
+    const PAD = 8
+    const items = LANDMARKS.map((l) => ({
+      xpx: (xOf(l.m) / 100) * trackW,
+      w: Math.max(l.label.length, fmtDist(l.m).length) * CHAR,
+    }))
+    const lastIx = items.length - 1
+    const lastLeft = items[lastIx].xpx - items[lastIx].w // reserved region for the right-anchored last label
+    const show = new Set<number>([0, lastIx])
+    let cursor = items[0].xpx + items[0].w + PAD
+    for (let k = 1; k < lastIx; k++) {
+      if (items[k].xpx >= cursor && items[k].xpx + items[k].w + PAD <= lastLeft) {
+        show.add(k)
+        cursor = items[k].xpx + items[k].w + PAD
+      }
+    }
+    return show
+  })()
+
   useRaf((dt) => {
     setU((prev) => {
       const next = prev + dt / DUR
@@ -115,30 +149,45 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
 
       <div className="mono" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13, margin: '16px 0 10px' }}>
         <span style={{ color: C.dim }}>
-          elapsed <b style={{ color: C.text, fontSize: 16 }}>{fmtTimeNs(done ? op.ns : elapsedNs)}</b>
+          elapsed{' '}
+          <b style={{ color: C.text, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtTimeNs(done ? op.ns : elapsedNs)}</b>
           {done ? '' : ` / ${fmtTimeNs(op.ns)}`}
         </span>
         <span style={{ color: C.dim }}>
-          light traveled <b style={{ color: op.ch, fontSize: 16 }}>{fmtDist(done ? 0.2998 * op.ns : dist)}</b>
+          light traveled{' '}
+          <b style={{ color: op.ch, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtDist(done ? 0.2998 * op.ns : dist)}</b>
         </span>
         <span style={{ color: C.dim }}>
-          CPU cycles burned <b style={{ color: C.compute, fontSize: 16 }}>{fmtBig(done ? op.ns / 0.3 : cycles)}</b>
+          CPU cycles burned{' '}
+          <b style={{ color: C.compute, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtBig(done ? op.ns / 0.3 : cycles)}</b>
         </span>
       </div>
 
       {/* the log-scale racetrack */}
-      <div style={{ position: 'relative', height: 120, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
-        {LANDMARKS.map((l) => (
-          <div key={l.label} style={{ position: 'absolute', left: `${xOf(l.m)}%`, top: 0, bottom: 0 }}>
-            <div style={{ width: 1, height: '100%', background: C.line }} />
-            <span className="mono" style={{ position: 'absolute', top: 8, left: 4, fontSize: 10, color: C.faint, whiteSpace: 'nowrap' }}>
-              {l.label}
-            </span>
-            <span className="mono" style={{ position: 'absolute', bottom: 6, left: 4, fontSize: 9, color: C.faint }}>
-              {fmtDist(l.m)}
-            </span>
-          </div>
-        ))}
+      <div
+        ref={trackRef}
+        style={{ position: 'relative', height: 120, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}
+      >
+        {LANDMARKS.map((l, i) => {
+          const showLabel = shownLandmarks.has(i)
+          const isLast = i === LANDMARKS.length - 1
+          const anchor = isLast ? { right: 4 as const, textAlign: 'right' as const } : { left: 4 as const }
+          return (
+            <div key={l.label} style={{ position: 'absolute', left: `${xOf(l.m)}%`, top: 0, bottom: 0 }}>
+              <div style={{ width: 1, height: '100%', background: C.line }} />
+              {showLabel && (
+                <>
+                  <span className="mono" style={{ position: 'absolute', top: 8, ...anchor, fontSize: 10, color: C.faint, whiteSpace: 'nowrap' }}>
+                    {l.label}
+                  </span>
+                  <span className="mono" style={{ position: 'absolute', bottom: 6, ...anchor, fontSize: 9, color: C.faint, whiteSpace: 'nowrap' }}>
+                    {fmtDist(l.m)}
+                  </span>
+                </>
+              )}
+            </div>
+          )
+        })}
         {/* light trail */}
         <div
           style={{
@@ -164,9 +213,10 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
             boxShadow: `0 0 16px 4px ${op.ch}`,
           }}
         />
-        <span className="mono" style={{ position: 'absolute', right: 10, top: 8, fontSize: 10, color: C.faint }}>
-          log scale — every gridline gap ≈ ×100
-        </span>
+      </div>
+      {/* caption on its own line — never sharing a band with the tick labels */}
+      <div className="mono" style={{ fontSize: 10.5, color: C.faint, textAlign: 'right', marginTop: 6, whiteSpace: 'nowrap' }}>
+        log scale — every gridline gap ≈ ×100
       </div>
 
       {done && <Punchline color={op.ch}>{op.punch}</Punchline>}

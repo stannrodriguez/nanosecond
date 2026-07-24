@@ -68,13 +68,16 @@ export function TheQueue({ onComplete }: { onComplete: () => void }) {
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-          <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-            arrival rate: <b style={{ color: util >= 0.8 ? C.alert : C.net, fontSize: 17 }}>{Math.round(util * 100)}%</b> of
-            capacity
+          <span className="mono" style={{ fontSize: 13, color: C.dim, whiteSpace: 'nowrap' }}>
+            arrival rate:{' '}
+            <b style={{ color: util >= 0.8 ? C.alert : C.net, fontSize: 17, fontVariantNumeric: 'tabular-nums' }}>
+              {Math.round(util * 100)}%
+            </b>{' '}
+            of capacity
           </span>
-          <span className="mono" style={{ fontSize: 13, color: C.dim }}>
+          <span className="mono" style={{ fontSize: 13, color: C.dim, whiteSpace: 'nowrap' }}>
             avg wait:{' '}
-            <b style={{ color: avgWaitMs > 400 ? C.alert : avgWaitMs > 150 ? C.compute : C.ok, fontSize: 17 }}>
+            <b style={{ color: avgWaitMs > 400 ? C.alert : avgWaitMs > 150 ? C.compute : C.ok, fontSize: 17, fontVariantNumeric: 'tabular-nums' }}>
               {avgWaitMs.toFixed(0)} ms
             </b>
             <span style={{ color: C.faint }}> · in queue: {s.queue.length}</span>

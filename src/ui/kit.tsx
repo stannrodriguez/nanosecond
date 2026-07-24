@@ -111,6 +111,87 @@ export function LiftCard({
   )
 }
 
+/* ---------------- Axis labels: collision-hide + edge-anchor ----------------
+   The app-wide label-overlap fix. Sims position tick/landmark labels along an
+   axis; when two would crowd, the less-important one must drop (first and last
+   always survive), and the edge labels must anchor inward so they never spill
+   outside the track. `collisionHide` is the pure rule both HTML and SVG axes
+   share; `AxisLabels` is the ready-made SVG tick row. */
+
+/**
+ * Given ascending tick positions (any unit — px or %), return which to show.
+ * Rules: keep the first and last; drop any intermediate whose gap to the last
+ * shown tick is below `minGap`; if the last tick crowds the previous shown one,
+ * drop that previous intermediate to make room (never the first).
+ */
+export function collisionHide(positions: number[], minGap: number): boolean[] {
+  const n = positions.length
+  const show = new Array<boolean>(n).fill(false)
+  if (n === 0) return show
+  show[0] = true
+  if (n === 1) return show
+  let lastShown = positions[0]
+  for (let i = 1; i < n - 1; i++) {
+    if (positions[i] - lastShown >= minGap) {
+      show[i] = true
+      lastShown = positions[i]
+    }
+  }
+  // the last tick always shows; if it crowds the previous shown intermediate, drop that one
+  show[n - 1] = true
+  if (positions[n - 1] - lastShown < minGap) {
+    for (let i = n - 2; i > 0; i--) {
+      if (show[i]) {
+        show[i] = false
+        break
+      }
+    }
+  }
+  return show
+}
+
+/** An SVG tick-label row with collision-hiding and inward edge-anchoring. */
+export function AxisLabels({
+  ticks,
+  y,
+  fontSize = 10,
+  color = C.faint,
+  minGap = 40,
+}: {
+  /** each tick's x (in the SVG's user units) and its label */
+  ticks: { x: number; label: string }[]
+  y: number
+  fontSize?: number
+  color?: string
+  /** minimum px/user-unit gap between adjacent shown labels */
+  minGap?: number
+}) {
+  const show = collisionHide(
+    ticks.map((t) => t.x),
+    minGap,
+  )
+  const last = ticks.length - 1
+  return (
+    <>
+      {ticks.map((t, i) =>
+        show[i] ? (
+          <text
+            key={i}
+            x={t.x}
+            y={y}
+            fill={color}
+            fontSize={fontSize}
+            fontFamily="'IBM Plex Mono', monospace"
+            textAnchor={i === 0 ? 'start' : i === last ? 'end' : 'middle'}
+          >
+            {t.label}
+          </text>
+        ) : null,
+      )}
+    </>
+  )
+}
+
 /* ---------------- Panel: the standard bordered container ---------------- */
 export function Panel({
   children,

@@ -175,7 +175,7 @@ export function CacheCliff({ onComplete }: { onComplete: () => void }) {
       <Punchline color={C.mem}>
         Same loop, same bytes, up to <b>100× the time</b> — the only thing that changed is whether the data fit in a cache and
         whether you walked it in order. That's the whole reason an array of structs can crush a linked list of the identical
-        fields, why column stores like Parquet exist, and why "make it fit in <T k="cache">cache</T>" beats
+        fields, why column stores like Parquet exist, and why "make it fit in <T k="cpucache">cache</T>" beats
         almost every micro-optimization. Your Race Light ladder isn't trivia: L1, L2, L3, DRAM are the rungs your hottest code
         hits millions of times a second — and <i>which</i> rung is a layout decision you make, not a constant you inherit.
       </Punchline>

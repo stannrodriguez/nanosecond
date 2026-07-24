@@ -142,7 +142,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           partition) sidesteps the race entirely.
         </p>
         <p style={{ color: C.dim }}>
-          Which wins is <T k="readpct">fit</T>: under low contention <T k="optimistic">optimistic</T> is fastest (retries are
+          Which wins depends on contention: under low contention <T k="optimistic">optimistic</T> is fastest (retries are
           rare); under high contention it thrashes on retries and a lock or a serialized owner wins. Every choice needs an{' '}
           <T k="idempotent">idempotent</T> retry path, and a <T k="distlock">distributed lock</T> when the contenders span
           machines.

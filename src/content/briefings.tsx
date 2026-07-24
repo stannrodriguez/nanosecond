@@ -176,7 +176,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
         To a database, a connection is real memory and scheduling work — a few hundred is already a crowd. To an app fleet,
         connections feel free, and serverless made them multiply overnight. The adapter is the{' '}
         <T k="connpool">connection pool</T>: thousands of clients time-share a small fixed set of connections, which quietly
-        creates a second server with its own <T k="backlog">queue</T> and its own knee. "The database is slow" often means the
+        creates a second server with its own <T k="queue">queue</T> and its own knee. "The database is slow" often means the
         wait in <i>front</i> of it.
       </>
     ),
@@ -292,7 +292,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
         Programs never see real memory — each gets a private map, and the hardware translates every address through{' '}
         <T k="virtualmemory">virtual memory</T> before it can fetch. A little cache (the TLB) keeps recent translations instant,
         but it only covers a few megabytes. Outgrow it and every access pays a translation toll on top of the fetch — a cliff
-        the data <T k="cacheline">caches</T> can't hide.
+        the data <T k="cpucache">caches</T> can't hide.
       </>
     ),
     meetIt: [

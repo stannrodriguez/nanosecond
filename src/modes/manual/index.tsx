@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
-import { Eyebrow, GhostButton, useHover } from '../../ui/kit'
+import { Eyebrow, GhostButton, LiftCard, useHover } from '../../ui/kit'
 import { Term as T } from '../../ui/Term'
 import { FinePrint } from '../../ui/FinePrint'
 import {
@@ -13,8 +13,8 @@ import {
   type ManualSection,
 } from '../../content/manual'
 import type { Shelf } from '../../content/manual/types'
-import { GLOSSARY } from '../../content/glossary'
-import { RUNGS } from '../../content/ladder'
+import { GLOSSARY, type GlossaryKey } from '../../content/glossary'
+import { RUNGS, type Rung } from '../../content/ladder'
 import { toyById } from '../../content/toys'
 import { useProgress } from '../../state/progress'
 import { fmtTimeNs, fmtHuman } from '../../ui/fmt'
@@ -32,6 +32,100 @@ const lightDistance = (ns: number) => {
   if (m < 1) return `${(m * 100).toFixed(0)} cm`
   if (m < 1000) return `${m.toFixed(0)} m`
   return `${(m / 1000).toFixed(0)} km`
+}
+
+/* ---------------- Reference: every glossary term in six color-coded groups ---------------- */
+
+const REF_GROUPS: { label: string; color: string; keys: GlossaryKey[] }[] = [
+  {
+    label: 'REQUESTS & TRAFFIC',
+    color: C.net,
+    keys: ['request', 'read', 'write', 'rps', 'burst', 'fanout', 'readpct', 'throughput', 'p99', 'sla', 'util', 'pagination'],
+  },
+  {
+    label: 'CPU & MEMORY',
+    color: C.mem,
+    keys: ['core', 'pipeline', 'speculation', 'cacheline', 'locality', 'virtualmemory'],
+  },
+  {
+    label: 'CACHING & DELIVERY',
+    color: C.compute,
+    keys: ['cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'lb', 'appserver', 'connpool', 'autoscaling', 'dns', 'tls', 'apigateway', 'rest'],
+  },
+  {
+    label: 'STORAGE & DATA',
+    color: C.storage,
+    keys: [
+      'durable', 'wal', 'lsm', 'btree', 'index', 'gsi', 'normalization', 'denormalization', 'join', 'acid', 'nosql',
+      'blob', 'presigned', 'invertedindex', 'shard', 'replica', 'hotpartition', 'replag', 'readyourwrites', 'geohash', 'quadtree', 'consistenthash',
+    ],
+  },
+  {
+    label: 'QUEUES & STREAMS',
+    color: C.gold,
+    keys: [
+      'queue', 'worker', 'backlog', 'stream', 'eventsourcing', 'cdc', 'idempotent', 'exactlyonce', 'atleastonce',
+      'visibility', 'dlq', 'saga', '2pc', 'optimistic',
+    ],
+  },
+  {
+    label: 'RESILIENCE',
+    color: C.alert,
+    keys: [
+      'errorbudget', 'failover', 'consistency', 'consensus', 'cap', 'quorum', 'leader', 'breaker', 'bulkhead',
+      'timeout', 'retry', 'backpressure', 'ratelimit', 'herd', 'bluegreen', 'canary', 'distlock', 'lease',
+      'websocket', 'sse', 'polling', 'iot', 'phonehome',
+    ],
+  },
+]
+
+function RefRow({ k, color }: { k: GlossaryKey; color: string }) {
+  const entry = GLOSSARY[k]
+  if (!entry) return null
+  const [open, setOpen] = useState(false)
+  return (
+    <div
+      id={`ref-${k}`}
+      onClick={() => setOpen(!open)}
+      style={{
+        borderBottom: `1px solid ${C.line}`,
+        padding: '8px 0',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0, position: 'relative', top: -2 }} />
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{entry.name}</span>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 10, color: C.faint }}>{open ? '▾' : '▸'}</span>
+      </div>
+      {open && (
+        <p style={{ fontSize: 13, color: C.dim, lineHeight: 1.55, margin: '6px 0 2px 15px' }}>{entry.def}</p>
+      )}
+    </div>
+  )
+}
+
+function Reference() {
+  return (
+    <section style={{ marginTop: 56 }}>
+      <div className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: C.faint }}>REFERENCE</div>
+      <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.5, margin: '8px 0 24px' }}>
+        Every dotted term in the app. Tap to expand.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px 40px' }}>
+        {REF_GROUPS.map((g) => (
+          <div key={g.label}>
+            <div className="mono" style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: g.color, marginBottom: 8 }}>
+              {g.label}
+            </div>
+            {g.keys.map((k) => (
+              <RefRow key={k} k={k} color={g.color} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 /* ---------------- Concept Library: three shelves, viz-first sections ---------------- */
@@ -70,27 +164,40 @@ function LibRow({ title, read, dotColor, onClick }: { title: string; read: boole
   )
 }
 
-// The Ladder demoted to a quiet mono link at the foot of the library.
-function LadderLink({ onClick }: { onClick: () => void }) {
-  const [h, bind] = useHover()
+function LadderCard({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <LiftCard
+      accent={C.net}
+      ariaLabel="The Ladder"
       onClick={onClick}
-      {...bind}
-      className="mono"
-      style={{
-        background: 'none',
-        border: 'none',
-        padding: 0,
-        marginTop: 40,
-        cursor: 'pointer',
-        fontSize: 12,
-        color: h ? C.net : C.dim,
-        transition: 'color .15s',
-      }}
+      style={{ borderRadius: 14, padding: '18px 22px', marginTop: 40 }}
     >
-      THE LADDER — derive every latency number, rung by rung →
-    </button>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+        <span className="mono" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1.5 }}>THE LADDER</span>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 12, color: C.net, fontWeight: 600 }}>climb →</span>
+      </div>
+      <p style={{ fontSize: 13.5, color: C.dim, lineHeight: 1.5, margin: '8px 0 12px' }}>
+        Eight latency numbers, each derived from a physical limit. Don't memorize — re-derive.
+      </p>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {RUNGS.map((r: Rung) => (
+          <span
+            key={r.name}
+            className="mono"
+            style={{
+              fontSize: 10,
+              padding: '3px 8px',
+              borderRadius: 6,
+              background: CH_COLOR[r.ch] + '18',
+              color: CH_COLOR[r.ch],
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {fmtTimeNs(r.ns)}
+          </span>
+        ))}
+      </div>
+    </LiftCard>
   )
 }
 
@@ -220,9 +327,8 @@ function ConceptLibrary() {
           )
         })}
       </div>
-      <div>
-        <LadderLink onClick={() => navigate('/manual/ladder')} />
-      </div>
+      <LadderCard onClick={() => navigate('/manual/ladder')} />
+      <Reference />
     </div>
   )
 }
@@ -241,8 +347,7 @@ function Ladder() {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14, marginTop: 4, marginBottom: 20, lineHeight: 1.5 }}>
-        Eight numbers, each derived from a physical limit. Don't memorize them — re-derive them. The bar shows how far light
-        travels in that time; the right column shows the wait if one nanosecond were one second.
+        Eight numbers, each derived from a physical limit. Don't memorize them — re-derive them.
       </p>
       {RUNGS.map((r, i) => {
         const frac = (Math.log10(r.ns) - minLog) / (maxLog - minLog)

@@ -228,6 +228,9 @@ export default function Journal() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <GhostButton onClick={() => navigate('/practice')} style={{ alignSelf: 'center' }}>
+          ← practice
+        </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>SCAR JOURNAL</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.gold, whiteSpace: 'nowrap' }}>
           {scars.length} scar{scars.length === 1 ? '' : 's'}

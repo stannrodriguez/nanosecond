@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { C, CH_COLOR } from '../../theme'
-import { ModeHeader } from '../../ui/ModeHeader'
 import { Bar } from '../../ui/Bar'
 import { Stepper } from '../../ui/Stepper'
 import { Term as T } from '../../ui/Term'
-import { Panel, Eyebrow, Button, Chip } from '../../ui/kit'
+import { Panel, Eyebrow, Button, Chip, useHover } from '../../ui/kit'
 import { useTickRunner } from '../../ui/useTickRunner'
 import { fmtNum } from '../../ui/fmt'
 import { diagnoseTiers, simTick, stackCost, type Frame, type StackConfig } from '../../engine/capacity'
 import { SCENARIOS, SCENARIO_TICKS } from '../../content/scenarios'
+import { TOYS } from '../../content/toys'
+import { useProgress } from '../../state/progress'
 import { useScars } from '../../state/scars'
 
 interface Verdict {
@@ -19,8 +20,63 @@ interface Verdict {
 
 const DEFAULT_CFG: StackConfig = { app: 2, cache: 0, hitRate: 0.8, replicas: 0, shards: 1, queue: false, workers: 2 }
 
+// A scenario pill: active = C.net fill; inactive hovers to text/border.
+function ScenarioChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      style={{
+        padding: '8px 14px',
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        background: active ? C.net : C.panel,
+        color: active ? C.bg : h ? C.text : C.dim,
+        border: `1px solid ${active ? C.net : h ? '#3A5080' : C.line}`,
+        transition: 'color .15s, border-color .15s',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+// The lift-on-hover primary CTA (Open the workbench →).
+function CtaButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      style={{
+        width: '100%',
+        marginTop: 22,
+        background: C.net,
+        color: C.bg,
+        border: `1px solid ${C.net}`,
+        borderRadius: 8,
+        padding: 12,
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: 'pointer',
+        transition: 'transform .15s, box-shadow .15s',
+        transform: h ? 'translateY(-1px)' : 'none',
+        boxShadow: h ? `0 6px 18px ${C.net}33` : 'none',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 export default function Builder() {
   const addScar = useScars((s) => s.addScar)
+  const { toysCompleted } = useProgress()
+  const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
   const [scIdx, setScIdx] = useState(0)
   const [stage, setStage] = useState<'brief' | 'build'>('brief')
   const sc = SCENARIOS[scIdx]
@@ -94,64 +150,53 @@ export default function Builder() {
 
   return (
     <div>
-      <ModeHeader title="THE BUILDER" thesis="learn it, then survive it · briefing → build → break" />
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>THE BUILDER</h1>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.dim, whiteSpace: 'nowrap' }}>
+          briefing → build → break
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 24 }}>
         {SCENARIOS.map((s, i) => (
-          <Chip key={s.name} active={i === scIdx} onClick={() => pick(i)} mono={false} style={{ padding: '8px 14px', fontSize: 13 }}>
-            {s.name}
-          </Chip>
+          <ScenarioChip key={s.name} label={s.name} active={i === scIdx} onClick={() => pick(i)} />
         ))}
       </div>
 
-      {/* ---- BRIEFING (law L2: brief before test) ---- */}
-      <Panel pad={0} style={{ padding: '16px 18px', marginBottom: 16 }}>
-        <Eyebrow color={C.net} style={{ marginBottom: 8 }}>
-          BRIEFING — READ THE STORY, THEN WATCH IT BECOME NUMBERS
-        </Eyebrow>
-        <div style={{ fontSize: 14.5, lineHeight: 1.65 }}>{sc.story}</div>
+      {/* ---- BRIEFING: the story, then the same story as numbers ---- */}
+      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 24, marginTop: 16, maxWidth: 720 }}>
+        <Eyebrow color={C.net}>THE STORY</Eyebrow>
+        <p style={{ fontSize: 14.5, lineHeight: 1.65, color: C.text, margin: '10px 0 0' }}>{sc.story}</p>
 
-        <div style={{ marginTop: 14 }}>
-          <Eyebrow color={C.compute} style={{ marginBottom: 6 }}>
-            TRANSLATE THE STORY INTO NUMBERS (the core interview skill)
-          </Eyebrow>
-          {sc.translate.map((r, i) => (
-            <div key={i} className="mono" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12.5, padding: '6px 0', borderBottom: `1px solid ${C.line}` }}>
-              <span style={{ color: C.dim, flex: '1 1 300px' }}>{r.math}</span>
-              <span style={{ color: C.text, fontWeight: 600 }}>{r.out}</span>
-            </div>
-          ))}
+        <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 18, paddingTop: 14 }}>
+          <Eyebrow color={C.compute}>THE STORY, AS NUMBERS</Eyebrow>
+          <div className="mono" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10, fontSize: 12.5 }}>
+            {sc.translate.map((r, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <span style={{ color: C.dim }}>{r.math}</span>
+                <b style={{ color: C.text, whiteSpace: 'nowrap' }}>{r.out}</b>
+              </div>
+            ))}
+          </div>
         </div>
 
         {stage === 'brief' ? (
-          <>
-            <div style={{ marginTop: 14 }}>
-              <Eyebrow color={C.mem} style={{ marginBottom: 6 }}>
-                THINK BEFORE YOU BUILD
-              </Eyebrow>
-              {sc.think.map((q, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, fontSize: 13.5, lineHeight: 1.55 }}>
-                  <span className="mono" style={{ color: C.mem }}>
-                    {i + 1}.
-                  </span>
-                  <span>{q}</span>
-                </div>
-              ))}
-            </div>
-            <Button size="lg" style={{ marginTop: 10 }} onClick={() => setStage('build')}>
-              I've thought about it — open the workbench
-            </Button>
-          </>
+          <CtaButton onClick={() => setStage('build')}>Open the workbench →</CtaButton>
         ) : (
-          <div className="mono" style={{ fontSize: 12, color: C.dim, marginTop: 12 }}>
+          <div className="mono" style={{ fontSize: 12, color: C.dim, marginTop: 16 }}>
             target: peak {fmtNum(sc.rps)} req/s · {Math.round(sc.readPct * 100)}% reads · <T k="p99">p99</T> ≤ {sc.p99Target} ms ·
             budget ${sc.budget}/mo
           </div>
         )}
-      </Panel>
+      </div>
+
+      <p className="mono" style={{ fontSize: 10.5, color: C.faint, margin: '16px 0 0' }}>
+        ⚒ parts are forged in the Lab — {doneCount}/{TOYS.length} mechanisms internalized so far
+      </p>
 
       {/* ---- WORKBENCH ---- */}
       {stage === 'build' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, alignItems: 'start', marginTop: 20 }}>
           <Panel>
             <Eyebrow style={{ marginBottom: 6 }}>YOUR ARCHITECTURE</Eyebrow>
             <Stepper label={<><T k="appserver">App servers</T> · $150 · 10k rps</>} val={cfg.app} set={(v) => set('app')(v)} min={1} max={12} col={C.compute} />
@@ -193,10 +238,23 @@ export default function Builder() {
 
           <Panel style={{ minHeight: 280 }}>
             {!frame && !verdict && (
-              <div style={{ color: C.faint, fontSize: 13.5, lineHeight: 1.6, padding: 8 }}>
-                Traffic ramps to peak over the run. Bars go amber past 80% <T k="util">utilization</T> — where waiting stops being
-                linear — and red at 100%, where requests die. Watch which component gets hot first: that's the story's real
-                bottleneck telling on itself.
+              <div style={{ padding: 8 }}>
+                <Eyebrow color={C.mem} style={{ marginBottom: 8 }}>
+                  THINK BEFORE YOU BUILD
+                </Eyebrow>
+                {sc.think.map((q, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, fontSize: 13.5, lineHeight: 1.55 }}>
+                    <span className="mono" style={{ color: C.mem }}>
+                      {i + 1}.
+                    </span>
+                    <span>{q}</span>
+                  </div>
+                ))}
+                <div style={{ color: C.faint, fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>
+                  Traffic ramps to peak over the run. Bars go amber past 80% <T k="util">utilization</T> — where waiting stops
+                  being linear — and red at 100%, where requests die. Watch which component gets hot first: that's the story's
+                  real bottleneck telling on itself.
+                </div>
               </div>
             )}
             {frame && (

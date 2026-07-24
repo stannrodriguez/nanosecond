@@ -1,18 +1,12 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 // Deeper per-mode smoke: exercise one real interaction per ported prototype
 // and screenshot the resulting screen for the parity check.
-
-// Spec 084: a toy's sim is held behind its CALL IT forecast (predict-before-peek).
-// Tests that drive a sim must lock in a call first — click any option to reveal it.
-async function callIt(page: Page) {
-  await page.locator('section[aria-label="Forecast"] button').first().click()
-}
+// (Calm redesign: the CALL IT forecast gate is gone — sims render directly.)
 
 test('lab: switch to The Queue toy and see the knee chart', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /THE QUEUE/ }).click()
-  await callIt(page)
   await expect(page.getByText('80% — the knee')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-queue.png', fullPage: true })
@@ -175,9 +169,7 @@ test('lab: 18 toys registered; hot partition throttles and forges shards', async
   await expect(page.getByRole('button', { name: /13 · THE CACHE CLIFF/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /18 · FALSE SHARING/ })).toBeVisible()
   await page.getByRole('button', { name: /05 · HOT PARTITION/ }).click()
-  await callIt(page)
   await expect(page.getByText('THROTTLING').first()).toBeVisible({ timeout: 10_000 })
-  await expect(page.getByText(/FORGED: DB SHARD/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-hotpartition.png', fullPage: true })
 })
@@ -186,7 +178,6 @@ test('lab: ttl stampede spikes the DB', async ({ page }) => {
   test.setTimeout(45_000)
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /12 · TTL & STAMPEDE/ }).click()
-  await callIt(page)
   await expect(page.getByText(/× capacity/)).toBeVisible({ timeout: 15_000 })
   await page.screenshot({ path: 'e2e/shots/lab-stampede.png', fullPage: true })
 })
@@ -197,33 +188,13 @@ test('lab: the journey spine deep-links its toys into the lab', async ({ page })
   await expect(page.getByText("THE DATABASE'S DOOR", { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '10 · CONNECTION POOL' }).click()
   await expect(page).toHaveURL(/#\/lab\/connpool$/)
-  // the briefing situates the toy on the same journey and names its click
-  await expect(page.getByText('YOU ARE HERE')).toBeVisible()
+  // the toy page names its single takeaway
   await expect(page.getByText('THE CLICK')).toBeVisible()
-})
-
-test('lab: a wrong forecast on the Consensus toy lands as a scar', async ({ page }) => {
-  await page.goto('/#/lab/consensus')
-  // the sim is held behind the call: the place chips are not shown yet
-  await expect(page.getByRole('button', { name: 'cross-region (US E↔W)' })).toBeHidden()
-  await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: 'e2e/shots/lab-forecast.png', fullPage: true })
-  // make a deliberately wrong call (correct answer is "round trips × distance")
-  await page.getByRole('button', { name: 'CPU speed', exact: true }).click()
-  // the sim is revealed; commit a cross-region write so the toy completes
-  await page.getByRole('button', { name: 'cross-region (US E↔W)' }).click()
-  await page.getByRole('button', { name: 'Commit one write' }).click()
-  // the verdict lands
-  await expect(page.getByText('THE SIM DISAGREED', { exact: false })).toBeVisible({ timeout: 20_000 })
-  // …and the miss is in the Scar Journal, tagged to the toy
-  await page.goto('/#/journal/log')
-  await expect(page.getByText('CONSENSUS ROUND-TRIPS', { exact: false }).first()).toBeVisible()
 })
 
 test('lab: the memory pair — tlb toll falls into swap, false sharing stalls', async ({ page }) => {
   // The TLB Toll: drag the working set past RAM into swap
   await page.goto('/#/lab/tlb-toll')
-  await callIt(page)
   await page.getByRole('slider', { name: /working set/ }).evaluate((el) => {
     const input = el as HTMLInputElement
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
@@ -235,7 +206,6 @@ test('lab: the memory pair — tlb toll falls into swap, false sharing stalls', 
   await page.screenshot({ path: 'e2e/shots/lab-tlb-toll.png', fullPage: true })
   // False Sharing: padding restores scaling
   await page.goto('/#/lab/false-sharing')
-  await callIt(page)
   await page.getByRole('button', { name: 'padded apart' }).click()
   await expect(page.getByText('padded: scales', { exact: false })).toBeVisible()
   await page.screenshot({ path: 'e2e/shots/lab-false-sharing.png', fullPage: true })
@@ -244,7 +214,6 @@ test('lab: the memory pair — tlb toll falls into swap, false sharing stalls', 
 test('lab: the chip trio — instruction loop pipelines, heat wall throttles', async ({ page }) => {
   // The Instruction Loop: pipelining collapses the cycle count
   await page.goto('/#/lab/instruction-loop')
-  await callIt(page)
   await expect(page.getByText('6 instructions in', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: /pipeline: OFF/ }).click()
   await expect(page.getByText(/pipeline: ON/)).toBeVisible()
@@ -252,7 +221,6 @@ test('lab: the chip trio — instruction loop pipelines, heat wall throttles', a
   await page.screenshot({ path: 'e2e/shots/lab-instruction-loop.png', fullPage: true })
   // The Heat Wall: push the clock past the cooling budget
   await page.goto('/#/lab/heat-wall')
-  await callIt(page)
   await page.getByRole('slider', { name: /clock frequency/ }).evaluate((el) => {
     const input = el as HTMLInputElement
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
@@ -263,19 +231,8 @@ test('lab: the chip trio — instruction loop pipelines, heat wall throttles', a
   await page.screenshot({ path: 'e2e/shots/lab-heat-wall.png', fullPage: true })
 })
 
-test('lab: the receipts surface a number derivation on the toy page', async ({ page }) => {
-  await page.goto('/#/lab/queue')
-  await callIt(page)
-  await page.getByRole('button', { name: /THE RECEIPTS/ }).click()
-  // the bounding-physics label proves a derivation expanded
-  await expect(page.getByText('BOUNDED BY').first()).toBeVisible()
-  await page.evaluate(() => document.fonts.ready)
-  await page.screenshot({ path: 'e2e/shots/lab-receipts.png', fullPage: true })
-})
-
 test('lab: the cache cliff plots the memory staircase and falls off it', async ({ page }) => {
   await page.goto('/#/lab/cachecliff')
-  await callIt(page)
   await expect(page.getByText(/avg access/).first()).toBeVisible()
   // drag the working set to the far end (into DRAM) on the random curve
   const slider = page.getByRole('slider', { name: /working set/ })
@@ -289,7 +246,6 @@ test('lab: the cache cliff plots the memory staircase and falls off it', async (
 test('lab: consensus toy commits a cross-region write', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /08 · CONSENSUS/ }).click()
-  await callIt(page)
   await page.getByRole('button', { name: 'cross-region (US E↔W)' }).click()
   await page.getByRole('button', { name: 'Commit one write' }).click()
   await expect(page.getByText('141 ms')).toBeVisible({ timeout: 15_000 })

@@ -372,3 +372,64 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY
+
+/* ---------------- Reference groups (README-v3 Phase 2) ----------------
+   The Library's REFERENCE section renders every glossary term, organized into
+   six groups. Every key above appears in exactly one group (schema test);
+   each group carries a channel accent assigned in the UI. */
+
+export interface ReferenceGroup {
+  id: string
+  label: string
+  keys: GlossaryKey[]
+}
+
+export const REFERENCE_GROUPS: ReferenceGroup[] = [
+  {
+    id: 'traffic',
+    label: 'Requests & Traffic',
+    keys: [
+      'request', 'read', 'write', 'rps', 'readpct', 'burst', 'iot', 'phonehome',
+      'util', 'throughput', 'p99', 'sla', 'lb', 'appserver', 'apigateway',
+      'rest', 'pagination', 'dns', 'tls', 'autoscaling',
+    ],
+  },
+  {
+    id: 'cpu',
+    label: 'CPU & Memory',
+    keys: ['core', 'pipeline', 'speculation', 'cacheline', 'locality', 'virtualmemory'],
+  },
+  {
+    id: 'caching',
+    label: 'Caching & Delivery',
+    keys: ['cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'fanout', 'websocket', 'sse', 'polling'],
+  },
+  {
+    id: 'storage',
+    label: 'Storage & Data',
+    keys: [
+      'durable', 'wal', 'btree', 'lsm', 'index', 'gsi', 'invertedindex',
+      'normalization', 'denormalization', 'join', 'acid', '2pc', 'optimistic',
+      'nosql', 'blob', 'presigned', 'connpool', 'shard', 'hotpartition',
+      'consistenthash', 'replica', 'replag', 'readyourwrites', 'cdc',
+      'geohash', 'quadtree',
+    ],
+  },
+  {
+    id: 'queues',
+    label: 'Queues & Streams',
+    keys: [
+      'queue', 'worker', 'backlog', 'backpressure', 'visibility', 'dlq',
+      'stream', 'eventsourcing', 'idempotent', 'atleastonce', 'exactlyonce', 'saga',
+    ],
+  },
+  {
+    id: 'resilience',
+    label: 'Resilience',
+    keys: [
+      'errorbudget', 'timeout', 'retry', 'ratelimit', 'breaker', 'bulkhead',
+      'herd', 'failover', 'bluegreen', 'canary', 'cap', 'consistency',
+      'consensus', 'quorum', 'leader', 'distlock', 'lease',
+    ],
+  },
+]

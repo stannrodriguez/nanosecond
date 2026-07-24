@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { C } from '../theme'
 import { GLOSSARY } from '../content/glossary'
 
@@ -42,6 +43,7 @@ export function Term({ k, children }: { k: string; children: ReactNode }) {
 }
 
 function GlossaryDrawer({ termKey, onClose }: { termKey: string; onClose: () => void }) {
+  const navigate = useNavigate()
   const entry = GLOSSARY[termKey]
   if (!entry) return null
   return (
@@ -66,6 +68,25 @@ function GlossaryDrawer({ termKey, onClose }: { termKey: string; onClose: () => 
             {entry.name.toUpperCase()}
           </span>
           <div style={{ fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>{entry.def}</div>
+          {/* The bridge from any dotted term to its Reference row (README-v3 Phase 2). */}
+          <button
+            onClick={() => {
+              onClose()
+              navigate(`/manual/reference/${termKey}`)
+            }}
+            className="mono"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              marginTop: 8,
+              cursor: 'pointer',
+              fontSize: 12,
+              color: C.net,
+            }}
+          >
+            see in reference →
+          </button>
         </div>
         <button
           onClick={onClose}

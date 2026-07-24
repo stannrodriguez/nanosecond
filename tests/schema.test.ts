@@ -12,7 +12,7 @@ import { STATIONS } from '../src/content/journey'
 import { FLOORS } from '../src/content/stack'
 import { FORECASTS } from '../src/content/forecasts'
 import { COMPONENTS } from '../src/content/components'
-import { GLOSSARY } from '../src/content/glossary'
+import { GLOSSARY, REFERENCE_GROUPS } from '../src/content/glossary'
 import { DRILLS } from '../src/content/drills'
 import { PUZZLES } from '../src/content/puzzles'
 import { TASTES } from '../src/content/tastes'
@@ -235,6 +235,20 @@ describe('schema: glossary coverage (law L6)', () => {
 
   it('glossary has the v1 target of 60 entries', () => {
     expect(Object.keys(GLOSSARY).length).toBeGreaterThanOrEqual(60)
+  })
+
+  it('reference groups partition the glossary: every key in exactly one group', () => {
+    const seen = new Map<string, string>()
+    for (const g of REFERENCE_GROUPS) {
+      for (const k of g.keys) {
+        expect(GLOSSARY[k], `group ${g.id} references unknown key ${k}`).toBeDefined()
+        expect(seen.has(k), `${k} appears in both ${seen.get(k)} and ${g.id}`).toBe(false)
+        seen.set(k, g.id)
+      }
+    }
+    for (const k of Object.keys(GLOSSARY)) {
+      expect(seen.has(k), `glossary key ${k} missing from every reference group`).toBe(true)
+    }
   })
 
   it('no orphan glossary entries: every key is taught somewhere in copy', () => {

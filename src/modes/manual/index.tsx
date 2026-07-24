@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
-import { Eyebrow, GhostButton, useHover } from '../../ui/kit'
+import { Eyebrow, GhostButton, LiftCard, useHover } from '../../ui/kit'
 import { Term as T } from '../../ui/Term'
 import { FinePrint } from '../../ui/FinePrint'
 import {
@@ -13,7 +13,7 @@ import {
   type ManualSection,
 } from '../../content/manual'
 import type { Shelf } from '../../content/manual/types'
-import { GLOSSARY } from '../../content/glossary'
+import { GLOSSARY, REFERENCE_GROUPS } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
 import { useProgress } from '../../state/progress'
@@ -70,27 +70,134 @@ function LibRow({ title, read, dotColor, onClick }: { title: string; read: boole
   )
 }
 
-// The Ladder demoted to a quiet mono link at the foot of the library.
-function LadderLink({ onClick }: { onClick: () => void }) {
-  const [h, bind] = useHover()
+// The Ladder promoted to a full-width card (README-v3 Phase 2): title, pitch,
+// a color-coded preview of every rung, and the climb → call to action.
+function LadderCard({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <LiftCard
+      accent={C.net}
+      ariaLabel="THE LADDER"
       onClick={onClick}
-      {...bind}
-      className="mono"
+      style={{ width: '100%', borderRadius: 14, padding: '18px 22px', marginTop: 40 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <span className="mono" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1.5 }}>
+          THE LADDER
+        </span>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 12, color: C.net, whiteSpace: 'nowrap' }}>
+          climb →
+        </span>
+      </div>
+      <div style={{ fontSize: 13.5, color: C.dim, lineHeight: 1.5, marginTop: 6, maxWidth: 620 }}>
+        Every latency number, each derived from a physical limit — re-derive them, rung by rung.
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+        {RUNGS.map((r) => (
+          <span
+            key={r.name}
+            className="mono"
+            title={r.name}
+            style={{
+              fontSize: 10.5,
+              color: CH_COLOR[r.ch],
+              border: `1px solid ${CH_COLOR[r.ch]}44`,
+              borderRadius: 6,
+              padding: '3px 8px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {fmtTimeNs(r.ns)}
+          </span>
+        ))}
+      </div>
+    </LiftCard>
+  )
+}
+
+/* ---------------- REFERENCE: every glossary term, definitions in the open ----------------
+   Six color-coded groups at the foot of the library. Every definition is
+   visible on page load — no accordions, no hover-only tooltips — so the whole
+   section reads by scrolling and searches with ctrl-F. Each row carries an
+   anchor id; deep links (/manual/reference/<term>) scroll to the row and
+   flash it. The row text IS the glossary def, so the tooltip drawer and the
+   Reference row can never drift apart. */
+
+const REF_GROUP_COLOR: Record<string, string> = {
+  traffic: C.net,
+  cpu: C.compute,
+  caching: C.mem,
+  storage: C.storage,
+  queues: C.gold,
+  resilience: C.alert,
+}
+
+function ReferenceRow({ termKey, color, focused }: { termKey: string; color: string; focused: boolean }) {
+  const entry = GLOSSARY[termKey]
+  if (!entry) return null
+  return (
+    <div
+      id={`ref-${termKey}`}
       style={{
-        background: 'none',
-        border: 'none',
-        padding: 0,
-        marginTop: 40,
-        cursor: 'pointer',
-        fontSize: 12,
-        color: h ? C.net : C.dim,
-        transition: 'color .15s',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(120px, 180px) 1fr',
+        gap: '2px 16px',
+        padding: '10px 8px',
+        borderBottom: `1px solid #1B2C48`,
+        borderRadius: 6,
+        background: focused ? color + '14' : 'transparent',
+        outline: focused ? `1px solid ${color}66` : 'none',
+        transition: 'background .4s, outline-color .4s',
+        scrollMarginTop: 80,
       }}
     >
-      THE LADDER — derive every latency number, rung by rung →
-    </button>
+      <span className="mono" style={{ fontSize: 12, fontWeight: 600, color, overflowWrap: 'break-word' }}>
+        {entry.name}
+      </span>
+      <span style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{entry.def}</span>
+    </div>
+  )
+}
+
+function ReferenceSection({ focusTerm }: { focusTerm?: string }) {
+  // A deep-linked term scrolls into view and flashes; the flash decays so the
+  // page settles back to the plain list.
+  const [flash, setFlash] = useState<string | null>(focusTerm ?? null)
+  useEffect(() => {
+    if (!focusTerm) return
+    setFlash(focusTerm)
+    const el = document.getElementById(`ref-${focusTerm}`)
+    if (el) el.scrollIntoView({ block: 'center' })
+    const t = setTimeout(() => setFlash(null), 2400)
+    return () => clearTimeout(t)
+  }, [focusTerm])
+  const termCount = REFERENCE_GROUPS.reduce((n, g) => n + g.keys.length, 0)
+  return (
+    <section aria-label="Reference" style={{ marginTop: 56 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>REFERENCE</h2>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.dim, whiteSpace: 'nowrap' }}>
+          {termCount} terms
+        </span>
+      </div>
+      <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '12px 0 0', maxWidth: 620 }}>
+        Every dotted term in one place, defined. Scroll it, or ctrl-F it.
+      </p>
+      {REFERENCE_GROUPS.map((g) => {
+        const col = REF_GROUP_COLOR[g.id] ?? C.net
+        return (
+          <div key={g.id} style={{ marginTop: 28 }}>
+            <div className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: col }}>
+              {g.label.toUpperCase()}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              {g.keys.map((k) => (
+                <ReferenceRow key={k} termKey={k} color={col} focused={flash === k} />
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </section>
   )
 }
 
@@ -173,8 +280,8 @@ function SectionView({ s }: { s: ManualSection }) {
 }
 
 // The library index: one organizing view — three shelf columns of pokeable
-// briefings. No sidebar, no intro paragraph, no summary cards.
-function ConceptLibrary() {
+// briefings, the Ladder card, then the Reference section.
+function ConceptLibrary({ focusTerm }: { focusTerm?: string }) {
   const navigate = useNavigate()
   const { sectionsRead } = useProgress()
   const readCount = MANUAL.filter((m) => sectionsRead[m.id]).length
@@ -220,9 +327,8 @@ function ConceptLibrary() {
           )
         })}
       </div>
-      <div>
-        <LadderLink onClick={() => navigate('/manual/ladder')} />
-      </div>
+      <LadderCard onClick={() => navigate('/manual/ladder')} />
+      <ReferenceSection focusTerm={focusTerm} />
     </div>
   )
 }
@@ -323,7 +429,7 @@ function Ladder() {
 export default function Manual() {
   const { tab, sectionId } = useParams()
   const navigate = useNavigate()
-  if (tab !== 'briefings' && tab !== 'ladder') return <Navigate to="/manual/briefings" replace />
+  if (tab !== 'briefings' && tab !== 'ladder' && tab !== 'reference') return <Navigate to="/manual/briefings" replace />
   // Legacy section ids (spec 020) redirect to their re-shelved home (ADR 0004).
   if (sectionId && tab === 'briefings') {
     const resolved = resolveSectionId(sectionId)
@@ -331,6 +437,13 @@ export default function Manual() {
     if (resolved !== sectionId) return <Navigate to={`/manual/briefings/${resolved}`} replace />
   }
   if (sectionId && tab === 'ladder') return <Navigate to="/manual/ladder" replace />
+
+  // The Reference section lives on the library index; /manual/reference/<term>
+  // deep-links to one row (unknown term ids degrade to the index — ADR 0004).
+  if (tab === 'reference') {
+    if (sectionId && !GLOSSARY[sectionId]) return <Navigate to="/manual/reference" replace />
+    return <ConceptLibrary focusTerm={sectionId} />
+  }
 
   // The Ladder, reachable from the quiet link at the foot of the library.
   if (tab === 'ladder') {

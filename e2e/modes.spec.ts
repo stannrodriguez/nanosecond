@@ -30,6 +30,44 @@ test('manual: glossary drawer opens from a dotted term', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/manual-glossary.png', fullPage: true })
 })
 
+test('manual: reference section shows every definition without a click', async ({ page }) => {
+  await page.goto('/#/manual')
+  const ref = page.getByRole('region', { name: 'Reference' })
+  await expect(ref.getByRole('heading', { name: 'REFERENCE' })).toBeVisible()
+  // group headers and a sample of always-visible definitions, no expanding
+  for (const group of ['REQUESTS & TRAFFIC', 'CPU & MEMORY', 'RESILIENCE']) {
+    await expect(ref.getByText(group, { exact: true })).toBeVisible()
+  }
+  // definitions render with their terms on load (no accordions, no hover):
+  // sample rows from the first and last groups carry substantial visible text
+  for (const row of ['#ref-read', '#ref-write', '#ref-failover']) {
+    await expect(page.locator(row)).toBeVisible()
+    expect(((await page.locator(row).textContent()) ?? '').length).toBeGreaterThan(80)
+  }
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-reference.png', fullPage: true })
+})
+
+test('manual: the glossary drawer bridges to the reference row', async ({ page }) => {
+  await page.goto('/#/manual/briefings/networking')
+  await page.getByRole('button', { name: 'request', exact: true }).first().click()
+  await page.getByRole('button', { name: 'see in reference →' }).click()
+  await expect(page).toHaveURL(/#\/manual\/reference\/request$/)
+  await expect(page.locator('#ref-request')).toBeInViewport()
+  // unknown term ids degrade to the index (ADR 0004)
+  await page.goto('/#/manual/reference/not-a-term')
+  await expect(page).toHaveURL(/#\/manual\/reference$/)
+})
+
+test('manual: the ladder card previews the rungs and climbs', async ({ page }) => {
+  await page.goto('/#/manual')
+  const card = page.getByRole('button', { name: 'THE LADDER', exact: true })
+  await expect(card).toContainText('climb →')
+  await card.click()
+  await expect(page).toHaveURL(/#\/manual\/ladder$/)
+  await expect(page.getByText('One CPU cycle')).toBeVisible()
+})
+
 test('manual: legacy section ids redirect to their re-shelved home', async ({ page }) => {
   await page.goto('/#/manual/briefings/replication')
   await expect(page).toHaveURL(/#\/manual\/briefings\/relational-db$/)

@@ -46,8 +46,8 @@ test('drills: lock in a guess and see the verdict + derivation', async ({ page }
 
 test('builder: briefing gate then workbench renders steppers', async ({ page }) => {
   await page.goto('/#/builder')
-  await expect(page.getByText('BRIEFING — READ THE STORY')).toBeVisible()
-  await page.getByRole('button', { name: /open the workbench/ }).click()
+  await expect(page.getByText('THE STORY, AS NUMBERS')).toBeVisible()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
   await expect(page.getByText('YOUR ARCHITECTURE')).toBeVisible()
   await expect(page.getByText('MONTHLY COST')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -57,7 +57,7 @@ test('builder: briefing gate then workbench renders steppers', async ({ page }) 
 test('builder: a run produces a verdict', async ({ page }) => {
   test.setTimeout(60_000)
   await page.goto('/#/builder')
-  await page.getByRole('button', { name: /open the workbench/ }).click()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
   await page.getByRole('button', { name: 'Run scenario' }).click()
   await expect(page.getByText(/SYSTEM (HELD|FAILED)/)).toBeVisible({ timeout: 30_000 })
   await page.screenshot({ path: 'e2e/shots/builder-verdict.png', fullPage: true })

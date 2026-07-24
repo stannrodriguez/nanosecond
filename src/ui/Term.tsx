@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { C } from '../theme'
 import { GLOSSARY } from '../content/glossary'
 
@@ -43,7 +44,19 @@ export function Term({ k, children }: { k: string; children: ReactNode }) {
 
 function GlossaryDrawer({ termKey, onClose }: { termKey: string; onClose: () => void }) {
   const entry = GLOSSARY[termKey]
+  const navigate = useNavigate()
   if (!entry) return null
+  const goToRef = () => {
+    onClose()
+    navigate('/manual/briefings')
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`ref-${termKey}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.click()
+      }
+    })
+  }
   return (
     <div
       role="dialog"
@@ -66,6 +79,21 @@ function GlossaryDrawer({ termKey, onClose }: { termKey: string; onClose: () => 
             {entry.name.toUpperCase()}
           </span>
           <div style={{ fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>{entry.def}</div>
+          <button
+            onClick={goToRef}
+            className="mono"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              marginTop: 8,
+              cursor: 'pointer',
+              fontSize: 11,
+              color: C.dim,
+            }}
+          >
+            see in reference →
+          </button>
         </div>
         <button
           onClick={onClose}

@@ -71,14 +71,17 @@ export function GhostButton({
 export function LiftCard({
   children,
   accent = C.line,
+  baseBorder = C.line,
   onClick,
   ariaLabel,
   title,
   style,
 }: {
   children: ReactNode
-  /** border color on hover (the channel/type accent); base border stays C.line */
+  /** border color on hover (the channel/type accent); base border stays `baseBorder` */
   accent?: string
+  /** resting border color (defaults to the neutral line) */
+  baseBorder?: string
   onClick?: () => void
   ariaLabel?: string
   title?: string
@@ -88,7 +91,7 @@ export function LiftCard({
   const base: CSSProperties = {
     textAlign: 'left',
     background: C.panel,
-    border: `1px solid ${h ? accent + '77' : C.line}`,
+    border: `1px solid ${h ? accent + '77' : baseBorder}`,
     borderRadius: 12,
     color: C.text,
     fontFamily: 'inherit',

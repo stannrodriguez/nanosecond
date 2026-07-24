@@ -11,43 +11,43 @@ export interface GlossaryEntry {
 export const GLOSSARY: Record<string, GlossaryEntry> = {
   request: {
     name: 'Request',
-    def: "One message from a client ('give me this page', 'save this comment') and the reply to it. Everything in systems design is counting requests, pricing what each one costs, and deciding which machine handles it.",
+    def: "One message from a client ('give me this page', 'save this comment') and the reply to it. Capacity planning starts by counting them: how many arrive per second, what each one costs to serve, and which machine serves it.",
   },
   read: {
     name: 'Read',
-    def: "A request that only LOOKS AT data ('show me the post'). Reads are the easy kind: the answer can be copied to many places (caches, replicas) and served from any of them, because looking doesn't change anything.",
+    def: "A request that returns stored data without modifying it (loading a post). Because the result doesn't depend on who asks or when, it can be copied to caches and replicas and served from whichever one is closest. Read capacity therefore scales by adding copies.",
   },
   write: {
     name: 'Write',
-    def: "A request that CHANGES data ('save my comment', 'record this GPS ping'). Writes are the hard kind: they must survive a crash (hit disk, not just RAM), and every copy of the data must eventually agree about them. You can't cache your way out of writes.",
+    def: 'A request that modifies stored data (saving a comment, recording a GPS ping). A write is not complete when it lands in RAM — it has to reach durable storage, and every replica has to converge on the same value. Both costs grow with the number of copies you keep, which is why adding replicas speeds up reads and slows down writes.',
   },
   rps: {
     name: 'RPS / QPS / TPS',
-    def: "Requests, Queries, or Transactions Per Second — the pulse rate of a system. Same idea, different organs: RPS at the web tier, QPS at the database, TPS when writes/transactions are what's counted.",
+    def: 'Requests, Queries, or Transactions Per Second — the rate a component handles demand, measured at its own boundary: RPS counts HTTP requests at the web tier, QPS queries at the database, TPS transactions where writes are what matters. One user action can fan out into several queries, so the three rates differ for the same traffic.',
   },
   iot: {
     name: 'IoT device',
-    def: "'Internet of Things' — a small physical gadget with a network connection: a GPS tracker in a truck, a smart thermostat, a factory sensor. No human behind it; it generates traffic on a timer, relentlessly, 24/7.",
+    def: "'Internet of Things' — a small physical device with a network connection (a GPS tracker in a truck, a smart thermostat, a factory sensor). It generates traffic on a timer rather than on human action, so load runs around the clock and grows with the device count, not with user engagement.",
   },
   phonehome: {
     name: 'Phones home',
-    def: "The device initiates contact with YOUR servers on a schedule ('here's my location, again') — you never call it. So traffic volume = number of devices × how often each reports. Predictable, machine-like, and almost all writes: the device has data to deposit and nothing to ask.",
+    def: "The device initiates contact with the server on a schedule ('here's my location, again'); the server never calls the device. Traffic volume is therefore the number of devices times each one's reporting rate, and it is almost all writes — the device has data to deposit and nothing to ask.",
   },
   burst: {
     name: 'Burst / spike',
-    def: "A short period where traffic jumps far above normal. Classic causes: everyone acts at once (sale opens at noon, all trucks start at 8am), or a 'thundering herd' — a network blip disconnects thousands of devices and they ALL reconnect and resend at the same moment.",
+    def: "A short period where traffic jumps far above its steady rate. The common causes are synchronized action — a sale opens at noon, every truck in a fleet starts at 8am — and a 'thundering herd', where a network blip disconnects thousands of devices that then reconnect and resend at the same moment. Capacity has to be planned against the burst peak, not the average.",
   },
   cache: {
     name: 'Cache',
-    def: "A small, fast memory (RAM) holding copies of recently-used answers, sitting in front of the database. If the answer is there (a 'hit'), you skip the database entirely — ~1ms instead of ~5–50ms, and 10× the capacity per dollar. Only helps reads.",
+    def: "A small, fast store (RAM) holding copies of recently-used answers in front of the database. A lookup that finds its answer there (a 'hit') skips the database entirely — ~1ms instead of ~5–50ms, at roughly 10× the capacity per dollar. It accelerates only reads: a write still has to reach the database.",
   },
   hitrate: {
     name: 'Hit rate',
-    def: "The % of lookups the cache can answer itself. 80% hit rate = only 20% of reads reach the database. Driven by how often people ask for the SAME thing: a viral post → 99%+; random user profiles → much lower. This one percentage decides your database's fate.",
+    def: 'The percentage of lookups the cache answers itself; an 80% hit rate means only 20% of reads reach the database. It is driven by how concentrated requests are on the same keys: a viral post read by everyone can exceed 99%, while random user-profile lookups sit far lower. The database only has to survive the miss traffic, so this percentage sets its required read capacity.',
   },
   virtualmemory: {
     name: 'Virtual memory',
-    def: 'The illusion that each program owns a private, contiguous memory. The hardware translates every virtual address to a real physical one on the fly, one 4 KB page at a time, which is what lets many programs share one RAM safely — and what makes "it fits in RAM" quietly depend on fitting in the map of RAM (the TLB) too.',
+    def: 'Per-process address translation: each program addresses its own private, contiguous memory space, and the hardware maps every access to a physical location one 4 KB page at a time. The mapping is what lets many programs share one RAM safely. The mappings themselves must be looked up on every access — the CPU caches them in the TLB — so "it fits in RAM" only performs well when the working set also fits in the TLB\'s reach.',
   },
   pipeline: {
     name: 'Pipeline',

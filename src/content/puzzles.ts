@@ -168,7 +168,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Dynamo scales by spreading KEYS across partitions. But right now there is only ONE key.',
+        cap: 'Dynamo scales by spreading KEYS across partitions. But right now there is only one key.',
         bars: [
           { label: 'Partition A (hour 09)', u: 0.02, col: STORAGE },
           { label: 'Partition B (hour 10)', u: 1.1, col: STORAGE },
@@ -195,7 +195,7 @@ const RAW: Puzzle[] = [
     explain:
       "A partitioned store's whole superpower is spreading load across keys — and this schema funnels 100% of current writes into one key. Any key derived from “now” (hour buckets, today's date) or from popularity (a viral post's ID) creates the same rolling hot spot. The cluster is huge and 97% of it is idle.",
     fix: "Salt the key: time_bucket#shard_N with N random in 0..9 spreads the hour across 10 partitions. Readers query all suffixes for the bucket and merge — a small, bounded read cost buying 10× write headroom. Alternative: partition by job_id and use a GSI on (time_bucket, next_execution_time) for the Watcher's query.",
-    line: "“Before I commit a partition key I ask: will many concurrent writers compute the SAME value? Timestamps and 'today' are the classic trap — I'd salt with a suffix and fan-in on read.”",
+    line: "“Before I commit a partition key I ask: will many concurrent writers compute the same value? Timestamps and 'today' are the classic trap — I'd salt with a suffix and fan-in on read.”",
   },
   {
     id: 'vanish',
@@ -255,8 +255,8 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Deleting on receive hands the job's ONLY copy to a machine that's allowed to die. The guarantee you're paid for — at-least-once — lives or dies on when you acknowledge. Ack-before-work means crashes lose work; that's at-MOST-once.",
-    fix: "Use the queue's visibility timeout: receiving a message hides it instead of deleting it; the worker deletes it only AFTER writing COMPLETED. If the worker crashes, the timeout expires and the message reappears for Worker B. Crash insurance, built into the queue.",
+      "Deleting on receive hands the job's only copy to a machine that's allowed to die. The guarantee you're paid for — at-least-once — lives or dies on when you acknowledge. Ack-before-work means crashes lose work; that's at-MOST-once.",
+    fix: "Use the queue's visibility timeout: receiving a message hides it instead of deleting it; the worker deletes it only after writing COMPLETED. If the worker crashes, the timeout expires and the message reappears for Worker B. Crash insurance, built into the queue.",
     line: "“I ack only after the side effect is durable. The visibility timeout means a dead worker's jobs automatically return to the pool — the queue is my crash recovery.”",
   },
   {
@@ -355,7 +355,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'It gets shared. 100k redirects/sec — and EVERY one is a disk-backed SELECT.',
+        cap: 'It gets shared. 100k redirects/sec — and every one is a disk-backed SELECT.',
         bars: [
           { label: 'Redirects/sec', u: 1, txt: '100k/s', col: NET },
           { label: 'Postgres reads', u: 5, txt: '5× cap', col: ALERT },
@@ -380,7 +380,7 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'The mapping code→URL is immutable and tiny — the single most cacheable thing in computing — yet every one of 100k redirects/sec pays a disk-backed round trip to a database that tops out near 20k reads/sec. When reads dwarf writes AND the data never changes, the database should be the cold path, not the hot one.',
+      'The mapping code→URL is immutable and tiny — the single most cacheable thing in computing — yet every one of 100k redirects/sec pays a disk-backed round trip to a database that tops out near 20k reads/sec. When reads dwarf writes and the data never changes, the database should be the cold path, not the hot one.',
     fix: "Put a cache in front (Redis, an in-process LRU, or a CDN edge). Because the mapping is immutable, cache invalidation — the genuinely hard part of caching — doesn't even apply: set it and forget it. Now 100k/s are 1ms memory reads and the DB only sees the rare cold miss.",
     line: '“When reads dwarf writes and the value is immutable, the DB is the cold path — a cache turns 100k DB reads/sec into 100k memory reads/sec with no invalidation headache.”',
   },
@@ -442,7 +442,7 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Fan-out-on-write buys cheap reads by paying at write time, and that cost scales with follower count. For the median user (a few hundred followers) it's a fantastic trade; for a celebrity a single post is tens of millions of writes — an unbounded, highly-skewed write amplification that head-of-line-blocks everyone else. The elegant read path is innocent.",
+      "Fan-out-on-write buys cheap reads by paying at write time, and that cost scales with follower count. For the median user (a few hundred followers) it's a cheap trade; for a celebrity a single post is tens of millions of writes — an unbounded, highly-skewed write amplification that head-of-line-blocks everyone else. The read path is innocent.",
     fix: 'Go hybrid: fan-out-on-WRITE for ordinary accounts, fan-out-on-READ for the handful of huge accounts (their posts are pulled and merged in at read time). The 0.001% of accounts with enormous follower counts get the opposite strategy — the design real feeds converged on.',
     line: '“Fan-out-on-write dies on skew. I split by follower count: push for the many, pull for the celebrity few, so no single post is 40M writes.”',
   },
@@ -474,7 +474,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: '500k INCRs/sec — all to the SAME key. One key lives on one shard, served by one core.',
+        cap: '500k INCRs/sec — all to the same key. One key lives on one shard, served by one core.',
         bars: [
           { label: 'INCR ratelimit:global', u: 1, txt: '500k/s', col: NET },
           { label: 'Redis core serving the key', u: 1, txt: '100% — one core', col: ALERT },
@@ -496,7 +496,7 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'Atomicity is fine — correctness was never the issue. The issue is that a single logical counter is a single physical hot spot: one key lives on one shard, served by one CPU core (~100k ops/sec). Routing 500k/sec at ONE key serializes them on that core, and you cannot shard it away because being global is the counter\'s entire purpose.',
+      'Atomicity is fine — correctness was never the issue. The issue is that a single logical counter is a single physical hot spot: one key lives on one shard, served by one CPU core (~100k ops/sec). Routing 500k/sec at one key serializes them on that core, and you cannot shard it away because being global is the counter\'s entire purpose.',
     fix: 'Approximate: split into N sub-counters (ratelimit:global:{0..15}); each edge INCRs a random shard and the limiter sums them — or, better, give each edge a LOCAL token bucket that reconciles with the global count every few hundred ms. You trade exact-at-the-millisecond precision for N× throughput, which a rate limit can easily afford.',
     line: '“A global counter is a global hot key. I shard it into N counters (or local token buckets that sync) — trading millisecond-exactness for N× throughput, which a rate limit tolerates.”',
   },
@@ -551,7 +551,7 @@ const RAW: Puzzle[] = [
     ],
     explain:
       'Exponential backoff without JITTER makes every client retry on the same schedule. A shared trigger (the blip) synchronizes them and the deterministic delays keep them synchronized, so retries arrive as one coordinated thundering herd — worse than the original blip — and re-synchronize on every wave. The retry policy is right in spirit and wrong in timing.',
-    fix: 'Add jitter: wait a RANDOM duration in [0, backoff] instead of exactly backoff. The 5000 retries then smear across the window rather than stacking on one instant. “Exponential backoff AND jitter” is a single idea — it is the canonical retry recipe for a reason.',
+    fix: 'Add jitter: wait a RANDOM duration in [0, backoff] instead of exactly backoff. The 5000 retries then smear across the window rather than stacking on one instant. “Exponential backoff and jitter” is a single idea — it is the canonical retry recipe for a reason.',
     line: '“Backoff without jitter just reschedules the stampede. I pair exponential backoff with randomized jitter so retries spread out instead of resonating into a self-inflicted DDoS.”',
     happened: 'slack-2021',
   },
@@ -609,7 +609,7 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'The write path and the read path disagree about who owns the truth. Writing only to the DB leaves the cache confidently serving a value it believes is fresh — stale until the TTL happens to lapse. A TTL bounds staleness by TIME; a correctness requirement ("price shown = price charged") needs staleness bounded by EVENT.',
+      'The write path and the read path disagree about who owns the truth. Writing only to the DB leaves the cache confidently serving a value it believes is fresh — stale until the TTL happens to lapse. A TTL bounds staleness by time; a correctness requirement ("price shown = price charged") needs staleness bounded by EVENT.',
     fix: 'Make writes invalidate the cache: on a price change, delete the key (or write through to update it). The next read re-fills from the DB. Reserve pure-TTL caching for data where bounded staleness is genuinely acceptable; invalidate-on-write for anything a customer is charged against.',
     line: '“A TTL bounds staleness by time, but a correctness field needs invalidation by event — I delete the cache key on every write so the next read can\'t serve a lie.”',
   },
@@ -791,7 +791,7 @@ const RAW: Puzzle[] = [
     ],
     flaw: 'db',
     explain:
-      'Nothing here violates the requirements — and that IS the answer. At 50 req/s and a few GB, one Postgres runs near 0.5% of its ceiling, the app server idles, the cache is almost decorative. Sharding, queues, and replicas would each solve a problem this system does not have, buying operational complexity, new failure modes, and a bigger bill for zero requirement met. The most expensive failure in a design review is fixing what isn\'t broken.',
+      'Nothing here violates the requirements — and that is the answer. At 50 req/s and a few GB, one Postgres runs near 0.5% of its ceiling, the app server idles, the cache is almost decorative. Sharding, queues, and replicas would each solve a problem this system does not have, buying operational complexity, new failure modes, and a bigger bill for zero requirement met. The most expensive failure in a design review is fixing what isn\'t broken.',
     fix: 'Ship it. Add a nightly backup and a health check, then revisit only when a real number moves — data outgrows one box, reads outgrow one primary, or an SLA tightens. The honest review question is “what would have to change for this to break?”, not “what can I add?”',
     line: '“The requirements decide the architecture — at 50 req/s a single Postgres is the right call, not a risk. I add complexity when a number demands it, not before.”',
   },

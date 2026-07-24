@@ -343,7 +343,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     id: 'multi-step',
     shelf: 'patterns',
     title: 'Multi-step processes',
-    thesis: 'Book a flight AND a hotel AND a car — all or nothing, across services?',
+    thesis: 'Book a flight and a hotel and a car — all or nothing, across services?',
     body: (
       <>
         <p>
@@ -396,7 +396,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          A <T k="btree">B-tree index</T> sorts one dimension; "near me" is two (lat AND lng), so a naive query scans a
+          A <T k="btree">B-tree index</T> sorts one dimension; "near me" is two (lat and lng), so a naive query scans a
           bounding box and filters — slow, and it re-scans as everything moves. The fix is to turn 2D space into a 1D key an
           index can handle. Toggle the two schemes below.
         </p>

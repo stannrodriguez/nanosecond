@@ -98,7 +98,7 @@ export const DRILLS: Drill[] = [
     loExp: 4,
     hiExp: 7.5,
     derive: [
-      "Kafka's trick: it ONLY appends sequentially — sequential I/O is ~1000× cheaper than random.",
+      "Kafka's trick: it only appends sequentially — sequential I/O is ~1000× cheaper than random.",
       '1 KB × 1M/s = 1 GB/s, within reach of NVMe sequential bandwidth.',
       "~1M msgs/s per broker. It's fast because it refuses to do random I/O, not because of magic.",
     ],
@@ -244,7 +244,7 @@ export const DRILLS: Drill[] = [
   {
     id: 'lat-dc-rtt',
     cat: 'latency',
-    q: 'Round trip between two servers in the SAME datacenter?',
+    q: 'Round trip between two servers in the same datacenter?',
     unit: 'µs',
     ans: 500,
     loExp: 1,
@@ -359,7 +359,7 @@ export const DRILLS: Drill[] = [
     derive: [
       'Human traffic is diurnal: evenings concentrate ~half the day into a few hours.',
       'Peak = 2–5× average for consumer apps; 3× is the planning default.',
-      '5,800 × 3 ≈ 17k req/s. Quote BOTH numbers out loud in interviews.',
+      '5,800 × 3 ≈ 17k req/s. Quote both numbers out loud in interviews.',
     ],
     numbersRefs: ['peak-multiplier', 'req-per-day-rule'],
   },
@@ -525,7 +525,7 @@ export const DRILLS: Drill[] = [
     hiExp: 13,
     derive: [
       '500M × 300 B = 150 GB/day.',
-      'A decade of ALL tweets is ~½ PB — text is basically free.',
+      'A decade of all tweets is ~½ PB — text is basically free.',
       'The real storage is media: one photo ≈ 10,000 tweets. Always split text from blobs.',
     ],
     numbersRefs: ['storage-cost'],
@@ -859,7 +859,7 @@ export const DRILLS: Drill[] = [
     hiExp: 0.5,
     derive: [
       'CDN list prices: $0.02–0.08/GB, falling fast with commitment.',
-      'Cheaper than cloud egress AND closer to users — a rare double win.',
+      'Cheaper than cloud egress and closer to users — a rare double win.',
       'This is why "put a CDN in front" is almost always move one.',
     ],
     numbersRefs: ['egress-cost'],

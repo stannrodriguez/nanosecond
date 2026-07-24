@@ -255,7 +255,7 @@ export const BRIEFINGS: Record<string, ToyBriefing> = {
       <>
         A faster clock is a hotter chip — power climbs like frequency cubed — so cooling puts a hard ceiling near ~4 GHz that
         has barely moved in twenty years. The escape was never a faster core; it was more of them. This wall is the reason your
-        laptop has many <T k="core">cores</T> instead of one blazing one, and why parallelism stopped being optional.
+        laptop has many <T k="core">cores</T> instead of one faster one, and why parallelism stopped being optional.
       </>
     ),
     meetIt: [

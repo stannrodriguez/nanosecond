@@ -38,7 +38,7 @@ export const PATTERNS: Record<string, Pattern> = {
     price: 300,
     icon: '≡',
     fx: 'Failed writes retry safely: error-budget damage from write failures reduced 40%.',
-    irl: "Real thing: client sends a unique key per operation; server dedupes. Turns 'scary retry' into 'free retry'. Interviewers love hearing this.",
+    irl: "Real thing: client sends a unique key per operation; server dedupes. Turns 'scary retry' into 'free retry' — retries become safe to automate.",
   },
   breaker: {
     key: 'breaker',

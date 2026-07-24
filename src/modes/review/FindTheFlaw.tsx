@@ -90,8 +90,11 @@ export function FindTheFlaw({ puzzleId, onScore }: { puzzleId?: string; onScore:
 
   return (
     <div>
-      {/* title row: mode name + puzzle counter */}
+      {/* title row: practice breadcrumb + mode name + puzzle counter */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <GhostButton onClick={() => navigate('/practice')} style={{ alignSelf: 'center' }}>
+          ← practice
+        </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>DESIGN REVIEW</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.dim, whiteSpace: 'nowrap' }}>
           puzzle {pi + 1}/{PUZZLES.length} · par {fmtPar(p.par)}

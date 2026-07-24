@@ -28,7 +28,7 @@ export const STATIONS: JourneyStation[] = [
     ch: 'net',
     tagline: (
       <>
-        Your tap becomes a <T k="request">request</T> and crosses the internet. Distance is the first cost.
+        Your <T k="request">request</T> crosses the internet as light in fiber. Distance is the first cost.
       </>
     ),
     toyIds: ['light'],
@@ -66,8 +66,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'mem',
     tagline: (
       <>
-        Nearly every one of those instructions is really the CPU <i>waiting</i> on memory — fast caches racing a big, leaking
-        RAM.
+        Nearly every one of those instructions is really the CPU <i>waiting</i> on memory — a 1 ns cache racing a 100 ns RAM
+        that leaks.
       </>
     ),
     toyIds: ['cachecliff', 'dram', 'tlb-toll'],

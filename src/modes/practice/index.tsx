@@ -9,7 +9,7 @@ const CARDS = [
     name: 'DRILLS',
     color: C.net,
     what: 'Estimate a number, get scored by order of magnitude.',
-    when: 'Daily, 2 minutes. Proves the Lab numbers stuck.',
+    when: 'Daily, 2 minutes. Prove your Lab numbers stuck.',
   },
   {
     to: '/builder',
@@ -25,7 +25,7 @@ const CARDS = [
     name: 'REVIEW',
     color: C.storage,
     what: "Someone else's design has one flaw. Find it against the clock.",
-    when: 'After a few builds — critiquing is the interview skill.',
+    when: 'After a few builds — critiquing is your interview edge.',
   },
   {
     to: '/on-call',
@@ -98,7 +98,7 @@ export default function Practice() {
         <div>
           <span className="mono" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1.5 }}>JOURNAL</span>
           <p style={{ fontSize: 13.5, color: C.text, lineHeight: 1.5, margin: '4px 0 0' }}>
-            Every miss, logged with its lesson. Review it before an interview.
+            Your misses land here with their lessons. Review it before an interview.
           </p>
         </div>
       </LiftCard>

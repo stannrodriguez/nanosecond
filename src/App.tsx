@@ -5,6 +5,7 @@ import { GlossaryProvider } from './ui/Term'
 import Lab from './modes/lab'
 import Manual from './modes/manual'
 import Practice from './modes/practice'
+import About from './modes/about'
 import Drills from './modes/drills'
 import Builder from './modes/builder'
 import Review from './modes/review'
@@ -125,6 +126,8 @@ function AppShell() {
             <Route path="/review/:tab?/:sub?" element={<Review />} />
             <Route path="/on-call" element={<OnCall />} />
             <Route path="/journal/:tab?" element={<Journal />} />
+            {/* The premise + the learning loop (README-v3 IA restructure). */}
+            <Route path="/about" element={<About />} />
             <Route path="*" element={<Navigate to="/lab" replace />} />
           </Routes>
         </div>

@@ -136,8 +136,8 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Nothing outruns light — 30 cm per nanosecond, the universe's hard speed limit. Pick an operation and race it: where
-        light ends up when the operation finishes is that operation's cost, turned into a place.
+        Nothing outruns light — 30 cm per nanosecond, the universe's hard speed limit. Pick an operation and race it: the
+        photon stops where the operation finishes, and the landmarks below are your ruler.
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {LIGHT_OPS.map((o, i) => (

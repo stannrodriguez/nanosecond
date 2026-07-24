@@ -12,18 +12,14 @@ import Review from './modes/review'
 import OnCall from './modes/oncall'
 import Journal from './modes/journal'
 
-// The top nav — five destinations (README-v3 IA restructure). Drills, Builder,
-// Review, and On-Call are no longer nav items; they live under PRACTICE, whose
-// pill stays lit while you're inside any of them. `match` lists the route
-// prefixes that light each pill.
+// The top nav — four destinations (README-v3 Phase 2 IA restructure).
+// Drills, Builder, Review, On-Call, and Journal all live under PRACTICE;
+// its pill stays lit while you're inside any of them.
 const NAV = [
   { to: '/lab', label: 'LAB', match: ['/lab'] },
   { to: '/manual', label: 'LIBRARY', match: ['/manual'] },
-  { to: '/practice', label: 'PRACTICE', match: ['/practice', '/drills', '/builder', '/review', '/on-call'] },
-  // Journal is reflection over your record, not a learning mode — gold, apart.
-  { to: '/journal', label: '◈ JOURNAL', match: ['/journal'], accent: C.gold },
-  // About is a quiet, dimmer pill — reference, not a place you work.
-  { to: '/about', label: 'ABOUT', match: ['/about'], quiet: true },
+  { to: '/practice', label: 'PRACTICE', match: ['/practice', '/drills', '/builder', '/review', '/on-call', '/journal'] },
+  { to: '/about', label: 'ABOUT', match: ['/about'] },
 ] as const
 
 // A pill is lit when the current path is (or is nested under) one of its
@@ -40,30 +36,8 @@ export default function App() {
   )
 }
 
-// One organizing story per page starts at the top bar: a single sticky,
-// blurred row — brand left, nav pills right. Each pill is one mono line; the
-// active pill is tinted with its accent (net by default, gold for Journal),
-// and About stays quiet until you're on it.
-function NavPill({
-  to,
-  label,
-  active,
-  accent = C.net,
-  quiet = false,
-}: {
-  to: string
-  label: string
-  active: boolean
-  accent?: string
-  quiet?: boolean
-}) {
+function NavPill({ to, label, active }: { to: string; label: string; active: boolean }) {
   const [h, bind] = useHover()
-  // Inactive: gold pill keeps a dim-gold tint, the quiet pill goes faint,
-  // everything else is C.dim.
-  const idle = accent === C.gold ? C.gold + 'AA' : quiet ? C.faint : C.dim
-  // A plain Link, not NavLink: we compute `active` ourselves (PRACTICE stays
-  // lit across its four modes), and NavLink would overwrite aria-current with
-  // its own single-route match. Setting it here keeps the highlight semantic.
   return (
     <Link to={to} {...bind} aria-current={active ? 'page' : undefined}>
       <span
@@ -76,8 +50,8 @@ function NavPill({
           fontWeight: 600,
           whiteSpace: 'nowrap',
           transition: 'background .15s, color .15s',
-          background: active ? accent + '14' : h ? C.panelUp : 'transparent',
-          color: active ? accent : h ? C.text : idle,
+          background: active ? C.net + '14' : h ? C.panelUp : 'transparent',
+          color: active ? C.net : h ? C.text : C.dim,
         }}
       >
         {label}
@@ -127,14 +101,7 @@ function AppShell() {
           </NavLink>
           <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }} aria-label="Sections">
             {NAV.map((m) => (
-              <NavPill
-                key={m.to}
-                to={m.to}
-                label={m.label}
-                active={pathMatches(pathname, m.match)}
-                accent={'accent' in m ? m.accent : C.net}
-                quiet={'quiet' in m ? m.quiet : false}
-              />
+              <NavPill key={m.to} to={m.to} label={m.label} active={pathMatches(pathname, m.match)} />
             ))}
           </nav>
         </div>

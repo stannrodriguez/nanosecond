@@ -58,7 +58,7 @@ test('unknown sub-content ids degrade to the mode index, never 404', async ({ pa
 
 test('review and drills tabs live in the URL', async ({ page }) => {
   await page.goto('/#/review/taste')
-  await expect(page.getByText(/right answer, right reason/i).first()).toBeVisible()
+  await expect(page.getByText(/Two defensible designs, one set of requirements/i).first()).toBeVisible()
   await page.goto('/#/drills/calibration')
   await expect(page.getByText(/No answers yet — run a few drills/)).toBeVisible()
 })

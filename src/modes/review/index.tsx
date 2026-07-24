@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C } from '../../theme'
-import { ModeHeader } from '../../ui/ModeHeader'
-import { TabNav } from '../../ui/TabNav'
+import { GhostButton, useHover } from '../../ui/kit'
 import { FindTheFlaw } from './FindTheFlaw'
 import { PredictRun } from './PredictRun'
 import { TasteTest } from './TasteTest'
@@ -20,42 +18,73 @@ const SUB_TABS: Record<string, (id: string) => boolean> = {
   interrogate: (id) => INTERROGATIONS.some((q) => q.id === id),
 }
 
+// The calm redesign surfaces one puzzle. The other review activities are no
+// longer top-level tabs — they live behind these quiet links (still fully
+// deep-linkable at their routes).
+const MORE: { id: ReviewTab; label: string }[] = [
+  { id: 'daily', label: 'daily incident' },
+  { id: 'predict', label: 'predict & run' },
+  { id: 'taste', label: 'taste test' },
+  { id: 'interrogate', label: 'interrogation' },
+]
+
+function MoreLink({ label, onClick }: { label: string; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      className="mono"
+      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: h ? C.net : C.dim, transition: 'color .15s' }}
+    >
+      {label}
+    </button>
+  )
+}
+
 export default function Review() {
   const { tab, sub } = useParams()
   const navigate = useNavigate()
-  const [score, setScore] = useState(0)
-  const add = (n: number) => setScore((s) => s + n)
+  // Session score is no longer displayed (the title carries the pacing), so
+  // onScore only needs to fan out to the graded child's judgment recorder.
+  const onScore = () => {}
   if (!TABS.includes(tab as ReviewTab)) return <Navigate to="/review/flaw" replace />
   // A sub-segment only makes sense on id-bearing tabs, and must be a known id
   // (unknown ids degrade to the tab index — ADR 0004).
   if (sub && !(tab! in SUB_TABS)) return <Navigate to={`/review/${tab}`} replace />
   if (sub && tab! in SUB_TABS && !SUB_TABS[tab!](sub)) return <Navigate to={`/review/${tab}`} replace />
+
+  if (tab === 'flaw') {
+    return (
+      <div>
+        <FindTheFlaw key={sub ?? '_first'} puzzleId={sub} onScore={onScore} />
+        <div className="mono" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'baseline', marginTop: 28 }}>
+          <span style={{ fontSize: 10, letterSpacing: 1.5, color: C.faint }}>ALSO IN REVIEW</span>
+          {MORE.map((m) => (
+            <MoreLink key={m.id} label={m.label} onClick={() => navigate(`/review/${m.id}`)} />
+          ))}
+        </div>
+        <JudgmentSummary />
+      </div>
+    )
+  }
+
   return (
-    <div style={{ maxWidth: 820 }}>
-      <ModeHeader title="DESIGN REVIEW" thesis={`the judgment gym · session score ${score}`}>
-        <TabNav
-          tabs={[
-            { id: 'daily', label: '01 · DAILY INCIDENT', sub: 'one shot, date-seeded', ch: C.gold },
-            { id: 'flaw', label: '02 · FIND THE FLAW', sub: 'smell the bug before traffic does' },
-            { id: 'predict', label: '03 · PREDICT & RUN', sub: 'commit, then face the sim' },
-            { id: 'taste', label: '04 · TASTE TEST', sub: 'right answer, right reason' },
-            { id: 'interrogate', label: '05 · INTERROGATION', sub: 'extract the requirements' },
-          ]}
-          active={tab!}
-          onPick={(id) => navigate(`/review/${id}`)}
-        />
-      </ModeHeader>
-      <JudgmentSummary />
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+        <GhostButton onClick={() => navigate('/review/flaw')}>← find the flaw</GhostButton>
+        <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>DESIGN REVIEW</h1>
+      </div>
       {tab === 'daily' && <DailyIncident />}
-      {tab === 'flaw' && <FindTheFlaw key={sub ?? '_first'} puzzleId={sub} onScore={add} />}
-      {tab === 'predict' && <PredictRun onScore={add} />}
-      {tab === 'taste' && <TasteTest onScore={add} />}
-      {tab === 'interrogate' && <Interrogate key={sub ?? '_first'} id={sub} onScore={add} />}
+      {tab === 'predict' && <PredictRun onScore={onScore} />}
+      {tab === 'taste' && <TasteTest onScore={onScore} />}
+      {tab === 'interrogate' && <Interrogate key={sub ?? '_first'} id={sub} onScore={onScore} />}
+      <JudgmentSummary />
     </div>
   )
 }
 
-// Aggregate judgment score across the three drills + the weakest category to
+// Aggregate judgment score across the review drills + the weakest category to
 // spend tonight. Silent until you've been graded at least once.
 function JudgmentSummary() {
   const tally = useJudgment((s) => s.tally)
@@ -73,7 +102,7 @@ function JudgmentSummary() {
         border: `1px solid ${C.line}`,
         borderRadius: 10,
         padding: '10px 14px',
-        marginBottom: 16,
+        marginTop: 24,
       }}
     >
       <div>

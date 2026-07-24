@@ -1,30 +1,69 @@
 import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C } from '../../theme'
-import { ModeHeader } from '../../ui/ModeHeader'
-import { TabNav } from '../../ui/TabNav'
+import { GhostButton, useHover } from '../../ui/kit'
 import { useScars, groupByTheme, buildBriefing, exportContextPack, SCAR_MODE_LABEL, type Scar } from '../../state/scars'
 import { useDrillProgress } from '../../state/drillProgress'
 import { fmtNum } from '../../ui/fmt'
 
+// A friendly relative date for the scar header.
+function relDate(ts: number): string {
+  const d = new Date(ts)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString()) return 'today'
+  const y = new Date(now)
+  y.setDate(now.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return 'yesterday'
+  return d.toLocaleDateString()
+}
+
+// One scar row with a fixed 72px label gutter: YOU SAID / THE TRUTH / LESSON.
+function LabelRow({ label, color, body, bodyColor }: { label: string; color: string; body: string; bodyColor: string }) {
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <span
+        className="mono"
+        style={{ fontSize: 10, letterSpacing: 1, color, flexShrink: 0, width: 72, position: 'relative', top: 3 }}
+      >
+        {label}
+      </span>
+      <span style={{ color: bodyColor }}>{body}</span>
+    </div>
+  )
+}
+
 function ScarCard({ s }: { s: Scar }) {
   return (
-    <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '12px 14px', marginBottom: 8 }}>
-      <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', fontSize: 10.5, color: C.faint, marginBottom: 6 }}>
-        <span style={{ color: C.storage, fontWeight: 700, letterSpacing: 1 }}>{SCAR_MODE_LABEL[s.mode].toUpperCase()}</span>
-        <span>
-          {s.theme} · {new Date(s.ts).toLocaleDateString()}
+    <div
+      style={{ background: C.panel, border: `1px solid ${C.gold}33`, borderRadius: 14, padding: '20px 24px', marginBottom: 12, maxWidth: 640 }}
+    >
+      <div className="mono" style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5, color: C.compute }}>
+          {SCAR_MODE_LABEL[s.mode].toUpperCase()} · {s.theme.toUpperCase()}
         </span>
+        <span style={{ marginLeft: 'auto', fontSize: 10.5, color: C.faint, whiteSpace: 'nowrap' }}>{relDate(s.ts)}</span>
       </div>
-      <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-        <span style={{ color: C.alert }}>you: {s.what}</span>
-        <span style={{ color: C.faint }}> · </span>
-        <span style={{ color: C.ok }}>truth: {s.truth}</span>
-      </div>
-      <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.5, marginTop: 4, borderLeft: `2px solid ${C.line}`, paddingLeft: 8 }}>
-        {s.lesson}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14, fontSize: 13.5, lineHeight: 1.55 }}>
+        <LabelRow label="YOU SAID" color={C.alert} body={s.what} bodyColor={C.dim} />
+        <LabelRow label="THE TRUTH" color={C.ok} body={s.truth} bodyColor={C.text} />
+        <LabelRow label="LESSON" color={C.gold} body={s.lesson} bodyColor={C.text} />
       </div>
     </div>
+  )
+}
+
+// A quiet mono link to the journal's secondary views.
+function QuietLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      className="mono"
+      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: h ? C.gold : C.dim, transition: 'color .15s' }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -64,25 +103,15 @@ export default function Journal() {
     URL.revokeObjectURL(a.href)
   }
 
-  return (
-    <div style={{ maxWidth: 780 }}>
-      <ModeHeader title="SCAR JOURNAL" thesis="every miss, logged with its lesson — misses are the curriculum">
-        <TabNav
-          tabs={[
-            { id: 'log', label: '01 · CHRONOLOGICAL', sub: `${scars.length} scars` },
-            { id: 'themes', label: '02 · BY THEME', sub: 'recurring blind spots' },
-            { id: 'brief', label: '03 · PRE-INTERVIEW BRIEFING', sub: 'the night-before page' },
-          ]}
-          active={tab}
-          onPick={(id) => navigate(`/journal/${id}`)}
-        />
-      </ModeHeader>
-
-      {tab === 'log' &&
-        (scars.length === 0 ? <Empty /> : [...scars].reverse().map((s, i) => <ScarCard key={scars.length - i} s={s} />))}
-
-      {tab === 'themes' &&
-        (scars.length === 0 ? (
+  // ---- secondary views: by-theme + pre-interview briefing (behind links) ----
+  if (tab === 'themes') {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate('/journal/log')}>← the journal</GhostButton>
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>BLIND SPOTS BY THEME</h1>
+        </div>
+        {scars.length === 0 ? (
           <Empty />
         ) : (
           groupByTheme(scars).map((g) => (
@@ -95,10 +124,18 @@ export default function Journal() {
               ))}
             </div>
           ))
-        ))}
+        )}
+      </div>
+    )
+  }
 
-      {tab === 'brief' && (
-        <div>
+  if (tab === 'brief') {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate('/journal/log')}>← the journal</GhostButton>
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>PRE-INTERVIEW BRIEFING</h1>
+        </div>
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 10 }}>
               5 SHAKIEST NUMBERS — re-derive these tonight
@@ -183,8 +220,43 @@ export default function Journal() {
           >
             {copied ? '✓ Copied + downloaded' : 'Export context pack (.md for LLM mock interviews)'}
           </button>
-        </div>
-      )}
+      </div>
+    )
+  }
+
+  // ---- the log: chronological scars, newest first ----
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>SCAR JOURNAL</h1>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.gold, whiteSpace: 'nowrap' }}>
+          {scars.length} scar{scars.length === 1 ? '' : 's'}
+        </span>
+      </div>
+      <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
+        Every miss, logged with its lesson. Misses are the curriculum.
+      </p>
+
+      <div style={{ marginTop: 32 }}>
+        {scars.length === 0 ? (
+          <Empty />
+        ) : (
+          <>
+            {[...scars].reverse().map((s, i) => (
+              <ScarCard key={scars.length - i} s={s} />
+            ))}
+            <p className="mono" style={{ fontSize: 11, color: C.faint, margin: '20px 0 0', maxWidth: 640, lineHeight: 1.6 }}>
+              misses land here automatically — drills you fumble, flaws you mis-accuse, builds that fall over.
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="mono" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'baseline', marginTop: 28 }}>
+        <span style={{ fontSize: 10, letterSpacing: 1.5, color: C.faint }}>ALSO</span>
+        <QuietLink onClick={() => navigate('/journal/themes')}>blind spots by theme</QuietLink>
+        <QuietLink onClick={() => navigate('/journal/brief')}>pre-interview briefing</QuietLink>
+      </div>
     </div>
   )
 }

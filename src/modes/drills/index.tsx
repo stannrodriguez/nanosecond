@@ -1,13 +1,73 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { C } from '../../theme'
-import { ModeHeader } from '../../ui/ModeHeader'
-import { TabNav } from '../../ui/TabNav'
+import { GhostButton, useHover } from '../../ui/kit'
 import { fmtNum } from '../../ui/fmt'
 import { DRILLS, DRILL_CATEGORIES, type DrillCategory } from '../../content/drills'
 import { NUMBERS } from '../../content/numbers'
 import { buildSession, useDrillProgress, BOX_INTERVAL_DAYS } from '../../state/drillProgress'
 import { useScars } from '../../state/scars'
+
+// The calm verdict (display only): a three-tier read on the log error. Scoring
+// (points, scars, stats) still runs off gradeGuess.
+function drillVerdict(err: number): { text: string; col: string } {
+  if (err <= 0.2) return { text: '✓ DEAD ON', col: C.ok }
+  if (err <= 1) return { text: '✓ WITHIN AN ORDER OF MAGNITUDE', col: C.ok }
+  const n = Math.round(err)
+  return { text: `✗ OFF BY ${n} ORDER${n === 1 ? '' : 'S'} OF MAGNITUDE`, col: C.alert }
+}
+
+// The primary CTA lifts on hover (Lock it in).
+function LockButton({ onClick }: { onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      style={{
+        width: '100%',
+        marginTop: 20,
+        background: C.net,
+        color: C.bg,
+        border: `1px solid ${C.net}`,
+        borderRadius: 8,
+        padding: 12,
+        fontWeight: 700,
+        fontSize: 14,
+        cursor: 'pointer',
+        transition: 'transform .15s, box-shadow .15s',
+        transform: h ? 'translateY(-1px)' : 'none',
+        boxShadow: h ? `0 6px 18px ${C.net}33` : 'none',
+      }}
+    >
+      Lock it in
+    </button>
+  )
+}
+
+// A quiet mono link (calibration), matching the Library's Ladder link.
+function QuietLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      className="mono"
+      style={{
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        marginTop: 40,
+        cursor: 'pointer',
+        fontSize: 12,
+        color: h ? C.net : C.dim,
+        transition: 'color .15s',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
 
 // Log-scale slider → value with 2 significant figures.
 export function logSliderVal(pos: number, lo: number, hi: number): number {
@@ -27,7 +87,7 @@ export function gradeGuess(guess: number, ans: number) {
 }
 
 function DrillSession() {
-  const { cards, history, record } = useDrillProgress()
+  const { cards, record } = useDrillProgress()
   const addScar = useScars((s) => s.addScar)
   // Queue is built once per session from the Leitner state, then advanced.
   const [sessionStart] = useState(() => Date.now())
@@ -38,10 +98,8 @@ function DrillSession() {
   const [sessionPts, setSessionPts] = useState<number[]>([])
 
   const d = queue[idx % queue.length]
-  const card = cards[d.id]
   const guess = logSliderVal(pos, d.loExp, d.hiExp)
   const grade = gradeGuess(guess, d.ans)
-  const total = sessionPts.reduce((a, b) => a + b, 0)
   const refs = d.numbersRefs.map((id) => NUMBERS.find((n) => n.id === id)).filter(Boolean)
   const dueCount = DRILLS.filter((x) => cards[x.id] && cards[x.id].due <= sessionStart).length
 
@@ -59,89 +117,85 @@ function DrillSession() {
       })
   }
 
+  const navigate = useNavigate()
+  const verdict = drillVerdict(grade.err)
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
-        <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-          drill {sessionPts.length + 1} · score {total}
-          {sessionPts.length > 0 ? ` / ${sessionPts.length * 100}` : ''}
-        </span>
-        <span className="mono" style={{ fontSize: 12, color: dueCount ? C.compute : C.faint }}>
-          {dueCount > 0 ? `${dueCount} cards due for review` : `${history.length} answers logged · nothing overdue`}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>DRILLS</h1>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: dueCount ? C.compute : C.dim, whiteSpace: 'nowrap' }}>
+          drill {sessionPts.length + 1} · {dueCount > 0 ? `${dueCount} due for review` : 'nothing overdue'}
         </span>
       </div>
+      <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
+        Scored by order of magnitude — the way an interviewer scores you.
+      </p>
 
-      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, padding: 22 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-          <div className="mono" style={{ color: C.net, fontSize: 10, letterSpacing: 1.5 }}>
-            ESTIMATE · {DRILL_CATEGORIES[d.cat].toUpperCase()}
-          </div>
-          <div className="mono" style={{ fontSize: 10, color: C.faint }}>
-            {card ? `leitner box ${card.box}/5 · repeats in ${BOX_INTERVAL_DAYS[card.box]}d` : 'new card'}
-          </div>
-        </div>
-        <div style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.5, marginBottom: 26 }}>{d.q}</div>
+      <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 24, marginTop: 32, maxWidth: 640 }}>
+        <span className="mono" style={{ fontSize: 10.5, letterSpacing: 1.5, color: C.net }}>
+          ESTIMATE · {DRILL_CATEGORIES[d.cat].toUpperCase()}
+        </span>
+        <p style={{ fontSize: 16.5, lineHeight: 1.55, fontWeight: 500, margin: '12px 0 0' }}>{d.q}</p>
 
-        <div className="mono" style={{ textAlign: 'center', fontSize: 30, fontWeight: 600, color: revealed ? grade.col : C.net, marginBottom: 6 }}>
-          {fmtNum(guess)} <span style={{ fontSize: 14, color: C.dim }}>{d.unit}</span>
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <span
+            className="mono"
+            style={{ fontSize: 34, fontWeight: 600, color: revealed ? (grade.err <= 1 ? C.ok : C.alert) : C.net }}
+          >
+            {fmtNum(guess)}
+          </span>
+          <span className="mono" style={{ fontSize: 13, color: C.dim }}> {d.unit}</span>
         </div>
-        <input type="range" min={0} max={1000} value={pos} disabled={revealed} onChange={(e) => setPos(+e.target.value)} aria-label="estimate on a log scale" />
-        <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.faint, marginTop: 4 }}>
-          <span>{fmtNum(Math.pow(10, d.loExp))}</span>
-          <span>log scale — each step ×10</span>
-          <span>{fmtNum(Math.pow(10, d.hiExp))}</span>
+        <input
+          type="range"
+          min={0}
+          max={1000}
+          value={pos}
+          disabled={revealed}
+          onChange={(e) => setPos(+e.target.value)}
+          aria-label="estimate on a log scale"
+          style={{ marginTop: 14 }}
+        />
+        <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: C.faint, marginTop: 6, gap: 8 }}>
+          <span style={{ whiteSpace: 'nowrap' }}>{fmtNum(Math.pow(10, d.loExp))}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>log scale — each step ×10</span>
+          <span style={{ whiteSpace: 'nowrap' }}>{fmtNum(Math.pow(10, d.hiExp))}</span>
         </div>
 
         {!revealed ? (
-          <button
-            onClick={lock}
-            style={{ marginTop: 22, width: '100%', padding: '12px 0', background: C.net, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
-          >
-            Lock it in
-          </button>
+          <LockButton onClick={lock} />
         ) : (
-          <div style={{ marginTop: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
-              <span className="mono" style={{ color: grade.col, fontWeight: 600, fontSize: 14 }}>
-                {grade.label} · +{grade.pts}
-              </span>
-              <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-                answer ≈{' '}
-                <span style={{ color: C.text, fontWeight: 600 }}>
-                  {fmtNum(d.ans)} {d.unit}
-                </span>
-              </span>
-            </div>
-            <div style={{ background: C.bg, borderRadius: 8, padding: '12px 14px', marginTop: 12, border: `1px solid ${C.line}` }}>
-              <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.compute, marginBottom: 8 }}>
-                HOW TO DERIVE IT
-              </div>
-              {d.derive.map((s, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 7 }}>
-                  <span className="mono" style={{ color: C.compute, fontSize: 12 }}>
-                    {i + 1}.
-                  </span>
-                  <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>{s}</span>
-                </div>
-              ))}
+          <div style={{ borderTop: `1px solid ${C.line}`, marginTop: 20, paddingTop: 16 }}>
+            <span className="mono" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, color: verdict.col, whiteSpace: 'nowrap' }}>
+              {verdict.text} · +{grade.pts}
+            </span>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text, margin: '8px 0 0' }}>
+              ≈ {fmtNum(d.ans)} {d.unit}. {d.derive.join(' ')}
               {refs.length > 0 && (
-                <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 8 }}>
+                <span className="mono" style={{ display: 'block', fontSize: 10.5, color: C.faint, marginTop: 8 }}>
                   bounded by: {refs.map((r) => r!.boundingPhysics).join(' · ')}
-                </div>
+                </span>
               )}
+            </p>
+            <div style={{ marginTop: 14 }}>
+              <GhostButton
+                onClick={() => {
+                  setIdx(idx + 1)
+                  setPos(500)
+                  setRevealed(false)
+                }}
+              >
+                try again
+              </GhostButton>
             </div>
-            <button
-              onClick={() => {
-                setIdx(idx + 1)
-                setPos(500)
-                setRevealed(false)
-              }}
-              style={{ marginTop: 14, width: '100%', padding: '11px 0', background: C.panelUp, color: C.text, border: `1px solid ${C.line}`, borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-            >
-              Next drill →
-            </button>
           </div>
         )}
+      </div>
+
+      <div>
+        <QuietLink onClick={() => navigate('/drills/calibration')}>
+          CALIBRATION — accuracy by category, your blind spots →
+        </QuietLink>
       </div>
     </div>
   )
@@ -237,19 +291,16 @@ export default function Drills() {
   const { tab } = useParams()
   const navigate = useNavigate()
   if (tab !== 'session' && tab !== 'calibration') return <Navigate to="/drills/session" replace />
-  return (
-    <div style={{ maxWidth: 720 }}>
-      <ModeHeader title="DRILLS" thesis="scored by order of magnitude, the way an interviewer scores you">
-        <TabNav
-          tabs={[
-            { id: 'session', label: '01 · DRILL', sub: 'due cards come first' },
-            { id: 'calibration', label: '02 · CALIBRATION', sub: 'accuracy by category' },
-          ]}
-          active={tab}
-          onPick={(id) => navigate(`/drills/${id}`)}
-        />
-      </ModeHeader>
-      {tab === 'session' ? <DrillSession /> : <Stats />}
-    </div>
-  )
+  if (tab === 'calibration') {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate('/drills/session')}>← the drills</GhostButton>
+          <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>CALIBRATION</h1>
+        </div>
+        <Stats />
+      </div>
+    )
+  }
+  return <DrillSession />
 }

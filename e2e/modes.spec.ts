@@ -35,10 +35,11 @@ test('manual: legacy section ids redirect to their re-shelved home', async ({ pa
   await expect(page).toHaveURL(/#\/manual\/briefings\/relational-db$/)
 })
 
-test('drills: lock in a guess and see the derivation', async ({ page }) => {
+test('drills: lock in a guess and see the verdict + derivation', async ({ page }) => {
   await page.goto('/#/drills')
   await page.getByRole('button', { name: 'Lock it in' }).click()
-  await expect(page.getByText('HOW TO DERIVE IT')).toBeVisible()
+  await expect(page.getByText(/DEAD ON|WITHIN AN ORDER OF MAGNITUDE|OFF BY \d+ ORDER/)).toBeVisible()
+  await expect(page.getByText(/bounded by:/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/drills-reveal.png', fullPage: true })
 })
@@ -271,14 +272,12 @@ test('lab at 380px: no horizontal overflow on index or toys', async ({ page }) =
   await page.screenshot({ path: 'e2e/shots/lab-380px.png', fullPage: true })
 })
 
-test('drills: leitner chip, category label, and calibration tab', async ({ page }) => {
+test('drills: category label, then calibration via the quiet link', async ({ page }) => {
   await page.goto('/#/drills')
   await expect(page.getByText(/ESTIMATE · /)).toBeVisible()
-  await expect(page.getByText('new card')).toBeVisible()
   await page.getByRole('button', { name: 'Lock it in' }).click()
-  await expect(page.getByText('HOW TO DERIVE IT')).toBeVisible()
-  await page.getByRole('button', { name: 'Next drill →' }).click()
-  await page.getByRole('button', { name: /02 · CALIBRATION/ }).click()
+  await page.getByRole('button', { name: 'try again' }).click()
+  await page.getByRole('button', { name: /CALIBRATION —/ }).click()
   await expect(page.getByText(/ACCURACY BY CATEGORY — your blind spots/)).toBeVisible()
   await expect(page.getByText('LEITNER BOXES', { exact: false })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)

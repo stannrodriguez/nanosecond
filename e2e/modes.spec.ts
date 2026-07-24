@@ -63,13 +63,12 @@ test('builder: a run produces a verdict', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/builder-verdict.png', fullPage: true })
 })
 
-test('review: accuse a component and watch the reveal', async ({ page }) => {
-  test.setTimeout(60_000)
+test('review: accuse a component in the chain and see the verdict', async ({ page }) => {
   await page.goto('/#/review')
   await expect(page.getByText('The Sawtooth Scheduler')).toBeVisible()
-  await page.locator('svg[aria-label="Architecture diagram"] g').filter({ hasText: 'Watcher' }).first().click()
-  await page.getByRole('button', { name: /Lock in suspicion/ }).click()
-  await expect(page.getByText(/CORRECT|the real flaw/)).toBeVisible({ timeout: 20_000 })
+  // click the flawed component straight in the linear chain (no separate lock step)
+  await page.getByRole('button', { name: /Watcher/ }).click()
+  await expect(page.getByText(/CAUGHT IT/)).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/review-reveal.png', fullPage: true })
 })

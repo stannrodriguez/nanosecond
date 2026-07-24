@@ -63,31 +63,31 @@ test('review and drills tabs live in the URL', async ({ page }) => {
   await expect(page.getByText(/No answers yet — run a few drills/)).toBeVisible()
 })
 
-test('journal is a right-aligned utility tab that routes', async ({ page }) => {
-  await page.goto('/#/lab')
-  await page.getByRole('link', { name: /JOURNAL/ }).click()
+test('journal deep link still routes to the log', async ({ page }) => {
+  await page.goto('/#/journal')
   await expect(page).toHaveURL(/#\/journal\/log$/)
   await expect(page.getByRole('heading', { name: 'SCAR JOURNAL' })).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/journal-nav.png', fullPage: true })
 })
 
-// Spec: README-v3 IA restructure — five nav sections, a /practice hub, /about.
+// Spec: README-v3 IA restructure, Phase 2 — four nav sections, a /practice
+// hub that also owns Journal, /about.
 
-test('the top nav is five sections, and PRACTICE stays lit across its modes', async ({ page }) => {
+test('the top nav is four sections, and PRACTICE stays lit across its modes', async ({ page }) => {
   await page.goto('/#/lab')
   const nav = page.getByRole('navigation', { name: 'Sections' })
   for (const label of ['LAB', 'LIBRARY', 'PRACTICE', 'ABOUT']) {
     await expect(nav.getByRole('link', { name: label, exact: true })).toBeVisible()
   }
-  await expect(nav.getByRole('link', { name: /JOURNAL/ })).toBeVisible()
-  // the four modes left the nav
+  // the five practice modes left the nav
   for (const gone of ['DRILLS', 'BUILDER', 'REVIEW', 'ON-CALL']) {
     await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
   }
+  await expect(nav.getByRole('link', { name: /JOURNAL/ })).toHaveCount(0)
   // PRACTICE is the current section on the hub and inside every mode beneath it
   const practice = nav.getByRole('link', { name: 'PRACTICE', exact: true })
-  for (const inside of ['/#/practice', '/#/drills', '/#/builder', '/#/review', '/#/on-call']) {
+  for (const inside of ['/#/practice', '/#/drills', '/#/builder', '/#/review', '/#/on-call', '/#/journal']) {
     await page.goto(inside)
     await expect(practice).toHaveAttribute('aria-current', 'page')
   }

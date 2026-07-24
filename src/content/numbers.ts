@@ -265,7 +265,7 @@ export const NUMBERS: NumberEntry[] = [
     ],
     boundingPhysics: 'Kernel networking overhead per request, not the lookup itself.',
     toyId: null,
-    confusions: 'It is 10× a database because it skips disk AND the query engine — not because RAM is magic.',
+    confusions: 'It is 10× a database because it skips disk and the query engine — not because RAM is magic.',
     simplifies: 'Ignores connection limits, big values, hot-key skew, and cold-start warmup.',
   },
   {
@@ -273,7 +273,7 @@ export const NUMBERS: NumberEntry[] = [
     value: 1_000_000,
     unit: 'msgs/s per broker',
     derivation: [
-      'Kafka ONLY appends sequentially — recall the disk toy: sequential I/O is ~1000× cheaper than random.',
+      'Kafka only appends sequentially — recall the disk toy: sequential I/O is ~1000× cheaper than random.',
       '1 KB × 1M/s = 1 GB/s, within NVMe sequential bandwidth.',
       '~1M small msgs/s per broker: fast because it refuses to do random I/O, not because of magic.',
     ],
@@ -346,7 +346,7 @@ export const NUMBERS: NumberEntry[] = [
     ],
     boundingPhysics: 'Single-node write throughput: one partition is ultimately one machine fsyncing.',
     toyId: 'hotpartition',
-    confusions: 'Provisioning more total capacity does NOT fix a hot key — per-partition ceilings are per-key-range, not per-table.',
+    confusions: 'Provisioning more total capacity does not fix a hot key — per-partition ceilings are per-key-range, not per-table.',
   },
   {
     id: 'bdp',

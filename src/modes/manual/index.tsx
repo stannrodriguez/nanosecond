@@ -347,7 +347,7 @@ function Ladder() {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14, marginTop: 4, marginBottom: 20, lineHeight: 1.5 }}>
-        Eight numbers, each derived from a physical limit. Don't memorize them — re-derive them. The bar shows how far light
+        Nine numbers, each derived from a physical limit. Don't memorize them — re-derive them. The bar shows how far light
         travels in that time; the right column shows the wait if one nanosecond were one second.
       </p>
       {RUNGS.map((r, i) => {

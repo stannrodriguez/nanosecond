@@ -188,7 +188,7 @@ export const ENCOUNTERS: Record<string, Encounter> = {
     ticks: 18,
     target: 200,
     elite: true,
-    flavor: 'A deploy restarts your cache fleet mid-rush. For a while, EVERY read goes straight to the database.',
+    flavor: 'A deploy restarts your cache fleet mid-rush. For a while, every read goes straight to the database.',
     secret: 'Ticks 8–13: cache hit rate forced to 0%. Capacity headroom on the DB (or a read-through cache) is the only defense.',
     mod: (t) => (t >= 8 && t <= 13 ? { hitZero: true } : null),
   },
@@ -202,7 +202,7 @@ export const ENCOUNTERS: Record<string, Encounter> = {
     boss: true,
     happened: ['slack-2021'],
     flavor:
-      'A mobile-network blip disconnects half your client fleet. They will ALL come back at once, resending everything they queued offline.',
+      'A mobile-network blip disconnects half your client fleet. They will all come back at once, resending everything they queued offline.',
     secret:
       'Ticks 9–20: writes ×3 and traffic ×1.3 as the herd reconnects. One primary cannot absorb it — buy capacity (shards) or buy time (queue).',
     mod: (t) => (t >= 9 && t <= 20 ? { writeMult: 3, rpsMult: 1.3 } : null),
@@ -289,7 +289,7 @@ export const ENCOUNTERS: Record<string, Encounter> = {
     readPct: 0.9,
     ticks: 20,
     target: 200,
-    flavor: 'A region fails over to you. Traffic jumps AND arrives cache-cold — two problems landing on the same tick.',
+    flavor: 'A region fails over to you. Traffic jumps and arrives cache-cold — two problems landing on the same tick.',
     secret: 'Ticks 7–14: hit rate 0% and traffic ×1.4 at once. A read-through cache keeps a floor; DB headroom carries the rest.',
     mod: (t) => (t >= 7 && t <= 14 ? { hitZero: true, rpsMult: 1.4 } : null),
   },
@@ -350,7 +350,7 @@ export const ENCOUNTERS: Record<string, Encounter> = {
     flavor:
       'An entire cloud region goes dark. Every user it served stampedes to yours — cache-cold, retrying blindly, all at once. This is every mechanic at the same time.',
     secret:
-      'Ticks 9–22: hit rate 0%, traffic ×1.6, AND writes ×2 — simultaneously. No single fix covers it: pair capacity (shards + replicas + read-through) with time (queue) or blast-radius control (rate limiter, breaker, multi-AZ).',
+      'Ticks 9–22: hit rate 0%, traffic ×1.6, and writes ×2 — simultaneously. No single fix covers it: pair capacity (shards + replicas + read-through) with time (queue) or blast-radius control (rate limiter, breaker, multi-AZ).',
     mod: (t) => (t >= 9 && t <= 22 ? { hitZero: true, rpsMult: 1.6, writeMult: 2 } : null),
   },
 }

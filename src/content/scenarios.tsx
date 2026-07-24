@@ -43,7 +43,7 @@ export const SCENARIOS: Scenario[] = [
     translate: [
       { math: '~40k readers over the peak hour, ~5 page-loads each, clumped', out: '≈ 8,000 req/s at peak' },
       { math: 'readers vastly outnumber commenters (lurker rule ~50:1)', out: '98% reads · 2% writes' },
-      { math: 'everyone wants the SAME post', out: 'cache hit rate can be very high' },
+      { math: 'everyone wants the same post', out: 'cache hit rate can be very high' },
     ],
     think: [
       <>
@@ -116,7 +116,7 @@ export const SCENARIOS: Scenario[] = [
       </>,
       <>
         The deciding question: does anyone suffer if a GPS ping lands 30 seconds late? For telemetry — no. That tolerance is what
-        makes the <T k="queue">queue</T> option legitimate here and NOT at the ticket checkout.
+        makes the <T k="queue">queue</T> option legitimate here and not at the ticket checkout.
       </>,
       <>
         If you queue: workers + primary must drain the <T k="backlog">backlog</T> after the burst. Size the drain, not just the

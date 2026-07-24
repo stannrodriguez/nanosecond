@@ -4,6 +4,7 @@ import { useHover } from './ui/kit'
 import { GlossaryProvider } from './ui/Term'
 import Lab from './modes/lab'
 import Manual from './modes/manual'
+import Practice from './modes/practice'
 import Drills from './modes/drills'
 import Builder from './modes/builder'
 import Review from './modes/review'
@@ -116,6 +117,9 @@ function AppShell() {
                 their own params and redirect unknown ids to their index. */}
             <Route path="/lab/:toyId?" element={<Lab />} />
             <Route path="/manual/:tab?/:sectionId?" element={<Manual />} />
+            {/* The Practice hub — home of the four modes that left the top nav
+                (README-v3 IA restructure). The mode routes below are unchanged. */}
+            <Route path="/practice" element={<Practice />} />
             <Route path="/drills/:tab?" element={<Drills />} />
             <Route path="/builder" element={<Builder />} />
             <Route path="/review/:tab?/:sub?" element={<Review />} />

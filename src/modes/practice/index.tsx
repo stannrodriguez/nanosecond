@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { C } from '../../theme'
 import { LiftCard } from '../../ui/kit'
+import { useScars } from '../../state/scars'
 
 // The Practice hub (README-v3 IA restructure). DRILLS / BUILDER / REVIEW /
 // ON-CALL left the top nav; this page is their shared home. The four cards run
@@ -43,6 +44,47 @@ const CARDS = [
     stat: 'act 1/3',
   },
 ] as const
+
+// The Journal row — below the four modes, gold-bordered and apart: it is
+// reflection over your record, not a fifth mode (README-v3 Phase 2).
+function JournalRow() {
+  const navigate = useNavigate()
+  const scars = useScars((s) => s.scars)
+  return (
+    <LiftCard
+      accent={C.gold}
+      baseBorder={C.gold + '33'}
+      ariaLabel="JOURNAL"
+      onClick={() => navigate('/journal')}
+      style={{
+        borderRadius: 14,
+        padding: '18px 22px',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        gap: '4px 18px',
+        alignItems: 'baseline',
+      }}
+    >
+      <span className="mono" style={{ fontSize: 20, fontWeight: 600, color: C.gold }}>
+        ◈
+      </span>
+      <span className="mono" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1.5 }}>
+        JOURNAL
+      </span>
+      <span className="mono" style={{ fontSize: 10.5, color: C.faint, whiteSpace: 'nowrap' }}>
+        {scars.length} scar{scars.length === 1 ? '' : 's'}
+      </span>
+      <span />
+      <span style={{ fontSize: 13.5, color: C.text, lineHeight: 1.5, gridColumn: '2 / 4' }}>
+        Every miss anywhere lands here with its lesson.
+      </span>
+      <span />
+      <span style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.5, gridColumn: '2 / 4' }}>
+        Misses are the curriculum — review it before an interview.
+      </span>
+    </LiftCard>
+  )
+}
 
 export default function Practice() {
   const navigate = useNavigate()
@@ -87,9 +129,9 @@ export default function Practice() {
         ))}
       </div>
 
-      <p className="mono" style={{ fontSize: 11, color: C.faint, margin: '24px 0 0', maxWidth: 640, lineHeight: 1.6 }}>
-        every miss anywhere lands in the ◈ journal with its lesson.
-      </p>
+      <div style={{ marginTop: 24, maxWidth: 680 }}>
+        <JournalRow />
+      </div>
     </div>
   )
 }

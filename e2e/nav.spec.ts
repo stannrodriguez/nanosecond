@@ -93,18 +93,22 @@ test('the top nav is four sections, and PRACTICE stays lit across its modes', as
   }
 })
 
-test('the practice hub lists the four modes in order and opens one', async ({ page }) => {
+test('the practice hub lists the four modes in order, then the Journal row', async ({ page }) => {
   await page.goto('/#/practice')
   await expect(page.getByRole('heading', { name: 'PRACTICE' })).toBeVisible()
   for (const name of ['DRILLS', 'BUILDER', 'REVIEW', 'ON-CALL']) {
     await expect(page.getByRole('button', { name, exact: true })).toBeVisible()
   }
+  // the gold Journal row sits below the four mode cards and routes to the log
+  await page.getByRole('button', { name: 'JOURNAL', exact: true }).click()
+  await expect(page).toHaveURL(/#\/journal\/log$/)
+  await page.goto('/#/practice')
   await page.getByRole('button', { name: 'ON-CALL', exact: true }).click()
   await expect(page).toHaveURL(/#\/on-call$/)
 })
 
-test('each mode carries a ← practice breadcrumb back to the hub', async ({ page }) => {
-  for (const mode of ['/#/drills', '/#/builder', '/#/review', '/#/on-call']) {
+test('each practice page carries a ← practice breadcrumb back to the hub', async ({ page }) => {
+  for (const mode of ['/#/drills', '/#/builder', '/#/review', '/#/on-call', '/#/journal']) {
     await page.goto(mode)
     await page.getByRole('button', { name: '← practice' }).click()
     await expect(page).toHaveURL(/#\/practice$/)

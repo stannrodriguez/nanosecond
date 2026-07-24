@@ -13,7 +13,7 @@ const LIGHT_OPS = [
     ns: 0.3,
     ch: C.compute,
     punch:
-      "Light barely crossed the chip. One tick of a 3.3 GHz clock is the time light needs to cross a die 9 cm wide — this is WHY chips are 2 cm across, and why clock speed stopped climbing. The chip can't be bigger than one tick of light.",
+      "Light barely crossed the chip. One tick of a 3.3 GHz clock is the time light needs to cross a die 9 cm wide — this is why chips are 2 cm across, and why clock speed stopped climbing. The chip can't be bigger than one tick of light.",
   },
   {
     name: 'L1 cache hit',
@@ -27,28 +27,28 @@ const LIGHT_OPS = [
     ns: 100,
     ch: C.mem,
     punch:
-      "While your CPU fetched ONE value from RAM, light crossed a 30-metre building — and the CPU sat through ~300 cycles doing nothing. That idle gap is the entire reason caches, prefetching, and 'keep it in L1' engineering exist.",
+      "While your CPU fetched one value from RAM, light crossed a 30-metre building — and the CPU sat through ~300 cycles doing nothing. That idle gap is the entire reason caches, prefetching, and 'keep it in L1' engineering exist.",
   },
   {
     name: 'NVMe SSD read',
     ns: 80000,
     ch: C.storage,
     punch:
-      "24 kilometres — light crossed the whole city while the drive sensed trapped electrons in one flash page. Your CPU could have executed a quarter-million instructions. This is the wall between 'in memory' and 'on disk' — the single most important line in systems design.",
+      "24 kilometres — light crossed the whole city while the drive sensed trapped electrons in one flash page. Your CPU could have executed a quarter-million instructions. This is the wall between 'in memory' and 'on disk' — the line every cache, buffer, and batch exists to keep work on the right side of.",
   },
   {
     name: 'HDD random read',
     ns: 8e6,
     ch: C.storage,
     punch:
-      '2,400 km — light crossed half the continent while a metal arm swung one centimetre and waited for a platter to spin. Now go to THE DISK toy and watch it happen.',
+      '2,400 km — light crossed half the continent while a metal arm swung one centimetre and waited for a platter to spin. That one swing is the mechanical fee behind THE DISK\'s 1000× random-vs-sequential gap.',
   },
   {
     name: 'Cross-region round trip',
     ns: 7e7,
     ch: C.net,
     punch:
-      "21,000 km — light went HALFWAY AROUND THE PLANET, because that's literally what the round trip is. Nothing is 'slow' here; the request simply traveled the Earth. This is why multi-region sync consistency costs what it costs. Geography is the final boss.",
+      "21,000 km — light went halfway around the planet, because that's literally what the round trip is. Nothing here is 'slow'; the request simply traveled the Earth, and no engineering shortens the Earth. That distance is the floor under every multi-region strongly-consistent write.",
   },
 ]
 
@@ -136,8 +136,8 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Light is the fastest thing that can ever exist — 30 cm per nanosecond. Pick an operation and race it. Where light ends up
-        when the operation finishes IS the intuition for that number.
+        Nothing outruns light — 30 cm per nanosecond, the universe's hard speed limit. Pick an operation and race it: where
+        light ends up when the operation finishes is that operation's cost, turned into a place.
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {LIGHT_OPS.map((o, i) => (

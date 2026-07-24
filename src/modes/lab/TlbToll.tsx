@@ -67,7 +67,7 @@ export function TlbToll({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Programs address a private, imaginary memory; the hardware translates every <T k="cacheline">address</T> to a real one
+        Programs address a private, imaginary memory; the hardware translates every <T k="virtualmemory">address</T> to a real one
         first — so each access is secretly <b>translate, then fetch</b>. A small cache called the TLB keeps recent translations
         free. Grow the working set past what it can cover and a second cliff appears — one the <T k="cache">caches</T> can't
         save you from.

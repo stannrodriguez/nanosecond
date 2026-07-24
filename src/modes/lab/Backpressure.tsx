@@ -69,7 +69,7 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
         A producer emits messages; a consumer handles {fmtNum(CONSUME)}/s, full stop. Between them: a buffer. The moment the
-        producer runs hotter than the consumer, the buffer fills and the system MUST answer one question — who absorbs the
+        producer runs hotter than the consumer, the buffer fills and the system must answer one question — who absorbs the
         overload? There are only three answers, and "pretend it's fine" is secretly the third.
       </p>
       <div style={{ margin: '14px 0' }}>
@@ -101,12 +101,12 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
           )}
           {policy === 'block' && (
             <span style={{ color: blockedRate > 0 ? C.compute : C.dim }}>
-              producer slowed by <b>{fmtNum(blockedRate)}/s</b> — the pressure travels UPSTREAM
+              producer slowed by <b>{fmtNum(blockedRate)}/s</b> — the pressure travels upstream
             </span>
           )}
           {policy === 'unbounded' && (
             <span style={{ color: s.oomed > 0 ? C.alert : C.dim }}>
-              {s.oomed > 0 ? <b>💥 OOM-killed ×{s.oomed} — buffer AND process gone, all at once</b> : 'memory climbing… latency climbing with it…'}
+              {s.oomed > 0 ? <b>💥 OOM-killed ×{s.oomed} — buffer and process gone, all at once</b> : 'memory climbing… latency climbing with it…'}
             </span>
           )}
         </div>
@@ -116,7 +116,7 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
         An unbounded buffer doesn't avoid the choice — it converts overload into memory growth, rising latency for everything
         in line, and one deferred, bigger crash at the worst moment. Real systems choose on purpose: <b>shed</b> when freshness
         beats completeness (metrics, live video), <b>block</b> when the producer can safely slow (batch jobs, TCP itself — its
-        window IS blocking backpressure), and bound every queue so the failure is a number you alarm on, not a surprise. "Every
+        window <i>is</i> blocking backpressure), and bound every queue so the failure is a number you alarm on, not a surprise. "Every
         buffer bounded, every bound a decision" is a sentence that wins design reviews.
       </Punchline>
     </div>

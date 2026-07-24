@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { Stepper } from '../../ui/Stepper'
 import { Term as T } from '../../ui/Term'
-import { Panel, Eyebrow, Button, Chip, useHover } from '../../ui/kit'
+import { Panel, Eyebrow, Button, Chip, GhostButton, useHover } from '../../ui/kit'
 import { useTickRunner } from '../../ui/useTickRunner'
 import { fmtNum } from '../../ui/fmt'
 import { diagnoseTiers, simTick, stackCost, type Frame, type StackConfig } from '../../engine/capacity'
@@ -74,6 +75,7 @@ function CtaButton({ children, onClick }: { children: ReactNode; onClick: () => 
 }
 
 export default function Builder() {
+  const navigate = useNavigate()
   const addScar = useScars((s) => s.addScar)
   const { toysCompleted } = useProgress()
   const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
@@ -151,6 +153,9 @@ export default function Builder() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <GhostButton onClick={() => navigate('/practice')} style={{ alignSelf: 'center' }}>
+          ← practice
+        </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>THE BUILDER</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.dim, whiteSpace: 'nowrap' }}>
           briefing → build → break

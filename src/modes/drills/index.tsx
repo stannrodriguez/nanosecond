@@ -122,6 +122,9 @@ function DrillSession() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <GhostButton onClick={() => navigate('/practice')} style={{ alignSelf: 'center' }}>
+          ← practice
+        </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>DRILLS</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: dueCount ? C.compute : C.dim, whiteSpace: 'nowrap' }}>
           drill {sessionPts.length + 1} · {dueCount > 0 ? `${dueCount} due for review` : 'nothing overdue'}

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { C, CH_COLOR } from '../../theme'
 import { Bar } from '../../ui/Bar'
 import { fmtNum } from '../../ui/fmt'
 import { Term } from '../../ui/Term'
-import { Button, Chip } from '../../ui/kit'
+import { Button, Chip, GhostButton } from '../../ui/kit'
 import { useTickRunner } from '../../ui/useTickRunner'
 import { type Frame } from '../../engine/capacity'
 import {
@@ -31,6 +32,7 @@ const clampHp = (n: number) => Math.max(0, Math.min(100, n))
 export { oncallTick, encounterDamage } from './engine'
 
 export default function OnCall() {
+  const navigate = useNavigate()
   const addScar = useScars((s) => s.addScar)
   const saveActive = useOnCallRun((s) => s.saveActive)
   const finishRun = useOnCallRun((s) => s.finishRun)
@@ -136,6 +138,7 @@ export default function OnCall() {
   const curAct = RUN_LAYERS[Math.min(g.layer, RUN_LAYERS.length - 1)].act
   const header = (
     <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', padding: '4px 0 14px', borderBottom: `1px solid ${C.line}`, marginBottom: 16 }}>
+      <GhostButton onClick={() => navigate('/practice')}>← practice</GhostButton>
       <h1 style={{ fontSize: 19, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>ON-CALL</h1>
       <span className="mono" style={{ fontSize: 12, color: C.dim }}>
         act {curAct + 1}/{ACTS.length}

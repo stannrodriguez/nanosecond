@@ -11,7 +11,7 @@ export interface GlossaryEntry {
 export const GLOSSARY: Record<string, GlossaryEntry> = {
   request: {
     name: 'Request',
-    def: "One message from a client ('give me this page', 'save this comment') and the reply to it. Capacity planning starts by counting them: how many arrive per second, what each one costs to serve, and which machine serves it.",
+    def: "A single client-to-server exchange: one message asking for work ('give me this page', 'save this comment') and the reply that answers it. Capacity planning starts by counting them: how many arrive per second, what each one costs to serve, and which machine serves it.",
   },
   read: {
     name: 'Read',

@@ -46,7 +46,7 @@ export function FalseSharing({ onComplete }: { onComplete: () => void }) {
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
         Two cores, two <i>different</i> counters — pure parallel work, no shared data. Except the counters sit in the same
         64-byte <T k="cacheline">cache line</T>, and cores trade a whole line at a time. Each write yanks the line away from the
-        other core (coherence ping-pong), so adding cores makes it <b>slower</b>. Pad them onto separate lines
+        other core (<T k="coherence">coherence</T> ping-pong), so adding cores makes it <b>slower</b>. Pad them onto separate lines
         and watch parallelism come back.
       </p>
 

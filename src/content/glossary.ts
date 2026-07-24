@@ -65,6 +65,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Cache line',
     def: "The fixed 64-byte block the CPU moves between RAM and cache — it never fetches a lone byte. Touching one byte brings its 63 neighbours along at no extra cost, so fields that are accessed together benefit from being stored together. This is why a contiguous array can be an order of magnitude faster than a linked list of the same fields: each line delivers eight useful values from the array and one from the list.",
   },
+  cpucache: {
+    name: 'CPU cache (L1/L2/L3)',
+    def: "The staircase of small, fast memories on the chip — L1, L2, L3 — holding recently-used data so the core rarely pays the full ~100 ns trip to RAM. Each level trades capacity for closeness: roughly 1 ns for L1, 4 ns for L2, 12 ns for L3. Whether the working set fits a level often moves performance more than any code change — miss every level and the same loop runs ~100× slower.",
+  },
+  coherence: {
+    name: 'Cache coherence',
+    def: "The hardware protocol that keeps every core's private cache telling one story: before a core may write a memory location, it must take exclusive ownership of that location's whole 64-byte cache line, pulling it out of every other core's cache. Correctness is never lost — but two cores writing the same line take turns, even when they touch different bytes of it. That forced turn-taking is why adding cores can slow a perfectly parallel loop (false sharing).",
+  },
   locality: {
     name: 'Locality',
     def: "The two access patterns that make caches work. Temporal locality is reusing the same data soon, while it is still cached; spatial locality is using data adjacent to what was just touched, because it arrived on the same cache line. Code with good locality can run 10× faster than identical code without it — same instructions, same data, different memory layout.",
@@ -397,7 +405,7 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
   {
     id: 'cpu',
     label: 'CPU & Memory',
-    keys: ['core', 'pipeline', 'speculation', 'cacheline', 'locality', 'virtualmemory'],
+    keys: ['core', 'pipeline', 'speculation', 'cpucache', 'cacheline', 'coherence', 'locality', 'virtualmemory'],
   },
   {
     id: 'caching',

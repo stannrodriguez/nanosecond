@@ -413,6 +413,22 @@ export const NUMBERS: NumberEntry[] = [
     toyId: null,
     confusions: 'API traffic ≠ page traffic: one SPA page load can be 1 backend call or 40 depending on design.',
   },
+
+  {
+    id: 'post-journey-total',
+    value: 200_000_000,
+    unit: 'ns',
+    derivation: [
+      'Your tap crosses the country to the app: ~35 ms one way (half a cross-region round trip).',
+      'Queueing, app compute, a cache miss, and the local commit add single-digit milliseconds — noise next to the network.',
+      'Cross-region consensus makes it durable in three cities: ~2 round trips ≈ 150 ms. 35 + 150 + change ≈ 200 ms.',
+    ],
+    boundingPhysics:
+      'Two speed-of-light legs: reaching the server, then agreement among distant replicas. Engineering shaves the milliseconds in the middle; the geography stays.',
+    toyId: 'consensus',
+    confusions:
+      "Assumes a strongly-consistent cross-region write. With async replication the ack returns in ~70–80 ms — durable in one city, the other copies arriving moments later.",
+  },
 ]
 
 export const numberById = (id: string): NumberEntry | undefined => NUMBERS.find((n) => n.id === id)

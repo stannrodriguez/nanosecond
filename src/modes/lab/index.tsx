@@ -1,13 +1,13 @@
 import { useState, type ComponentType } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ModeHeader } from '../../ui/ModeHeader'
-import { Eyebrow } from '../../ui/kit'
-import { C, CH_COLOR, CH_LABEL, FONT, type Channel } from '../../theme'
+import { Eyebrow, LiftCard } from '../../ui/kit'
+import { C, CH_COLOR, CH_LABEL, FONT } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { BRIEFINGS } from '../../content/briefings'
 import { FORECASTS } from '../../content/forecasts'
 import { STATIONS, stationForToy } from '../../content/journey'
-import { FLOORS, floorForToy } from '../../content/stack'
+import { floorForToy } from '../../content/stack'
 import { COMPONENTS } from '../../content/components'
 import { NUMBERS } from '../../content/numbers'
 import { conceptForToy, drillsForConcept } from '../../content/concepts'
@@ -17,7 +17,6 @@ import { FinePrint } from '../../ui/FinePrint'
 import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
 import { useScars } from '../../state/scars'
-import { DailyIncidentCard } from '../review/DailyIncidentCard'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
 import { LeakyBits } from './LeakyBits'
@@ -59,17 +58,7 @@ const TOY_COMPONENTS: Record<string, ComponentType<{ onComplete: () => void }>> 
   'false-sharing': FalseSharing,
 }
 
-// Index group order + each channel's physical wall (product-spec: every
-// architecture is a negotiation between these four).
-const CHANNEL_WALL: Record<Channel, string> = {
-  net: 'bounded by the speed of light',
-  compute: 'bounded by heat',
-  storage: 'bounded by sensing physics & moving metal',
-  mem: 'bounded by wire length & leaking charge',
-}
-const CHANNELS: Channel[] = ['net', 'compute', 'storage', 'mem']
-
-// /lab → grouped index · /lab/:toyId → one toy (ADR 0004)
+// /lab → the journey spine · /lab/:toyId → one toy (ADR 0004)
 export default function Lab() {
   const { toyId } = useParams()
   if (!toyId) return <LabIndex />
@@ -78,246 +67,134 @@ export default function Lab() {
   return <ToyDetail toy={toy} />
 }
 
+// The calm toy card: a lifting panel (no left-border accent). The toy number
+// carries the channel color; a ✓ pushes right when done.
 function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: () => void }) {
   const col = CH_COLOR[toy.ch]
   return (
-    <button
+    <LiftCard
+      accent={col}
       onClick={onOpen}
-      style={{
-        textAlign: 'left',
-        background: C.panel,
-        border: `1px solid ${C.line}`,
-        borderLeft: `3px solid ${col}`,
-        borderRadius: 10,
-        padding: '12px 14px',
-        cursor: 'pointer',
-        color: C.text,
-        fontFamily: 'inherit',
-      }}
+      ariaLabel={`${toy.n} · ${toy.name}`}
+      style={{ padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: 5 }}
     >
-      <div className="mono" style={{ fontSize: 12, fontWeight: 600 }}>
-        {done && <span style={{ color: C.ok }}>✓ </span>}
-        {toy.n} · {toy.name}
-      </div>
-      <div style={{ fontSize: 12, color: C.dim, marginTop: 4, lineHeight: 1.4 }}>{toy.sub}</div>
-      {toy.forgeUnlocks && (
-        <div className="mono" style={{ fontSize: 10, color: done ? C.gold : C.faint, marginTop: 6 }}>
-          ⚒ {done ? 'forged a Builder part' : 'forges a Builder part'}
-        </div>
-      )}
-    </button>
-  )
-}
-
-// THE MAP: the advance organizer the toy grid needs, in two views (ADR 0005).
-// THE JOURNEY is horizontal — one concrete story (you tap "Post" on a comment)
-// told as stations between machines. THE STACK is vertical — the floors of
-// machines-built-on-machines every station runs on, thin floors stating what
-// they owe. Deterministic (no auto-advance) so it's calm, reduced-motion-safe,
-// and screenshot-stable.
-function JourneyMap({ toysCompleted }: { toysCompleted: Record<string, boolean> }) {
-  const navigate = useNavigate()
-  const [open, setOpen] = useState(true)
-  const [view, setView] = useState<'journey' | 'stack'>('journey')
-  const [stationId, setStationId] = useState(STATIONS[0].id)
-  const station = STATIONS.find((s) => s.id === stationId)!
-  const col = CH_COLOR[station.ch]
-  const primer = station.manualId ? MANUAL.find((m) => m.id === station.manualId) : undefined
-  const toyChip = (id: string, color: string) => {
-    const t = toyById(id)!
-    return (
-      <button
-        key={id}
-        onClick={() => navigate(`/lab/${id}`)}
-        className="mono"
-        style={{
-          background: 'none',
-          border: `1px solid ${color}55`,
-          borderRadius: 7,
-          color: C.text,
-          padding: '4px 9px',
-          cursor: 'pointer',
-          fontSize: 11,
-          fontWeight: 600,
-        }}
-      >
-        {toysCompleted[id] && <span style={{ color: C.ok }}>✓ </span>}
-        {t.n} {t.name}
-      </button>
-    )
-  }
-  return (
-    <section
-      aria-label="The map: the journey and the stack"
-      style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '10px 14px 12px', marginBottom: 18 }}
-    >
-      <button
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="mono"
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          width: '100%',
-          textAlign: 'left',
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: 10,
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ color: C.text, fontSize: 10.5, fontWeight: 700, letterSpacing: 1.5 }}>{open ? '▾' : '▸'} THE MAP</span>
-        <span style={{ color: C.faint, fontSize: 10.5 }}>
-          one tap of "Post" — its journey across machines, and the stack of machines it runs on
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: col, whiteSpace: 'nowrap' }}>
+          {toy.n}
         </span>
-      </button>
-      {open && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-            {(
-              [
-                ['journey', 'THE JOURNEY'],
-                ['stack', 'THE STACK'],
-              ] as const
-            ).map(([v, label]) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                aria-pressed={view === v}
-                className="mono"
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 7,
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  cursor: 'pointer',
-                  background: view === v ? C.text : 'transparent',
-                  color: view === v ? C.bg : C.dim,
-                  border: `1px solid ${view === v ? C.text : C.line}`,
-                }}
-              >
-                {label}
-              </button>
-            ))}
-            <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
-              {view === 'journey'
-                ? 'where data moves — one request, station by station'
-                : 'what it moves through — machines built out of machines, top floor to bedrock'}
-            </span>
-          </div>
-          {view === 'journey' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
-                {STATIONS.map((s, i) => {
-                  const active = s.id === stationId
-                  const sCol = CH_COLOR[s.ch]
-                  return (
-                    <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {i > 0 && <span style={{ color: C.faint, fontSize: 10 }}>→</span>}
-                      <button
-                        onClick={() => setStationId(s.id)}
-                        aria-pressed={active}
-                        className="mono"
-                        style={{
-                          padding: '5px 9px',
-                          borderRadius: 7,
-                          fontSize: 10.5,
-                          fontWeight: 600,
-                          letterSpacing: 0.5,
-                          cursor: 'pointer',
-                          background: active ? sCol : 'transparent',
-                          color: active ? C.bg : C.dim,
-                          border: `1px solid ${active ? sCol : C.line}`,
-                        }}
-                      >
-                        {s.name}
-                      </button>
-                    </span>
-                  )
-                })}
-              </div>
-              <div style={{ borderLeft: `3px solid ${col}`, borderRadius: 2, paddingLeft: 12, marginTop: 12 }}>
-                <div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.text }}>{station.tagline}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
-                  <Eyebrow color={col}>PROVED IN THE LAB BY</Eyebrow>
-                  {station.toyIds.map((id) => toyChip(id, col))}
-                  {primer && (
-                    <Link to={`/manual/briefings/${primer.id}`} className="mono" style={{ color: C.dim, fontSize: 11 }}>
-                      need the vocabulary first? § {primer.title.toLowerCase()}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-          {view === 'stack' && (
-            <div>
-              <div className="mono" style={{ fontSize: 10.5, color: C.faint, margin: '10px 0 0' }}>
-                two verbs at every floor — transform data, move data — and moving is the expensive one
-              </div>
-              {FLOORS.map((f, i) => (
-                <div key={f.id} style={{ borderTop: i > 0 ? `1px solid ${C.line}` : 'none', padding: '9px 0 8px', marginTop: i === 0 ? 6 : 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <span className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: C.text }}>
-                      {f.name}
-                    </span>
-                    <span style={{ fontSize: 12, color: C.dim }}>{f.gist}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                    {f.toyIds.map((id) => toyChip(id, CH_COLOR[toyById(id)!.ch]))}
-                    {f.promised && (
-                      <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
-                        {f.promised}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </section>
+        <span className="mono" style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3 }}>
+          {toy.name}
+        </span>
+        {done && <span style={{ marginLeft: 'auto', color: C.ok, fontSize: 12, fontWeight: 700 }}>✓</span>}
+      </div>
+      <div style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.45 }}>{toy.sub}</div>
+    </LiftCard>
   )
 }
 
+// THE JOURNEY SPINE: one organizing story, top to bottom. Each STATION is a
+// stop on a single request's journey (content/journey.tsx), rendered as a
+// timeline node — a channel-colored circle threaded by a hairline — with the
+// station's toys as cards beneath it. Replaces the old channel-grouped grid
+// and the collapsible two-view map.
 function LabIndex() {
   const navigate = useNavigate()
   const { toysCompleted } = useProgress()
   const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
+  const allDone = doneCount === TOYS.length
   return (
     <div>
-      <ModeHeader title="INTUITION LAB" thesis="numbers don't stick — mechanisms do">
-        <div className="mono" style={{ fontSize: 12, color: doneCount === TOYS.length ? C.ok : C.dim, margin: '6px 0 2px' }}>
-          {doneCount}/{TOYS.length} mechanisms internalized
-        </div>
-      </ModeHeader>
-      <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6, margin: '2px 0 16px', maxWidth: 760 }}>
-        Each toy is a mechanism you operate — one variable to drag until a number stops being trivia and becomes physics —
-        sorted under the four physical walls every system negotiates with. New to one? Skim its{' '}
-        <b style={{ color: C.text }}>field briefing</b> first — what the mechanism is, where you'll meet it in real systems, and
-        the words to know. Dotted words like <T k="p99">p99</T> open the glossary, here and everywhere.
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>INTUITION LAB</h1>
+        <span
+          className="mono"
+          style={{ marginLeft: 'auto', fontSize: 11.5, color: allDone ? C.ok : C.dim, whiteSpace: 'nowrap' }}
+        >
+          {doneCount}/{TOYS.length} internalized
+        </span>
+      </div>
+
+      {/* Segmented progress: one cell per toy, in toy-number order, lit to its
+          channel color when done. */}
+      <div style={{ display: 'flex', gap: 3, marginTop: 12 }} aria-label="progress">
+        {TOYS.map((t) => (
+          <div
+            key={t.id}
+            title={`${t.n} · ${t.name}`}
+            style={{
+              height: 5,
+              flex: 1,
+              borderRadius: 2,
+              background: toysCompleted[t.id] ? CH_COLOR[t.ch] : C.line,
+              transition: 'background .3s',
+            }}
+          />
+        ))}
+      </div>
+
+      <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '20px 0 0', maxWidth: 620 }}>
+        One tap of "Post" travels from your thumb to disks around the world. Every stop on that journey is a mechanism you can
+        operate — drag one variable until it clicks.
       </p>
-      <DailyIncidentCard />
-      <JourneyMap toysCompleted={toysCompleted} />
-      {CHANNELS.map((ch) => (
-        <section key={ch} style={{ marginBottom: 24 }} aria-label={CH_LABEL[ch]}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-            <Eyebrow color={CH_COLOR[ch]}>{CH_LABEL[ch]}</Eyebrow>
-            <span className="mono" style={{ fontSize: 10.5, color: C.faint }}>
-              {CHANNEL_WALL[ch]}
-            </span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-            {TOYS.filter((t) => t.ch === ch).map((t) => (
-              <ToyCard key={t.id} toy={t} done={!!toysCompleted[t.id]} onOpen={() => navigate(`/lab/${t.id}`)} />
-            ))}
-          </div>
-        </section>
-      ))}
+
+      <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column' }}>
+        {STATIONS.map((s, i) => {
+          const col = CH_COLOR[s.ch]
+          const last = i === STATIONS.length - 1
+          return (
+            <section
+              key={s.id}
+              aria-label={s.name}
+              style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gap: '0 18px' }}
+            >
+              {/* timeline rail: node + hairline to the next station */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    background: C.bg,
+                    border: `2px solid ${col}`,
+                    marginTop: 4,
+                    flexShrink: 0,
+                  }}
+                />
+                {!last && <div style={{ width: 1, flex: 1, background: C.line, margin: '6px 0 2px' }} />}
+              </div>
+              <div style={{ paddingBottom: 36 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                  <span
+                    className="mono"
+                    style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.5, color: C.text, whiteSpace: 'nowrap' }}
+                  >
+                    {s.name}
+                  </span>
+                  <span className="mono" style={{ fontSize: 10, letterSpacing: 1, color: col }}>
+                    {CH_LABEL[s.ch]}
+                  </span>
+                </div>
+                <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.55, margin: '6px 0 0', maxWidth: 600 }}>
+                  {s.tagline}
+                </p>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                    gap: 10,
+                    marginTop: 14,
+                  }}
+                >
+                  {s.toyIds.map((id) => {
+                    const t = toyById(id)!
+                    return <ToyCard key={id} toy={t} done={!!toysCompleted[id]} onOpen={() => navigate(`/lab/${id}`)} />
+                  })}
+                </div>
+              </div>
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }

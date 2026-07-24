@@ -28,8 +28,7 @@ export const STATIONS: JourneyStation[] = [
     ch: 'net',
     tagline: (
       <>
-        Your tap becomes a <T k="request">request</T> and crosses the internet. Distance is the first cost — nothing you will
-        ever build beats the speed of light.
+        Your tap becomes a <T k="request">request</T> and crosses the internet. Distance is the first cost.
       </>
     ),
     toyIds: ['light'],
@@ -41,8 +40,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'compute',
     tagline: (
       <>
-        A <T k="lb">load balancer</T> hands your request to an app server. Every server — every one — is secretly a waiting
-        line with a breaking point well before 100%.
+        A <T k="lb">load balancer</T> hands your request to an app server — secretly a waiting line with a breaking point
+        well before 100%.
       </>
     ),
     toyIds: ['queue'],
@@ -54,8 +53,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'compute',
     tagline: (
       <>
-        Meanwhile, inside the box: the server's code becomes electricity — <T k="pipeline">fetched, decoded, executed</T>{' '}
-        billions of times a second, and bounded by heat.
+        Inside the box, the server's code becomes electricity — <T k="pipeline">fetched, decoded, executed</T> billions of
+        times a second, bounded by heat.
       </>
     ),
     toyIds: ['instruction-loop', 'heat-wall', 'branch-predictor', 'false-sharing'],
@@ -67,8 +66,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'mem',
     tagline: (
       <>
-        And nearly every one of those instructions is really the CPU <i>waiting</i> on memory — a stack of tiny fast caches
-        racing a big, leaking RAM, reached through a map the hardware has to translate first.
+        Nearly every one of those instructions is really the CPU <i>waiting</i> on memory — fast caches racing a big, leaking
+        RAM.
       </>
     ),
     toyIds: ['cachecliff', 'dram', 'tlb-toll'],
@@ -80,8 +79,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'mem',
     tagline: (
       <>
-        Before doing real work, the server asks a <T k="cache">cache</T>: "have we answered this already?" RAM answers
-        instantly, forgets instantly, and expires on a timer.
+        Before doing real work, the server asks a <T k="cache">cache</T>: "have we answered this already?" — answered
+        instantly, forgotten on a timer.
       </>
     ),
     toyIds: ['stampede'],
@@ -93,8 +92,7 @@ export const STATIONS: JourneyStation[] = [
     ch: 'storage',
     tagline: (
       <>
-        Your comment is a <T k="write">write</T>: it must become bytes on a disk that survive a crash. There's a line at the
-        door, an engine deciding where the bytes land, and moving metal at the very bottom.
+        Your comment is a <T k="write">write</T> — it must become bytes on a disk that survive a crash.
       </>
     ),
     toyIds: ['connpool', 'lsmbtree', 'disk'],
@@ -106,8 +104,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'storage',
     tagline: (
       <>
-        One box isn't enough, so the data is copied — <T k="replica">replicas</T>, each living slightly in the past — and
-        split — <T k="shard">shards</T>, hopefully evenly. Both bargains have fine print.
+        One box isn't enough, so data is copied (<T k="replica">replicas</T>) and split (<T k="shard">shards</T>) — and both
+        bargains have fine print.
       </>
     ),
     toyIds: ['replag', 'hotpartition'],
@@ -119,8 +117,7 @@ export const STATIONS: JourneyStation[] = [
     ch: 'net',
     tagline: (
       <>
-        When data lives in many cities, agreement is bought in round trips, and bytes ride pipes that distance keeps
-        half-empty.
+        Across cities, agreement is bought in round trips, and bytes ride pipes that distance keeps half-empty.
       </>
     ),
     toyIds: ['consensus', 'pipe'],
@@ -132,8 +129,8 @@ export const STATIONS: JourneyStation[] = [
     ch: 'net',
     tagline: (
       <>
-        Between every pair of stages on this map, the same question waits: when the fast one outruns the slow one, who
-        absorbs the difference? Someone waits, someone is told no, or someone pays in memory.
+        When the fast stage outruns the slow one, who absorbs the difference? Someone waits, someone is told no, or someone
+        pays in memory.
       </>
     ),
     toyIds: ['backpressure'],

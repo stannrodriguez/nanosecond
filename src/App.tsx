@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { C, FONT } from './theme'
 import { useHover } from './ui/kit'
 import { GlossaryProvider } from './ui/Term'
@@ -61,8 +61,11 @@ function NavPill({
   // Inactive: gold pill keeps a dim-gold tint, the quiet pill goes faint,
   // everything else is C.dim.
   const idle = accent === C.gold ? C.gold + 'AA' : quiet ? C.faint : C.dim
+  // A plain Link, not NavLink: we compute `active` ourselves (PRACTICE stays
+  // lit across its four modes), and NavLink would overwrite aria-current with
+  // its own single-route match. Setting it here keeps the highlight semantic.
   return (
-    <NavLink to={to} {...bind} aria-current={active ? 'page' : undefined}>
+    <Link to={to} {...bind} aria-current={active ? 'page' : undefined}>
       <span
         className="mono"
         style={{
@@ -79,7 +82,7 @@ function NavPill({
       >
         {label}
       </span>
-    </NavLink>
+    </Link>
   )
 }
 

@@ -1,9 +1,13 @@
 import { expect, test } from '@playwright/test'
 
-// Keep in sync with MODES in src/App.tsx.
+// One route-smoke per page. The top nav is only five of these (see NAV in
+// src/App.tsx); the four Practice modes keep their routes and are reached from
+// the /practice hub.
 const ROUTES = [
   { hash: '#/lab', title: 'INTUITION LAB', shot: 'lab' },
   { hash: '#/manual', title: 'CONCEPT LIBRARY', shot: 'manual' },
+  { hash: '#/practice', title: 'PRACTICE', shot: 'practice' },
+  { hash: '#/about', title: 'WHAT IS THIS?', shot: 'about' },
   { hash: '#/drills', title: 'DRILLS', shot: 'drills' },
   { hash: '#/builder', title: 'THE BUILDER', shot: 'builder' },
   { hash: '#/review', title: 'DESIGN REVIEW', shot: 'review' },

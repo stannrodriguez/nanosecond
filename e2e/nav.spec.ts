@@ -71,3 +71,51 @@ test('journal is a right-aligned utility tab that routes', async ({ page }) => {
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/journal-nav.png', fullPage: true })
 })
+
+// Spec: README-v3 IA restructure — five nav sections, a /practice hub, /about.
+
+test('the top nav is five sections, and PRACTICE stays lit across its modes', async ({ page }) => {
+  await page.goto('/#/lab')
+  const nav = page.getByRole('navigation', { name: 'Sections' })
+  for (const label of ['LAB', 'LIBRARY', 'PRACTICE', 'ABOUT']) {
+    await expect(nav.getByRole('link', { name: label, exact: true })).toBeVisible()
+  }
+  await expect(nav.getByRole('link', { name: /JOURNAL/ })).toBeVisible()
+  // the four modes left the nav
+  for (const gone of ['DRILLS', 'BUILDER', 'REVIEW', 'ON-CALL']) {
+    await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0)
+  }
+  // PRACTICE is the current section on the hub and inside every mode beneath it
+  const practice = nav.getByRole('link', { name: 'PRACTICE', exact: true })
+  for (const inside of ['/#/practice', '/#/drills', '/#/builder', '/#/review', '/#/on-call']) {
+    await page.goto(inside)
+    await expect(practice).toHaveAttribute('aria-current', 'page')
+  }
+})
+
+test('the practice hub lists the four modes in order and opens one', async ({ page }) => {
+  await page.goto('/#/practice')
+  await expect(page.getByRole('heading', { name: 'PRACTICE' })).toBeVisible()
+  for (const name of ['DRILLS', 'BUILDER', 'REVIEW', 'ON-CALL']) {
+    await expect(page.getByRole('button', { name, exact: true })).toBeVisible()
+  }
+  await page.getByRole('button', { name: 'ON-CALL', exact: true }).click()
+  await expect(page).toHaveURL(/#\/on-call$/)
+})
+
+test('each mode carries a ← practice breadcrumb back to the hub', async ({ page }) => {
+  for (const mode of ['/#/drills', '/#/builder', '/#/review', '/#/on-call']) {
+    await page.goto(mode)
+    await page.getByRole('button', { name: '← practice' }).click()
+    await expect(page).toHaveURL(/#\/practice$/)
+  }
+})
+
+test('about states the premise and links onward through the learning loop', async ({ page }) => {
+  await page.goto('/#/about')
+  await expect(page.getByRole('heading', { name: 'WHAT IS THIS?' })).toBeVisible()
+  await expect(page.getByText(/teaches the physical constraints behind systems design/)).toBeVisible()
+  // the loop's two calls to action are links; LAB routes into the Lab
+  await page.getByRole('button', { name: /^LAB/ }).click()
+  await expect(page).toHaveURL(/#\/lab$/)
+})

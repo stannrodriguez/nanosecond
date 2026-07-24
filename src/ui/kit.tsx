@@ -4,8 +4,112 @@
 // button, and the selectable chip — the four shapes that were duplicated ~80×
 // across the modes.
 
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { C } from '../theme'
+
+/* ---------------- Interaction floor (calm redesign) ----------------
+   Inline styles can't express :hover, so hover state is tracked in React.
+   These three atoms standardize the hover/transition treatment the design
+   handoff asks for "everywhere": a hover hook, the ghost button (back /
+   prev-next / try-again), and the lift-on-hover card. Reduced-motion is
+   handled globally in index.css (it kills all transitions). */
+
+/** Track hover (and keyboard focus) for inline-styled elements. */
+export function useHover() {
+  const [hovered, setHovered] = useState(false)
+  const bind = {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+    onFocus: () => setHovered(true),
+    onBlur: () => setHovered(false),
+  }
+  return [hovered, bind] as const
+}
+
+/** The quiet mono ghost button: back, prev/next, try again. */
+export function GhostButton({
+  children,
+  onClick,
+  title,
+  ariaLabel,
+  style,
+}: {
+  children: ReactNode
+  onClick?: () => void
+  title?: string
+  ariaLabel?: string
+  style?: CSSProperties
+}) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={ariaLabel}
+      {...bind}
+      className="mono"
+      style={{
+        background: 'none',
+        border: `1px solid ${h ? '#3A5080' : C.line}`,
+        borderRadius: 8,
+        color: h ? C.text : C.dim,
+        padding: '6px 11px',
+        cursor: 'pointer',
+        fontSize: 11.5,
+        whiteSpace: 'nowrap',
+        transition: 'color .15s, border-color .15s',
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** A card that lifts on hover, its border brightening to an accent color.
+    Renders a <button> when onClick is given, else a plain <div>. */
+export function LiftCard({
+  children,
+  accent = C.line,
+  onClick,
+  ariaLabel,
+  title,
+  style,
+}: {
+  children: ReactNode
+  /** border color on hover (the channel/type accent); base border stays C.line */
+  accent?: string
+  onClick?: () => void
+  ariaLabel?: string
+  title?: string
+  style?: CSSProperties
+}) {
+  const [h, bind] = useHover()
+  const base: CSSProperties = {
+    textAlign: 'left',
+    background: C.panel,
+    border: `1px solid ${h ? accent + '77' : C.line}`,
+    borderRadius: 12,
+    color: C.text,
+    fontFamily: 'inherit',
+    transition: 'transform .15s ease, border-color .15s ease, box-shadow .15s ease',
+    transform: h ? 'translateY(-2px)' : 'none',
+    boxShadow: h ? '0 10px 26px rgba(0,0,0,.35)' : 'none',
+    ...style,
+  }
+  if (onClick) {
+    return (
+      <button onClick={onClick} aria-label={ariaLabel} title={title} {...bind} style={{ ...base, cursor: 'pointer' }}>
+        {children}
+      </button>
+    )
+  }
+  return (
+    <div {...bind} aria-label={ariaLabel} title={title} style={base}>
+      {children}
+    </div>
+  )
+}
 
 /* ---------------- Panel: the standard bordered container ---------------- */
 export function Panel({

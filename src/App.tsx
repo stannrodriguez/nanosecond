@@ -1,5 +1,6 @@
 import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import { C, FONT } from './theme'
+import { useHover } from './ui/kit'
 import { GlossaryProvider } from './ui/Term'
 import Lab from './modes/lab'
 import Manual from './modes/manual'
@@ -28,64 +29,87 @@ export default function App() {
   )
 }
 
+// One organizing story per page starts at the top bar: a single sticky,
+// blurred row — brand left, mode pills right. Each pill is one mono line
+// (the two-line subtitles are gone); the active mode is tinted with its
+// accent, Journal is gold.
+function NavPill({ to, label, accent }: { to: string; label: string; accent: string }) {
+  const [h, bind] = useHover()
+  return (
+    <NavLink to={to} {...bind}>
+      {({ isActive }) => (
+        <span
+          className="mono"
+          style={{
+            display: 'inline-block',
+            padding: '5px 11px',
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            transition: 'background .15s, color .15s',
+            background: isActive ? accent + '14' : h ? C.panelUp : 'transparent',
+            // inactive Journal keeps a dim-gold tint; other modes go C.dim
+            color: isActive ? accent : h ? C.text : accent === C.gold ? C.gold + 'AA' : C.dim,
+          }}
+        >
+          {label}
+        </span>
+      )}
+    </NavLink>
+  )
+}
+
 function AppShell() {
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.text }}>
-      <header style={{ borderBottom: `1px solid ${C.line}`, padding: '16px 20px 0' }}>
-        <div style={{ maxWidth: 940, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>NANOSECOND</span>
-            <span className="mono" style={{ fontSize: 11.5, color: C.faint }}>
-              systems design, from the physics up
-            </span>
-          </div>
-          <nav style={{ display: 'flex', gap: 2, marginTop: 12, flexWrap: 'wrap' }} aria-label="Modes">
+    <div style={{ minHeight: '100vh', color: C.text }}>
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          background: 'rgba(15,25,48,.85)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderBottom: `1px solid ${C.line}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 880,
+            margin: '0 auto',
+            padding: '14px 24px',
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: 24,
+            flexWrap: 'wrap',
+          }}
+        >
+          <NavLink
+            to="/lab"
+            style={{
+              color: C.text,
+              textDecoration: 'none',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: -0.5,
+              fontFamily: FONT.display,
+            }}
+          >
+            NANOSECOND
+          </NavLink>
+          <nav style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: 'auto' }} aria-label="Modes">
             {MODES.map((m) => (
-              <NavLink
-                key={m.path}
-                to={m.path}
-                style={({ isActive }) => ({
-                  padding: '10px 13px 12px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: `2px solid ${isActive ? C.net : 'transparent'}`,
-                  color: isActive ? C.text : C.dim,
-                  textDecoration: 'none',
-                  fontFamily: FONT.mono,
-                  fontSize: 12,
-                })}
-              >
-                {({ isActive }) => (
-                  <>
-                    <div style={{ fontWeight: 600 }}>{m.label}</div>
-                    <div style={{ fontSize: 10.5, color: isActive ? C.net : C.faint, marginTop: 2 }}>{m.sub}</div>
-                  </>
-                )}
-              </NavLink>
+              <NavPill key={m.path} to={m.path} label={m.label} accent={C.net} />
             ))}
             {/* Journal is reflection over your record, not a learning mode —
                 it sits apart from the six verbs, gold like the Forge. */}
-            <NavLink
-              to="/journal"
-              style={({ isActive }) => ({
-                marginLeft: 'auto',
-                alignSelf: 'flex-end',
-                padding: '10px 13px 12px',
-                borderBottom: `2px solid ${isActive ? C.gold : 'transparent'}`,
-                color: isActive ? C.gold : C.dim,
-                textDecoration: 'none',
-                fontFamily: FONT.mono,
-                fontSize: 12,
-                fontWeight: 600,
-              })}
-            >
-              ◈ JOURNAL
-            </NavLink>
+            <NavPill to="/journal" label="◈ JOURNAL" accent={C.gold} />
           </nav>
         </div>
       </header>
-      <main style={{ padding: '22px 20px 60px' }}>
-        <div style={{ maxWidth: 940, margin: '0 auto' }}>
+      <main style={{ maxWidth: 880, margin: '0 auto', padding: '40px 24px 100px' }}>
+        <div>
           <Routes>
             <Route path="/" element={<Navigate to="/lab" replace />} />
             {/* Sub-content URL scheme is fixed by ADR 0004; modes validate

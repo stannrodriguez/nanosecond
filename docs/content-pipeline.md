@@ -3,6 +3,15 @@
 All content is typed data in `src/content/`. These templates are contracts; the
 prototypes in `reference/` show the voice.
 
+Register rule for the practice modes (drills, on-call, review, journal): a
+coaching voice is allowed — these modes prepare the player for interviews — but
+only when the coached line carries the mechanism ("I'd provision near 60–70%"
+works because the *why* is attached). Content-free flattery or hype about the
+reader's audience ("interviewers love hearing this") is not; end on the
+consequence instead. Character dialogue in interrogations and the deliberately
+seductive proposer's voice in taste-test options are exempt — those voices are
+the content.
+
 ## 1. Glossary entry
 { key, name, def } — def is 2–4 sentences, plain language, always contains the WHY
 ("writes can't be cached away BECAUSE every copy must apply them"), ends with the

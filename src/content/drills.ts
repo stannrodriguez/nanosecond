@@ -62,7 +62,7 @@ export const DRILLS: Drill[] = [
   {
     id: 'cap-pg-writes',
     cat: 'capacity',
-    q: 'Same Postgres primary — durable WRITES per second (each must hit the write-ahead log)?',
+    q: 'Same Postgres primary — durable writes per second (each must hit the write-ahead log)?',
     unit: 'writes/s',
     ans: 8000,
     loExp: 2,
@@ -351,7 +351,7 @@ export const DRILLS: Drill[] = [
   {
     id: 'story-dau-peak',
     cat: 'story',
-    q: 'Same app: 5,800 req/s average, consumer traffic. What PEAK should you design for?',
+    q: 'Same app: 5,800 req/s average, consumer traffic. What peak should you design for?',
     unit: 'req/s',
     ans: 17000,
     loExp: 3,
@@ -510,8 +510,8 @@ export const DRILLS: Drill[] = [
     hiExp: 15,
     derive: [
       '50 GB × 365 ≈ 18 TB.',
-      'Always quote growth WITH retention: "18 TB/year, so 90 TB at 5-year retention".',
-      'Then say the magic word: tiering. Hot 30 days on SSD, the rest in object storage.',
+      'Always quote growth with retention: "18 TB/year, so 90 TB at 5-year retention".',
+      'Then tier it: hot 30 days on SSD, the rest in object storage.',
     ],
     numbersRefs: ['storage-cost'],
   },
@@ -783,7 +783,7 @@ export const DRILLS: Drill[] = [
     derive: [
       'One cross-region round trip: ~70 ms.',
       'Local read: ~1 ms. The remote hop is 70× the entire local operation.',
-      'This asymmetry is the whole case for replicating data NEAR readers and accepting staleness.',
+      'This asymmetry is the whole case for replicating data near readers and accepting staleness.',
     ],
     numbersRefs: ['cross-region-rtt', 'same-dc-rtt'],
   },

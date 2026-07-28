@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="#14213A"/>
+      <stop offset="66%" stop-color="#0F1930"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g opacity=".55" stroke="#283A5C" stroke-width="1">
+    <path d="M0 108H1200M0 214H1200M0 320H1200M0 426H1200M0 532H1200"/>
+    <path d="M120 0V630M330 0V630M540 0V630M750 0V630M960 0V630M1170 0V630"/>
+  </g>
+  <text x="78" y="110" fill="#E9EEF8" font-family="monospace" font-size="28" font-weight="700" letter-spacing="3">NANOSECOND</text>
+  <text x="78" y="248" fill="#E9EEF8" font-family="Arial, sans-serif" font-size="70" font-weight="700">Systems design,</text>
+  <text x="78" y="329" fill="#E9EEF8" font-family="Arial, sans-serif" font-size="70" font-weight="700">from the physics up.</text>
+  <text x="82" y="397" fill="#8FA0C0" font-family="Arial, sans-serif" font-size="26">Operate the mechanism. Drag the variable. Keep the intuition.</text>
+  <g transform="translate(82 485)" font-family="monospace" font-size="18" font-weight="700" letter-spacing="2">
+    <circle cx="8" cy="-6" r="8" fill="#53DCEC"/><text x="30" y="1" fill="#53DCEC">NETWORK</text>
+    <circle cx="214" cy="-6" r="8" fill="#F6BB52"/><text x="236" y="1" fill="#F6BB52">COMPUTE</text>
+    <circle cx="416" cy="-6" r="8" fill="#EF7BD0"/><text x="438" y="1" fill="#EF7BD0">STORAGE</text>
+    <circle cx="630" cy="-6" r="8" fill="#72EAA8"/><text x="652" y="1" fill="#72EAA8">MEMORY</text>
+  </g>
+  <path d="M850 155C915 155 915 245 980 245S1045 335 1110 335" fill="none" stroke="#53DCEC" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="850" cy="155" r="18" fill="#0F1930" stroke="#53DCEC" stroke-width="5"/>
+  <circle cx="980" cy="245" r="18" fill="#0F1930" stroke="#F6BB52" stroke-width="5"/>
+  <circle cx="1110" cy="335" r="18" fill="#0F1930" stroke="#EF7BD0" stroke-width="5"/>
+</svg>

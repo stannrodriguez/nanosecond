@@ -3,7 +3,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { TOYS } from '../content/toys'
+import { FORGE } from '../content/forge'
 
 interface ProgressState {
   /** toy id → completed (reached the punchline at least once) */
@@ -15,6 +15,9 @@ interface ProgressState {
   /** toy id → the forecast option index the player locked in (spec 084) */
   forecasts: Record<string, number>
   recordForecast: (id: string, ix: number) => void
+  /** component id → forged (toy played AND its mini-challenge answered, spec 070) */
+  forged: Record<string, boolean>
+  forgeComponent: (componentId: string) => void
 }
 
 export const useProgress = create<ProgressState>()(
@@ -30,11 +33,22 @@ export const useProgress = create<ProgressState>()(
       // lock-in: a call, once made, is the record — never silently overwritten
       recordForecast: (id, ix) =>
         set((s) => (s.forecasts[id] !== undefined ? s : { forecasts: { ...s.forecasts, [id]: ix } })),
+      forged: {},
+      forgeComponent: (componentId) =>
+        set((s) => (s.forged[componentId] ? s : { forged: { ...s.forged, [componentId]: true } })),
     }),
     { name: 'nanosecond-progress' },
   ),
 )
 
-/** Component ids the player has forged by completing the owning toy. */
-export const forgedComponents = (toysCompleted: Record<string, boolean>): string[] =>
-  TOYS.filter((t) => t.forgeUnlocks && toysCompleted[t.id]).map((t) => t.forgeUnlocks!)
+/** Component ids the player has forged. The Builder and On-Call gate on this. */
+export const forgedComponents = (forged: Record<string, boolean>): string[] =>
+  FORGE.filter((f) => forged[f.id]).map((f) => f.id)
+
+/**
+ * The Forge gate (product-spec §3.8): a part is usable once its mini-challenge
+ * is answered. Parts with no forge entry (load balancer, app servers) are
+ * always available — you cannot build anything without them.
+ */
+export const isForged = (forged: Record<string, boolean>, componentId: string | null): boolean =>
+  componentId === null || !!forged[componentId]

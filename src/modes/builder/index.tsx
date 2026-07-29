@@ -9,9 +9,9 @@ import { useTickRunner } from '../../ui/useTickRunner'
 import { fmtNum } from '../../ui/fmt'
 import { diagnoseTiers, simTick, stackCost, type Frame, type StackConfig } from '../../engine/capacity'
 import { SCENARIOS, SCENARIO_TICKS } from '../../content/scenarios'
-import { TOYS } from '../../content/toys'
 import { useProgress } from '../../state/progress'
 import { useScars } from '../../state/scars'
+import { LockedRow, PartsBin } from '../../ui/Forge'
 
 interface Verdict {
   pass: boolean
@@ -77,8 +77,7 @@ function CtaButton({ children, onClick }: { children: ReactNode; onClick: () => 
 export default function Builder() {
   const navigate = useNavigate()
   const addScar = useScars((s) => s.addScar)
-  const { toysCompleted } = useProgress()
-  const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
+  const forged = useProgress((s) => s.forged)
   const [scIdx, setScIdx] = useState(0)
   const [stage, setStage] = useState<'brief' | 'build'>('brief')
   const sc = SCENARIOS[scIdx]
@@ -195,17 +194,20 @@ export default function Builder() {
         )}
       </div>
 
-      <p className="mono" style={{ fontSize: 10.5, color: C.faint, margin: '16px 0 0' }}>
-        ⚒ parts are forged in the Lab — {doneCount}/{TOYS.length} mechanisms internalized so far
-      </p>
+      <PartsBin />
 
       {/* ---- WORKBENCH ---- */}
       {stage === 'build' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, alignItems: 'start', marginTop: 20 }}>
-          <Panel>
+        // two columns on a desktop, stacked below ~380px (accessibility floor)
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start', marginTop: 20 }}>
+          <Panel style={{ flex: '0 1 320px', minWidth: 0 }}>
             <Eyebrow style={{ marginBottom: 6 }}>YOUR ARCHITECTURE</Eyebrow>
             <Stepper label={<><T k="appserver">App servers</T> · $150 · 10k rps</>} val={cfg.app} set={(v) => set('app')(v)} min={1} max={12} col={C.compute} />
-            <Stepper label={<><T k="cache">Cache nodes</T> · $200 · 100k ops</>} val={cfg.cache} set={(v) => set('cache')(v)} min={0} max={6} col={C.mem} />
+            {forged.cache ? (
+              <Stepper label={<><T k="cache">Cache nodes</T> · $200 · 100k ops</>} val={cfg.cache} set={(v) => set('cache')(v)} min={0} max={6} col={C.mem} />
+            ) : (
+              <LockedRow label="Cache nodes · $200" componentId="cache" />
+            )}
             {cfg.cache > 0 && (
               <div style={{ padding: '8px 0', borderBottom: `1px solid ${C.line}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
@@ -219,17 +221,34 @@ export default function Builder() {
                 <input type="range" min={50} max={95} value={cfg.hitRate * 100} onChange={(e) => set('hitRate')(+e.target.value / 100)} aria-label="cache hit rate" />
               </div>
             )}
-            <Stepper label={<><T k="shard">DB shards</T> · $600 · 10k w/s</>} val={cfg.shards} set={(v) => set('shards')(v)} min={1} max={4} col={C.storage} />
-            <Stepper label={<><T k="replica">Read replicas</T> · $400 · 20k r/s</>} val={cfg.replicas} set={(v) => set('replicas')(v)} min={0} max={6} col={C.storage} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: cfg.queue ? `1px solid ${C.line}` : 'none' }}>
-              <span style={{ fontSize: 13 }}>
-                <T k="queue">Write queue</T> · $300
-              </span>
-              <Chip active={cfg.queue} onClick={() => set('queue')(!cfg.queue)} style={{ padding: '4px 12px', borderRadius: 6 }}>
-                {cfg.queue ? 'ON' : 'OFF'}
-              </Chip>
-            </div>
-            {cfg.queue && <Stepper label={<><T k="worker">Workers</T> · $100 · 5k w/s</>} val={cfg.workers} set={(v) => set('workers')(v)} min={1} max={8} col={C.net} />}
+            {forged.shards ? (
+              <Stepper label={<><T k="shard">DB shards</T> · $600 · 10k w/s</>} val={cfg.shards} set={(v) => set('shards')(v)} min={1} max={4} col={C.storage} />
+            ) : (
+              <LockedRow label="DB shards · $600" componentId="shards" />
+            )}
+            {forged.replicas ? (
+              <Stepper label={<><T k="replica">Read replicas</T> · $400 · 20k r/s</>} val={cfg.replicas} set={(v) => set('replicas')(v)} min={0} max={6} col={C.storage} />
+            ) : (
+              <LockedRow label="Read replicas · $400" componentId="replicas" />
+            )}
+            {forged.queue ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: cfg.queue ? `1px solid ${C.line}` : 'none' }}>
+                <span style={{ fontSize: 13 }}>
+                  <T k="queue">Write queue</T> · $300
+                </span>
+                <Chip active={cfg.queue} onClick={() => set('queue')(!cfg.queue)} style={{ padding: '4px 12px', borderRadius: 6 }}>
+                  {cfg.queue ? 'ON' : 'OFF'}
+                </Chip>
+              </div>
+            ) : (
+              <LockedRow label="Write queue · $300" componentId="queue" />
+            )}
+            {cfg.queue &&
+              (forged.workers ? (
+                <Stepper label={<><T k="worker">Workers</T> · $100 · 5k w/s</>} val={cfg.workers} set={(v) => set('workers')(v)} min={1} max={8} col={C.net} />
+              ) : (
+                <LockedRow label={`Workers · $100 · running ${cfg.workers}`} componentId="workers" />
+              ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'baseline' }}>
               <Eyebrow style={{ fontSize: 11 }}>MONTHLY COST</Eyebrow>
               <span className="mono" style={{ fontSize: 18, fontWeight: 600, color: cost > sc.budget ? C.alert : C.ok }}>
@@ -241,7 +260,7 @@ export default function Builder() {
             </Button>
           </Panel>
 
-          <Panel style={{ minHeight: 280 }}>
+          <Panel style={{ flex: '1 1 300px', minWidth: 0, minHeight: 280 }}>
             {!frame && !verdict && (
               <div style={{ padding: 8 }}>
                 <Eyebrow color={C.mem} style={{ marginBottom: 8 }}>

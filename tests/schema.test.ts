@@ -20,6 +20,7 @@ import { RUNGS } from '../src/content/ladder'
 import { ACTS, ENCOUNTERS, EVENTS, HAPPENED, PATTERNS, runScore } from '../src/content/oncall'
 import { INTERROGATIONS } from '../src/content/interrogations'
 import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
+import { FORGE } from '../src/content/forge'
 
 describe('schema: numbers database', () => {
   it('every number has a 3-step, non-empty derivation', () => {
@@ -510,5 +511,67 @@ describe('schema: on-call run (spec 060)', () => {
     expect(runScore({ ...base, gold: 900 })).toBeGreaterThan(runScore(base))
     expect(runScore({ ...base, patterns: 5 })).toBeGreaterThan(runScore(base))
     expect(runScore({ ...base, won: true })).toBeGreaterThan(runScore(base))
+  })
+})
+
+describe('schema: the Forge (product-spec §3.8)', () => {
+  it('gates exactly six parts, each with a unique id', () => {
+    expect(FORGE).toHaveLength(6)
+    const ids = FORGE.map((f) => f.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(new Set(ids)).toEqual(new Set(['cache', 'queue', 'replicas', 'shards', 'workers', 'cdn']))
+  })
+
+  it('every challenge hangs off a real toy, and that toy declares the same unlock', () => {
+    const byId = new Map(TOYS.map((t) => [t.id, t]))
+    for (const f of FORGE) {
+      const toy = byId.get(f.toyId)
+      expect(toy, `${f.id} → ${f.toyId}`).toBeTruthy()
+      expect(toy!.forgeUnlocks, `${f.toyId} must declare it forges ${f.id}`).toBe(f.id)
+    }
+  })
+
+  it('every toy that declares an unlock has a challenge for it', () => {
+    const forgeIds = new Set(FORGE.map((f) => f.id))
+    for (const t of TOYS) if (t.forgeUnlocks) expect(forgeIds.has(t.forgeUnlocks), `${t.id} → ${t.forgeUnlocks}`).toBe(true)
+  })
+
+  it('each challenge offers three options with exactly one right answer', () => {
+    for (const f of FORGE) {
+      expect(f.options, f.id).toHaveLength(3)
+      expect(f.options.filter((o) => o.ok).length, f.id).toBe(1)
+      for (const o of f.options) {
+        expect(o.text.trim().length, `${f.id} option text`).toBeGreaterThan(20)
+        // every option — right or wrong — carries its own post-mortem
+        expect(o.why.trim().length, `${f.id} · ${o.text.slice(0, 30)}`).toBeGreaterThan(60)
+      }
+    }
+  })
+
+  it('every challenge states its setup and its question', () => {
+    for (const f of FORGE) {
+      expect(f.setup.trim().length, f.id).toBeGreaterThan(40)
+      expect(f.question.trim().endsWith('?'), f.id).toBe(true)
+      expect(f.label.trim().endsWith('challenge'), f.id).toBe(true)
+    }
+  })
+
+  it('challenge numberIds point at derivable numbers, and terms at glossary entries', () => {
+    const numberIds = new Set(NUMBERS.map((n) => n.id))
+    for (const f of FORGE) {
+      expect(f.numberIds.length, f.id).toBeGreaterThan(0)
+      f.numberIds.forEach((id) => expect(numberIds.has(id), `${f.id} → ${id}`).toBe(true))
+      expect(f.terms.length, f.id).toBeGreaterThan(0)
+      f.terms.forEach((k) => expect(GLOSSARY[k], `${f.id} → ${k}`).toBeDefined())
+    }
+  })
+
+  it('the parts bin covers every forgeable part exactly once, and free parts declare null', () => {
+    const gated = COMPONENTS.filter((c) => c.forge).map((c) => c.forge)
+    expect(new Set(gated)).toEqual(new Set(FORGE.map((f) => f.id)))
+    expect(gated.length).toBe(FORGE.length)
+    // the front door and the app tier are never gated — you cannot build without them
+    expect(COMPONENTS.find((c) => c.id === 'lb')!.forge).toBeNull()
+    expect(COMPONENTS.find((c) => c.id === 'app')!.forge).toBeNull()
   })
 })

@@ -4,8 +4,10 @@ import { GhostButton, LiftCard } from '../../ui/kit'
 import { C, CH_COLOR, CH_LABEL } from '../../theme'
 import { TOYS, toyById, type ToyEntry } from '../../content/toys'
 import { STATIONS } from '../../content/journey'
+import { FORGE, forgeForToy } from '../../content/forge'
 import { Term as T } from '../../ui/Term'
 import { useProgress } from '../../state/progress'
+import { ForgePanel } from './ForgePanel'
 import { RaceLight } from './RaceLight'
 import { TheDisk } from './TheDisk'
 import { LeakyBits } from './LeakyBits'
@@ -58,8 +60,9 @@ export default function Lab() {
 
 // The calm toy card: a lifting panel (no left-border accent). The toy number
 // carries the channel color; a ✓ pushes right when done.
-function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: () => void }) {
+function ToyCard({ toy, done, forged, onOpen }: { toy: ToyEntry; done: boolean; forged: boolean; onOpen: () => void }) {
   const col = CH_COLOR[toy.ch]
+  const f = forgeForToy(toy.id)
   return (
     <LiftCard
       accent={col}
@@ -77,6 +80,11 @@ function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: 
         {done && <span style={{ marginLeft: 'auto', color: C.ok, fontSize: 12, fontWeight: 700 }}>✓</span>}
       </div>
       <div style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.45 }}>{toy.sub}</div>
+      {f && (
+        <div className="mono" style={{ fontSize: 10, color: forged ? C.ok : C.gold, letterSpacing: 0.5 }}>
+          ⚒ {forged ? `${f.part.toLowerCase()} forged` : `forges the ${f.part.toLowerCase()}`}
+        </div>
+      )}
     </LiftCard>
   )
 }
@@ -88,9 +96,10 @@ function ToyCard({ toy, done, onOpen }: { toy: ToyEntry; done: boolean; onOpen: 
 // and the collapsible two-view map.
 function LabIndex() {
   const navigate = useNavigate()
-  const { toysCompleted } = useProgress()
+  const { toysCompleted, forged } = useProgress()
   const doneCount = TOYS.filter((t) => toysCompleted[t.id]).length
   const allDone = doneCount === TOYS.length
+  const forgedCount = FORGE.filter((f) => forged[f.id]).length
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
@@ -100,6 +109,13 @@ function LabIndex() {
           style={{ marginLeft: 'auto', fontSize: 11.5, color: allDone ? C.ok : C.dim, whiteSpace: 'nowrap' }}
         >
           {doneCount}/{TOYS.length} internalized
+        </span>
+        <span
+          className="mono"
+          title="Parts forged for the Builder and On-Call"
+          style={{ fontSize: 11.5, color: forgedCount === FORGE.length ? C.ok : C.gold, whiteSpace: 'nowrap' }}
+        >
+          ⚒ {forgedCount}/{FORGE.length} forged
         </span>
       </div>
 
@@ -178,7 +194,15 @@ function LabIndex() {
                 >
                   {s.toyIds.map((id) => {
                     const t = toyById(id)!
-                    return <ToyCard key={id} toy={t} done={!!toysCompleted[id]} onOpen={() => navigate(`/lab/${id}`)} />
+                    return (
+                      <ToyCard
+                        key={id}
+                        toy={t}
+                        done={!!toysCompleted[id]}
+                        forged={!!(t.forgeUnlocks && forged[t.forgeUnlocks])}
+                        onOpen={() => navigate(`/lab/${id}`)}
+                      />
+                    )
                   })}
                 </div>
               </div>
@@ -213,14 +237,16 @@ function PrevNext({ toy }: { toy: ToyEntry }) {
 }
 
 // One toy, sim-first (ADR 0004). The calm redesign strips the page to its
-// spine: navigate → title → one-liner → the sim → the single takeaway (THE
-// CLICK) → fine print. The old field briefing, CALL IT forecast/predict-gate,
-// receipts, KEEP-THE-LOOP footer and FORGED badge are gone.
+// spine: navigate → title → one-liner → the sim → the forge challenge, on the
+// six toys that gate a part (spec 070) → the single takeaway (THE CLICK) →
+// fine print. The old field briefing, CALL IT forecast/predict-gate, receipts
+// and KEEP-THE-LOOP footer are gone.
 function ToyDetail({ toy }: { toy: ToyEntry }) {
   const { toysCompleted, completeToy } = useProgress()
   const navigate = useNavigate()
   const Comp = TOY_COMPONENTS[toy.id]
   const done = !!toysCompleted[toy.id]
+  const forge = forgeForToy(toy.id)
   const col = CH_COLOR[toy.ch]
   // "on first completion": show the INTERNALIZED chip only if the toy was not
   // already done when this page opened, and gets completed while we're here.
@@ -284,6 +310,9 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
           ✓ INTERNALIZED — {toy.sub}
         </div>
       )}
+
+      {/* THE FORGE — six toys gate a part; the challenge opens once the toy is done */}
+      {forge && <ForgePanel f={forge} toyDone={done} toyName={toy.name} />}
 
       {/* THE CLICK — the single takeaway, stated directly (no "It's clicked when" prefix) */}
       <div style={{ borderLeft: `2px solid ${col}`, borderRadius: 2, padding: '2px 0 2px 16px', marginTop: 28, maxWidth: 660 }}>

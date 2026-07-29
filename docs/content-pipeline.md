@@ -17,6 +17,29 @@ the content.
 ("writes can't be cached away BECAUSE every copy must apply them"), ends with the
 practical consequence. Never circular, never assumes another undefined term.
 
+**The speakable contract** (spec 065) — three optional fields that turn a
+definition into something the player can say out loud. `def` teaches the term;
+these teach the sentence. Authored for the Networking group today (schema test
+holds every entry in that group to all three); other groups may gain them later,
+and an entry either has all three or none.
+- `say` — ONE interview-ready sentence in the PLAYER'S voice ("I default to
+  TCP because…"), not a definition and never a third-person gloss. It carries a
+  mechanism and a consequence, and it fits in a breath. Test: exactly one
+  terminal period. Model: "UDP trades delivery guarantees for latency — no
+  handshake, no retransmits, no ordering — so it wins exactly when a late packet
+  is worse than a lost one."
+- `reachFor` — when to pick it: the concrete situations that make this the right
+  answer, phrased as cases and not as praise ("live media and telemetry: voice
+  and video, game state, metrics firehoses").
+- `trap` — the wrong sentence people actually say, quoted, then the sentence to
+  say instead. Format: `Wrong: '<the bad line>.' <why it's wrong>. Say '<the
+  replacement, mechanism attached>.'` The replacement must name a mechanism or a
+  number — swapping one slogan for another is a bug.
+
+Register: these are practice-mode voices (see the register rule above), so
+coaching is allowed as long as the coached line carries the mechanism. The
+Reference screen renders the speakable block under the def wherever it exists.
+
 ## 2. Toy template + catalog
 A toy makes ONE number impossible to forget by letting the player operate the mechanism.
 Fields: { id, name, oneLiner, targetNumbers[], sim (rAF component), controls,

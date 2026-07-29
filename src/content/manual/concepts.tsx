@@ -23,14 +23,17 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       <>
         <p>
           Before your first line of logic runs, a tap has already paid a chain of tolls. Scrub the trip: a{' '}
-          <T k="dns">DNS</T> lookup turns the name into an address, then TCP plus the <T k="tls">TLS handshake</T> spend 1–2
-          round trips agreeing on encryption. For a far user that is 100–200&nbsp;ms of pure geography — which is why a{' '}
-          <T k="cdn">CDN</T> terminates connections nearby and why connections are reused.
+          <T k="dns">DNS</T> lookup turns the name into an address, then <T k="tcp">TCP</T> plus the <T k="tls">TLS</T>{' '}
+          <T k="handshake">handshake</T> spend 1–2 round trips agreeing on encryption. For a far user that is
+          100–200&nbsp;ms of pure geography — which is why a <T k="cdn">CDN</T> terminates connections nearby and why
+          connections are reused.
         </p>
         <p style={{ color: C.dim }}>
           Only then does the <T k="request">request</T> reach your <T k="lb">load balancer</T> and an <T k="appserver">app
-          server</T>. First-visit latency (handshakes, geography) and steady-state <T k="throughput">throughput</T> are
-          different problems with different fixes — say which one the requirement names.
+          server</T>. The whole chain is orderly because TCP guarantees delivery — which also means one lost packet can{' '}
+          <T k="headofline">stall every byte behind it</T>, the trade <T k="udp">UDP</T> refuses to make. First-visit
+          latency (handshakes, geography) and steady-state <T k="throughput">throughput</T> are different problems with
+          different fixes — say which one the requirement names.
         </p>
       </>
     ),
@@ -50,7 +53,11 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Collapses TCP and TLS into one step, ignores HTTP/2 multiplexing and connection reuse, and treats DNS as a single hop rather than a cache hierarchy.',
-    related: { toys: ['light', 'pipe'], terms: ['request', 'dns', 'tls', 'cdn', 'lb', 'appserver', 'throughput'], sections: ['cdn', 'load-balancer'] },
+    related: {
+      toys: ['light', 'pipe'],
+      terms: ['request', 'dns', 'tls', 'tcp', 'udp', 'handshake', 'headofline', 'cdn', 'lb', 'appserver', 'throughput'],
+      sections: ['cdn', 'load-balancer'],
+    },
     feltIn: { note: <>Race a real operation against the speed of light in the Lab.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
   },
   {
@@ -69,7 +76,9 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
         <p style={{ color: C.dim }}>
           Drag the page size below: fetching a fixed 10,000-item list, a tiny page means many <T k="rest">REST</T> round
           trips (each paying network latency); a huge page means fewer trips but a heavier payload and slower first byte.
-          The right size is a fit to the client, not a universal constant.
+          The right size is a fit to the client, not a universal constant. Encoding is the same kind of fit: REST over
+          JSON stays at the public edge, while internal calls often move to <T k="grpc">gRPC</T> and{' '}
+          <T k="protobuf">Protobuf</T> once message size and parse cost show up in the budget.
         </p>
       </>
     ),
@@ -108,7 +117,11 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Assumes uniform item size and a fixed total; real pagination uses cursors (not offsets) to stay stable under writes, and payload cost is nonlinear once compression and gzip kick in.',
-    related: { toys: ['light'], terms: ['rest', 'pagination', 'idempotent', 'retry', 'request'], sections: ['data-modeling', 'api-gateway'] },
+    related: {
+      toys: ['light'],
+      terms: ['rest', 'pagination', 'idempotent', 'retry', 'request', 'grpc', 'protobuf'],
+      sections: ['data-modeling', 'api-gateway'],
+    },
     feltIn: { note: <>Taste tests judge API choices against stated requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {

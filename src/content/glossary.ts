@@ -6,6 +6,17 @@
 export interface GlossaryEntry {
   name: string
   def: string
+  /* ---- Speakable fields (spec 065, contract in docs/content-pipeline.md §1).
+     Optional today: authored for the Networking group, which the schema test
+     holds to all three. `def` teaches the term; these three teach how to SAY
+     it out loud in an interview. */
+  /** ONE interview-ready sentence in the player's voice. If you can't say it
+   *  in a breath, the entry is wrong. */
+  say?: string
+  /** When to pick it — the situations that make this the right answer. */
+  reachFor?: string
+  /** The wrong sentence people say, and what to say instead. */
+  trap?: string
 }
 
 export const GLOSSARY: Record<string, GlossaryEntry> = {
@@ -188,10 +199,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   dns: {
     name: 'DNS',
     def: "The naming system that turns a hostname (api.example.com) into IP addresses, resolved through a hierarchy of caches with TTLs. It adds a lookup — ~1–100ms when not cached — to first connections. It is also a control surface: changing a DNS answer is how traffic gets steered between regions, at the speed of cache expiry rather than instantly.",
+    say: 'DNS turns the name into an address before anything else happens, and because every resolver on the path caches that answer for its TTL, changing it steers traffic at the speed of cache expiry rather than instantly.',
+    reachFor:
+      "Region steering, disaster failover, and first-connection latency budgets — plus any rollback plan whose story is 'we'll just repoint DNS'.",
+    trap: "Wrong: 'we'll fail over with DNS.' Say how fast instead: 'resolvers hold the old answer until the TTL expires, and some ignore it entirely, so DNS failover is minutes — which is why per-request failure belongs to the load balancer, not DNS.'",
   },
   tls: {
     name: 'TLS handshake',
     def: "The certificate-and-key exchange that upgrades a TCP connection to encrypted HTTPS. It costs 1–2 extra round trips before the first byte of the request — 100–200ms for a far-away user. That per-connection tax is why connections are reused (keep-alive, HTTP/2) and why TLS is terminated at a nearby edge.",
+    say: 'TLS costs one to two round trips per new connection before a single request byte moves, so I terminate it at an edge near the user and reuse connections rather than pay it on every call.',
+    reachFor:
+      "First-byte latency for distant users, connection-churn problems, and any tier that can't hold warm keep-alive pools (serverless, short-lived clients).",
+    trap: "Wrong: 'encryption will cost us CPU.' The per-byte symmetric encryption is nearly free; the per-connection handshake is the bill. Say 'the tax is 1–2 round trips per new connection, so the fix is keep-alive and edge termination — not less encryption.'",
   },
   connpool: {
     name: 'Connection pool',
@@ -344,14 +363,26 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   websocket: {
     name: 'WebSocket',
     def: "A persistent, full-duplex connection over a single TCP socket: server and client can each send at any time with minimal latency, which fits chat, multiplayer, and trading. The cost is statefulness — every open connection is memory pinned to one specific server. Realtime systems get hard exactly at the tier that routes each message to whichever server holds the right connection.",
+    say: 'A WebSocket is one full-duplex connection either side can write to at any moment, which is right for chat or trading — but every open socket is memory pinned to one specific server, so the hard part becomes routing a message to whichever server holds that connection.',
+    reachFor:
+      'Bidirectional low-latency traffic where the client sends about as often as the server: chat, multiplayer, collaborative editing, live trading, presence.',
+    trap: "Wrong: 'we'll use WebSockets for live updates.' If the traffic is one-way you bought statefulness for nothing. Say 'updates only go server→client here, so SSE gives us push over plain HTTP with automatic reconnect and no sticky-routing tier.'",
   },
   sse: {
     name: 'Server-sent events',
     def: "A long-lived one-way stream from server to client over plain HTTP, with automatic reconnection built in — a fit for feeds, notifications, and live dashboards. It is simpler than a WebSocket and traverses proxies and firewalls as ordinary HTTP. It only pushes server→client, so client actions still travel as ordinary requests.",
+    say: 'Server-sent events give me one-way server→client push over ordinary HTTP with reconnection built in, which covers feeds and notifications without the sticky-connection routing a WebSocket forces on me.',
+    reachFor:
+      'Anything where the client only ever reads: feeds, notification streams, live dashboards, job-progress bars, streaming model output.',
+    trap: "Wrong: 'SSE is just a worse WebSocket.' It is a narrower one on purpose. Say 'it is one-way over plain HTTP, so it crosses proxies unchanged and reconnects itself — I only pay for duplex when the client actually needs to push.'",
   },
   polling: {
     name: 'Polling',
     def: "The client repeatedly asks \"anything new?\" on a timer, because plain HTTP cannot let the server speak first. It works everywhere and is trivial to operate, but most responses carry nothing when updates are rare, and staleness averages half the polling interval. Long-polling and push protocols exist to eliminate exactly those two costs.",
+    say: "Polling is the client asking on a timer because HTTP won't let the server speak first — it works everywhere, and its two costs are mostly-empty requests and staleness averaging half the interval.",
+    reachFor:
+      'Rare updates, huge or untrusted client populations, and any place where operational simplicity is worth a few seconds of staleness.',
+    trap: "Wrong: 'polling doesn't scale.' The interval decides, not the technique. Say 'at a 10-second interval a million clients is 100k requests a second of mostly nothing, so push wins here — at one poll an hour it wouldn't.'",
   },
   saga: {
     name: 'Saga',
@@ -377,13 +408,80 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     name: 'Consistent hashing',
     def: "Placing nodes and keys on a hash ring where each key belongs to the next node clockwise, so adding or removing a node re-homes only about 1/N of the keys instead of nearly all of them. It is what lets distributed caches and partitioned stores change size without a system-wide reshuffle — which, for a cache, would be a total miss storm.",
   },
+
+  /* ---- Networking (spec 065) — the transport floor everything above assumes.
+     Every entry here carries the full speakable set: say / reachFor / trap. */
+  tcp: {
+    name: 'TCP',
+    def: 'The connection-oriented transport under HTTP: it numbers every byte, acknowledges what arrived, retransmits what did not, and slows itself down when the network starts dropping. That bookkeeping is what makes a stream ordered and complete — and it is also what makes it wait, because a missing segment holds back every byte already sitting behind it. You buy reliability with setup round trips and with delay you cannot see coming.',
+    say: 'I default to TCP because almost everything above it — HTTP, gRPC, database protocols — wants an ordered, reliable byte stream, and I only step down to UDP when a late packet is worse than a lost one.',
+    reachFor:
+      'Anything where completeness beats freshness: page loads, API calls, file transfer, database connections — the default, until a latency requirement forces the argument.',
+    trap: "Wrong: 'TCP is slow.' TCP is not slow; its guarantees cost round trips. Say 'TCP pays a handshake up front and can head-of-line block on loss — here that is roughly 100 ms before the first byte, which this requirement can or cannot afford.'",
+  },
+  udp: {
+    name: 'UDP',
+    def: 'A transport that just sends datagrams: no connection setup, no acknowledgments, no retransmission, no ordering. Packets can arrive late, out of order, or never, and the application decides what that means. That is not a defect — discarding a stale packet is exactly right when the next one is already in flight, which is why voice, video, and game state ride on it.',
+    say: 'UDP trades delivery guarantees for latency — no handshake, no retransmits, no ordering — so it wins exactly when a late packet is worse than a lost one.',
+    reachFor:
+      'Live media and telemetry: voice and video, game state, metrics firehoses, DNS queries — anywhere the next value replaces the lost one before you could have used it.',
+    trap: "Wrong: 'UDP is unreliable, so it's risky.' Unreliable is the feature you are buying. Say 'the application takes over loss handling — we drop a stale audio frame instead of retransmitting it, because a 200 ms-late frame is useless anyway.'",
+  },
+  handshake: {
+    name: 'Handshake',
+    def: 'The round trips two endpoints spend agreeing before any payload moves: TCP establishes the connection, then TLS exchanges keys and certificates on top of it. Each round trip is one full there-and-back at the speed of the link, so a cold connection to a distant server can burn 100–200ms before the first byte of the request leaves. That fixed per-connection tax is why connections are reused and why edges terminate them close to the user.',
+    say: 'The handshake is the fixed price of a new connection — a round trip for TCP plus one or two for TLS — so I reuse connections and terminate TLS at the edge instead of paying it on every request.',
+    reachFor:
+      "Any first-byte latency budget: cold mobile clients, cross-region calls, per-request connection churn, or a tier that can't keep pools warm.",
+    trap: "Wrong: 'we'll add HTTPS, it's basically free.' It is free per byte, not per connection. Say 'each new connection pays 1–2 extra round trips — about 100 ms for a distant user — so the fix is keep-alive and edge termination.'",
+  },
+  headofline: {
+    name: 'Head-of-line blocking',
+    def: 'One stalled item holding up everything queued behind it, even though that work is ready to go. In TCP it is literal: a single lost segment makes the receiver buffer every later byte until the retransmission lands, so ten multiplexed HTTP/2 streams on one connection all stall on one packet. The same shape shows up in queues and worker pools, and the fix never changes — give independent work independent lanes.',
+    say: 'Head-of-line blocking is one stuck item stalling everything behind it — one lost TCP segment freezing every multiplexed stream on that connection — which is the whole reason HTTP/3 moved to QUIC over UDP.',
+    reachFor:
+      "Explaining why multiplexing onto one connection isn't free, why one slow consumer stalls a whole partition, or why a single poison message drains a worker pool.",
+    trap: "Wrong: 'HTTP/2 fixed head-of-line blocking.' It fixed it at the HTTP layer only. Say 'HTTP/2 removed the application-level queue, but every stream still shares one TCP connection, so a dropped packet stalls all of them — QUIC is what gives each stream its own recovery.'",
+  },
+  grpc: {
+    name: 'gRPC',
+    def: 'A remote-procedure-call framework over HTTP/2: you declare the service in a schema, generate client and server code from it, and call remote methods as if they were local. Payloads travel as Protobuf binary, so messages are smaller and decoding is far cheaper than JSON, and one connection multiplexes many concurrent calls. The cost is that browsers cannot speak it natively and the body is unreadable on the wire, which is why it dominates service-to-service traffic and rarely faces the public internet.',
+    say: 'I use gRPC for internal service-to-service calls — generated clients, binary Protobuf, many streams multiplexed over one HTTP/2 connection — and keep REST and JSON at the public edge where browsers and debuggability matter.',
+    reachFor:
+      'High-volume internal RPC, polyglot services that need one shared contract, and bidirectional streaming between backends.',
+    trap: "Wrong: 'gRPC is faster than REST.' Faster at what — name the mechanism. Say 'Protobuf is smaller and cheaper to parse than JSON, and HTTP/2 avoids a connection per call, which shows up at internal RPC volume and almost never at the edge.'",
+  },
+  protobuf: {
+    name: 'Protocol Buffers',
+    def: 'A binary serialization format defined by a schema: every field gets a number and a type, and the wire format carries the numbers rather than the names. Messages come out several times smaller than the equivalent JSON and decode without parsing text, while the schema hands every language the same generated types. The trade is that the bytes mean nothing without the schema, and compatibility depends on never reusing a field number.',
+    say: 'Protobuf is schema-first binary encoding — field numbers instead of field names — so messages are several times smaller than JSON and decode without text parsing, at the cost of being unreadable on the wire.',
+    reachFor:
+      'Internal APIs at volume, event payloads on a stream, and anywhere serialization CPU or egress bandwidth actually appears in the budget.',
+    trap: "Wrong: 'Protobuf saves bandwidth, so use it everywhere.' Say where the saving lands: 'at a million messages a second the size and parse cost is real money; on a page that loads twice, JSON's debuggability is worth more than the bytes.'",
+  },
+  webrtc: {
+    name: 'WebRTC',
+    def: 'A browser-native stack for peer-to-peer audio, video, and data: a signaling server introduces two clients, and then media flows directly between them over UDP. Taking the server out of the media path removes a hop and its bandwidth bill, which is what makes sub-200ms conversation feel like conversation. The complication is getting through NATs and firewalls — most calls need a STUN server to discover addresses, and some fall back to relaying through TURN, which puts the traffic back on your bill.',
+    say: 'WebRTC is peer-to-peer media in the browser — a signaling server introduces the peers, then audio and video flow directly over UDP, so latency and my bandwidth bill both drop, except for the calls that have to relay through TURN.',
+    reachFor:
+      'Live voice and video calls, screen sharing, and low-latency peer data channels — small-group conversation, not one-to-many broadcast.',
+    trap: "Wrong: 'it's peer-to-peer, so we don't need servers.' Say what stays: 'the media path is direct, but we still run signaling to introduce peers, STUN to discover addresses, and a TURN relay for the clients stuck behind restrictive NATs.'",
+  },
+  lasteventid: {
+    name: 'Last-Event-ID',
+    def: 'The resume mechanism built into server-sent events: the server tags each message with an id, the browser remembers the last one it saw, and on reconnect it sends that id back in a Last-Event-ID header so the server can replay what was missed. Without it every dropped connection is a silent gap in the stream. The client half is automatic; the server half is yours to build, because replay only works if recent events are still buffered somewhere.',
+    say: 'SSE reconnects on its own and replays the gap through Last-Event-ID — the browser sends back the last id it saw — but that only works if the server kept a buffer of recent events to replay from.',
+    reachFor:
+      'Any feed or notification stream where a client dropping off Wi-Fi for ten seconds must not silently lose the updates it missed.',
+    trap: "Wrong: 'SSE handles reconnection for us.' It reconnects; it does not backfill by itself. Say 'the browser resends Last-Event-ID automatically, so we keep the last N events per channel server-side and replay from that id.'",
+  },
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY
 
 /* ---------------- Reference groups (README-v3 Phase 2) ----------------
    The Library's REFERENCE section renders every glossary term, organized into
-   six groups. Every key above appears in exactly one group (schema test);
+   seven groups. Every key above appears in exactly one group (schema test);
    each group carries a channel accent assigned in the UI. */
 
 export interface ReferenceGroup {
@@ -399,7 +497,18 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
     keys: [
       'request', 'read', 'write', 'rps', 'readpct', 'burst', 'iot', 'phonehome',
       'util', 'throughput', 'p99', 'sla', 'lb', 'appserver', 'apigateway',
-      'rest', 'pagination', 'dns', 'tls', 'autoscaling',
+      'rest', 'pagination', 'autoscaling',
+    ],
+  },
+  {
+    // Spec 065: the transport floor. Every entry here carries say/reachFor/trap
+    // (schema test); dns/tls/websocket/sse/polling moved in from the traffic and
+    // caching groups with their keys unchanged, so existing <Term> refs still resolve.
+    id: 'networking',
+    label: 'Networking',
+    keys: [
+      'tcp', 'udp', 'handshake', 'headofline', 'dns', 'tls', 'grpc', 'protobuf',
+      'websocket', 'sse', 'polling', 'lasteventid', 'webrtc',
     ],
   },
   {
@@ -410,7 +519,7 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
   {
     id: 'caching',
     label: 'Caching & Delivery',
-    keys: ['cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'fanout', 'websocket', 'sse', 'polling'],
+    keys: ['cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'fanout'],
   },
   {
     id: 'storage',

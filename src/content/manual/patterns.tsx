@@ -30,7 +30,10 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         <p style={{ color: C.dim }}>
           The trap is <T k="fanout">fan-out</T>: one event pushed to a million connected clients is a million sends, and every
           open connection is memory on a server that can't be stateless. Polling wins when updates are rare and clients are
-          many; push wins when updates are frequent and latency matters (chat, trading, presence).
+          many; push wins when updates are frequent and latency matters (chat, trading, presence). A dropped stream is
+          the other cost: SSE replays the gap through <T k="lasteventid">Last-Event-ID</T> only if you buffered recent
+          events server-side. When the payload is live media rather than events, <T k="webrtc">WebRTC</T> moves it
+          peer-to-peer and off your servers entirely.
         </p>
       </>
     ),
@@ -76,7 +79,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Omits the connection-management tier (a pub/sub layer routing events to the right sockets), which is where realtime systems actually get hard.',
-    related: { toys: [], terms: ['polling', 'sse', 'websocket', 'fanout'], sections: ['scaling-writes', 'streams'] },
+    related: { toys: [], terms: ['polling', 'sse', 'websocket', 'fanout', 'lasteventid', 'webrtc'], sections: ['scaling-writes', 'streams'] },
     feltIn: { note: <>Taste tests weigh polling vs push under stated update rates.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {

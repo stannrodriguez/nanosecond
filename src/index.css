@@ -86,6 +86,20 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
+/* Reference rows: term beside definition, stacking on narrow screens so the
+   definition (and the spec-065 speakable block) keeps a readable measure. */
+.ns-ref-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) 1fr;
+  gap: 2px 16px;
+}
+@media (max-width: 640px) {
+  .ns-ref-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
 @keyframes ns-pulse {
   0%,
   100% {

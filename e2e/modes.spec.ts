@@ -410,3 +410,35 @@ test('forge: a wrong answer explains itself and lands in the scar journal', asyn
   await page.goto('/#/journal')
   await expect(page.getByText(/KEY-CHOICE CHALLENGE/).first()).toBeVisible()
 })
+
+test('forge at 380px: the parts bin, a locked workbench and a challenge all fit', async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'nanosecond-progress',
+      JSON.stringify({ state: { toysCompleted: { hotpartition: true }, sectionsRead: {}, forecasts: {}, forged: {} }, version: 0 }),
+    )
+  })
+  const noOverflow = async () => {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(false)
+  }
+  await page.goto('/#/builder')
+  await expect(page.getByText('⚒ THE PARTS BIN')).toBeVisible()
+  await noOverflow()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
+  await noOverflow()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/builder-forge-380px.png', fullPage: true })
+  await page.goto('/#/lab/hotpartition')
+  await expect(page.getByText('⚒ THE FORGE · KEY-CHOICE CHALLENGE')).toBeVisible()
+  await noOverflow()
+  await page.screenshot({ path: 'e2e/shots/lab-forge-380px.png', fullPage: true })
+  // On-Call carries the same locked rows in its stack panel
+  await page.goto('/#/on-call')
+  await page.getByRole('button', { name: /Launch Day/ }).click()
+  await expect(page.getByText('Cache nodes · $200', { exact: true })).toBeVisible()
+  await noOverflow()
+})

@@ -447,9 +447,10 @@ export default function OnCall() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 300px) 1fr', gap: 16, alignItems: 'start' }}>
+      {/* two columns on a desktop, stacked below ~380px (accessibility floor) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start' }}>
         {/* workbench */}
-        <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14 }}>
+        <div style={{ flex: '0 1 300px', minWidth: 0, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14 }}>
           <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.dim, marginBottom: 4 }}>
             STACK · sell refunds {Math.round(RUN.sellRefund * 100)}%
           </div>
@@ -511,7 +512,7 @@ export default function OnCall() {
         </div>
 
         {/* live view */}
-        <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14, minHeight: 260 }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14, minHeight: 260 }}>
           {!frame && !result && (
             <div style={{ color: C.faint, fontSize: 13.5, lineHeight: 1.6 }}>
               Configure, then take the traffic. Damage to your error budget comes from dropped requests and (unless you degrade

@@ -198,8 +198,9 @@ export default function Builder() {
 
       {/* ---- WORKBENCH ---- */}
       {stage === 'build' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, alignItems: 'start', marginTop: 20 }}>
-          <Panel>
+        // two columns on a desktop, stacked below ~380px (accessibility floor)
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start', marginTop: 20 }}>
+          <Panel style={{ flex: '0 1 320px', minWidth: 0 }}>
             <Eyebrow style={{ marginBottom: 6 }}>YOUR ARCHITECTURE</Eyebrow>
             <Stepper label={<><T k="appserver">App servers</T> · $150 · 10k rps</>} val={cfg.app} set={(v) => set('app')(v)} min={1} max={12} col={C.compute} />
             {forged.cache ? (
@@ -259,7 +260,7 @@ export default function Builder() {
             </Button>
           </Panel>
 
-          <Panel style={{ minHeight: 280 }}>
+          <Panel style={{ flex: '1 1 300px', minWidth: 0, minHeight: 280 }}>
             {!frame && !verdict && (
               <div style={{ padding: 8 }}>
                 <Eyebrow color={C.mem} style={{ marginBottom: 8 }}>

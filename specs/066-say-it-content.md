@@ -1,81 +1,44 @@
-# 065 — "Say it" decks (articulation drills), networking pilot
+# 066 — Say-it card template + networking pilot deck (content only)
 
-The manual teaches understanding and the drills teach numbers; nothing teaches
-*saying it*. A Say-it deck is a short stack of retrieval cards local to one
-briefing: the front is a question an interviewer would realistically ask, the
-player answers **out loud** (speak-only — no text input, by design), flips, and
-self-grades against a model sentence plus a three-point checklist. Grades feed
-the same Leitner scheduling as numeric drills. Format decisions (locked with
-the user 2026-07-29): speak-only · no timers · no card taxonomy — the single
-admission test for a cue is "would an interviewer realistically say this?" ·
-decks are local to their briefing, not a global drill tab.
+Second of three thin slices (065 glossary → 066 card content → 067 deck UI).
+This slice ships the content contract and the data — no UI. Format decisions
+(locked with the user 2026-07-29): speak-only, no timers, no card taxonomy —
+the single admission test for a cue is "would an interviewer realistically
+say this?" — and decks are local to their briefing, not a global drill tab.
 
 - [ ] `docs/content-pipeline.md` gains §11 "Say-it card template": fields
       `id` (stable — scheduler keys on it), `section` (briefing id), `cue`
       (interviewer voice; textbook prompts like "define X" don't ship),
       `model` (one speakable sentence, two max, first person where it's a
       decision), `checks` (exactly 3: mechanism / tradeoff or cost / decision
-      rule), `trap` (the wrong sentence people say, and what to say instead),
-      `number` (`{val, body}` + `numbersRefs` into `numbers.ts`), `terms`
-      (glossary keys)
-- [ ] Speakable glossary contract: `GlossaryEntry` gains optional `say`
-      (one interview-ready sentence), `reachFor`, and `trap`; new networking
-      entries below ship with all three populated
-- [ ] Glossary gains a **Networking** group; new entries: `tcp`, `udp`,
-      `handshake`, `headofline`, `grpc`, `protobuf`, `webrtc`,
-      `lasteventid`; existing strays (`dns`, `tls`, `websocket`, `sse`,
-      `polling`) move into the group (keys unchanged — <Term> refs keep working)
-- [ ] `src/content/sayit.ts`: card type + the networking pilot deck (6 cards,
-      final copy approved in the format sketch): UDP-over-TCP decision ·
-      hotel-wifi head-of-line blocking · WebSockets-for-comments back-off ·
-      double-charge idempotency key · SSE proxy-timeout reconnect ·
-      REST-outside/gRPC-inside boundary
-- [ ] Card numbers resolve: `udp-vs-tcp-header`, `retransmit-rtt`,
-      `middlebox-idle-timeout`, `protobuf-vs-json-size` added to `numbers.ts`
-      with derivations (source: Hello Interview networking guide + RFC header
-      sizes); `timeout ≠ failure` and `1 conn = RAM + a slot` are prose, not
-      numbers — no ref needed
-- [ ] Deck UI at `/manual/briefings/networking/say-it` (sub-content URL per
-      ADR 0004): progress dots → card front (interviewer label + cue + "say
-      your answer out loud" hint) → flip → model sentence, checklist
-      (toggleable), trap row, number row, dotted terms → grade bar
-      (blanked / partial / nailed it) → end screen with tally. Keyboard:
-      space/enter flips, 1/2/3 grades; visible focus; works at 380px
-- [ ] Entry point: a card at the bottom of the networking briefing ("SAY IT —
-      6 questions an interviewer would ask"); deck unlocks after the briefing
-      has been opened at least once (law L2, brief-before-test — reuse the
-      manual's read-state)
-- [ ] Grades feed Leitner boxes (5, localStorage, same shape as
-      `src/state/drillProgress.ts` — shared module or parallel store, whichever
-      is smaller); blanked cards link back to the briefing and demote to daily;
-      nailed promotes
+      rule), `trap`, `number` (`{val, body}` display + optional `numbersRefs`
+      into `numbers.ts`), `terms` (glossary keys)
+- [ ] `src/content/sayit.ts`: `SayItCard` type + the networking pilot deck —
+      the 6 cards from the appendix below, ported VERBATIM (copy is
+      user-approved; don't rewrite)
+- [ ] `src/content/numbers.ts` gains 4 entries with derivations:
+      `udp-vs-tcp-header`, `retransmit-rtt`, `middlebox-idle-timeout`,
+      `protobuf-vs-json-size` (sources: RFC header sizes, speed-of-light RTT
+      math already in the numbers db, typical proxy idle timeouts, protobuf
+      wire format)
 - [ ] Schema test: every card has exactly 3 checks, a non-empty trap, `terms`
-      that resolve in the glossary, `numbersRefs` that resolve in `numbers.ts`,
-      and a `cue` that doesn't start with "define"/"what is"; every entry in
-      the glossary Networking group has `say`/`reachFor`/`trap`
-- [ ] Balance suite untouched and green; e2e covers the full loop
-      (open briefing → deck unlocks → flip → grade → end screen);
-      screenshots reviewed per autonomy rule 3
+      that resolve in the glossary, `numbersRefs` that resolve in
+      `numbers.ts`, a `section` that resolves to a manual section id, and a
+      `cue` that doesn't start with "define"/"what is"
+- [ ] No UI in this slice — no screenshot changes expected; verify.sh green
 
 ## Context (read this, not the whole repo)
-- **Read**: this spec; `docs/content-pipeline.md` §1 (glossary contract) and
-  §5 (drill template — the Say-it template §11 sits beside it);
-  `src/content/manual/concepts.tsx` networking section only;
-  `src/state/drillProgress.ts` (the Leitner shape to reuse);
-  `src/content/glossary.ts` interface + one entry + the group list at the
-  bottom. The six cards' final copy is the appendix below — port it verbatim,
-  don't rewrite.
-- **Touch**: `docs/content-pipeline.md` (§11), `src/content/glossary.ts`
-  (entries + group + optional fields), `src/content/sayit.ts` (new),
-  `src/content/numbers.ts` (4 entries), `src/modes/manual/` (deck route +
-  entry-point card), `src/state/` (sayit progress), `tests/schema.test.ts`,
-  e2e + baseline shots.
-- **Voice**: cards are the interview room, not the textbook — cues in the
-  interviewer's voice, models in the player's first person. The tone bar is
-  the existing load-balancer briefing's "say the promise out loud" beat.
-- **Scope guard**: no timers, no typed input, no global Say-it tab, no decks
-  for other briefings yet — this spec ships the format and the networking
-  pilot only. Other decks are v2 backlog until the pilot is playtested.
+- **Read**: this spec's appendix (the deck); `docs/content-pipeline.md` §5
+  (drill template — §11 sits beside it); `src/content/drills.ts` header
+  comment (stable-id convention); `src/content/numbers.ts` interface + one
+  entry.
+- **Touch**: `docs/content-pipeline.md` (§11), `src/content/sayit.ts` (new),
+  `src/content/numbers.ts` (4 entries), `tests/schema.test.ts`.
+- **Depends on**: 065 (the glossary keys the cards reference — `udp`,
+  `headofline`, `lasteventid`, `grpc`, `protobuf`, etc. — must exist).
+- **Scope guard**: no mode, no route, no store — 067 owns all UI and
+  scheduling. `1 conn = RAM + a slot` and `timeout ≠ failure` are prose
+  numbers with no `numbersRefs`; that's intentional.
 
 ## Appendix — pilot deck copy (approved 2026-07-29; port verbatim)
 

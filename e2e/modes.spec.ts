@@ -348,3 +348,97 @@ test('on-call: a full encounter runs to a survivable result (tick runner)', asyn
   await expect(page.getByRole('button', { name: /Collect & draft reward/ })).toBeVisible({ timeout: 40_000 })
   await page.screenshot({ path: 'e2e/shots/oncall-result.png', fullPage: true })
 })
+
+// ---- The Forge (spec 070): the progression spine across three modes ----
+
+test('forge: parts start locked in the Builder, with the way out on every row', async ({ page }) => {
+  await page.goto('/#/builder')
+  await expect(page.getByText('⚒ THE PARTS BIN')).toBeVisible()
+  await expect(page.getByText('0/6 forged')).toBeVisible()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
+  // locked rows are greyed and present — never hidden — and each links to its toy
+  await expect(page.getByText('Cache nodes · $200', { exact: true })).toBeVisible()
+  await expect(page.getByText('Read replicas · $400', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'forge →' })).toHaveCount(4)
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/builder-forge-locked.png', fullPage: true })
+})
+
+test('forge: the challenge stays shut until the toy has clicked', async ({ page }) => {
+  await page.goto('/#/lab/stampede')
+  await expect(page.getByText(/forges the .* for the Builder and On-Call/)).toBeVisible()
+  await expect(page.getByText('Cache node — locked')).toBeVisible()
+})
+
+test('forge: answering the hit-rate challenge unlocks the cache node in the Builder', async ({ page }) => {
+  // seed the toy as internalized — the sim itself is covered by its own test
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'nanosecond-progress',
+      JSON.stringify({ state: { toysCompleted: { stampede: true }, sectionsRead: {}, forecasts: {}, forged: {} }, version: 0 }),
+    )
+  })
+  await page.goto('/#/lab/stampede')
+  await expect(page.getByText('⚒ THE FORGE · HIT-RATE CHALLENGE')).toBeVisible()
+  await page.getByRole('button', { name: /80% — misses have to fall/ }).click()
+  await expect(page.getByText('FORGED', { exact: true })).toBeVisible()
+  await expect(page.getByText('Cache node forged')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/lab-forge.png', fullPage: true })
+
+  await page.goto('/#/builder')
+  await expect(page.getByText('1/6 forged')).toBeVisible()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
+  // the locked stand-in is gone; the real stepper is in its place
+  await expect(page.getByText('Cache nodes · $200', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Cache nodes · $200 · 100k ops')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'forge →' })).toHaveCount(3)
+})
+
+test('forge: a wrong answer explains itself and lands in the scar journal', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'nanosecond-progress',
+      JSON.stringify({ state: { toysCompleted: { hotpartition: true }, sectionsRead: {}, forecasts: {}, forged: {} }, version: 0 }),
+    )
+  })
+  await page.goto('/#/lab/hotpartition')
+  await page.getByRole('button', { name: /event_id — every query already names an event/ }).click()
+  await expect(page.getByText('NOT YET')).toBeVisible()
+  await expect(page.getByText(/Sharding by the hot key is not sharding/)).toBeVisible()
+  await expect(page.getByText('DB shard — locked')).toBeVisible()
+  await page.goto('/#/journal')
+  await expect(page.getByText(/KEY-CHOICE CHALLENGE/).first()).toBeVisible()
+})
+
+test('forge at 380px: the parts bin, a locked workbench and a challenge all fit', async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      'nanosecond-progress',
+      JSON.stringify({ state: { toysCompleted: { hotpartition: true }, sectionsRead: {}, forecasts: {}, forged: {} }, version: 0 }),
+    )
+  })
+  const noOverflow = async () => {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(false)
+  }
+  await page.goto('/#/builder')
+  await expect(page.getByText('⚒ THE PARTS BIN')).toBeVisible()
+  await noOverflow()
+  await page.getByRole('button', { name: /Open the workbench/i }).click()
+  await noOverflow()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/builder-forge-380px.png', fullPage: true })
+  await page.goto('/#/lab/hotpartition')
+  await expect(page.getByText('⚒ THE FORGE · KEY-CHOICE CHALLENGE')).toBeVisible()
+  await noOverflow()
+  await page.screenshot({ path: 'e2e/shots/lab-forge-380px.png', fullPage: true })
+  // On-Call carries the same locked rows in its stack panel
+  await page.goto('/#/on-call')
+  await page.getByRole('button', { name: /Launch Day/ }).click()
+  await expect(page.getByText('Cache nodes · $200', { exact: true })).toBeVisible()
+  await noOverflow()
+})

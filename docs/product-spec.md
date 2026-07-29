@@ -105,11 +105,13 @@ GitHub 2018 split-brain, Slack Jan 2021, Facebook BGP 2021).
 
 ### 3.8 The Forge (progression spine)
 You may not USE a component you haven't understood. Unlock graph:
-cache ← Leaky Bits + hit-rate challenge · queue ← The Disk + append challenge ·
+cache ← TTL & Stampede + hit-rate challenge · queue ← The Disk + append challenge ·
 replicas ← Replication Lag toy + failover challenge · shards ← Hot Partition toy +
 key-choice challenge · workers ← The Queue + drain-sizing challenge · CDN ←
 Race Light + placement challenge. Locked parts render greyed with "Forge this in
-the Lab" links.
+the Lab" links. (The hit-rate challenge moved off Leaky Bits — DRAM refresh has no
+hit rate to challenge on — onto TTL & Stampede, whose whole subject is the miss
+rate a cache node has to hold. Spec 070.)
 
 ### 3.9 Scar Journal (spec 045)
 Auto-log every miss across all modes { date, mode, predicted/accused/built, truth,

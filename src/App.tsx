@@ -145,7 +145,7 @@ function AppShell() {
             {/* Sub-content URL scheme is fixed by ADR 0004; modes validate
                 their own params and redirect unknown ids to their index. */}
             <Route path="/lab/:toyId?" element={<Lab />} />
-            <Route path="/manual/:tab?/:sectionId?" element={<Manual />} />
+            <Route path="/manual/:tab?/:sectionId?/:sub?" element={<Manual />} />
             {/* The Practice hub — home of the four modes that left the top nav
                 (README-v3 IA restructure). The mode routes below are unchanged. */}
             <Route path="/practice" element={<Practice />} />

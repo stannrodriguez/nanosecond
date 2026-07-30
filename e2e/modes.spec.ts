@@ -203,6 +203,53 @@ test('manual: the networking briefing carries its terms on the page (spec 068)',
   await page.screenshot({ path: 'e2e/shots/manual-terms-380px.png', fullPage: true })
 })
 
+test('say it: the deck is L2-gated, flips, grades, and reaches the tally (spec 067)', async ({ page }) => {
+  // a cold deep link (briefing never opened) shows the lock, not the cards
+  await page.goto('/#/manual/briefings/networking/say-it')
+  await expect(page.getByText('SAY IT · LOCKED')).toBeVisible()
+  await expect(page.getByText('Read the briefing first', { exact: false })).toBeVisible()
+  // opening the briefing satisfies law L2; the entry card leads in
+  await page.goto('/#/manual/briefings/networking')
+  await page.getByRole('button', { name: /SAY IT — 6 questions an interviewer would ask/ }).click()
+  await expect(page).toHaveURL(/#\/manual\/briefings\/networking\/say-it$/)
+  await expect(page.getByText('INTERVIEWER', { exact: true })).toBeVisible()
+  await expect(page.getByText('Say your answer out loud.')).toBeVisible()
+  // flip → model answer + checklist + trap + number + dotted terms
+  await page.getByRole('button', { name: 'flip → model answer' }).click()
+  await expect(page.getByText('A STRONG ANSWER SOUNDS LIKE')).toBeVisible()
+  await expect(page.getByText('DID YOU SAY…')).toBeVisible()
+  const check = page.getByRole('button', { name: /Named what/ }).first()
+  await check.click()
+  await expect(check).toHaveAttribute('aria-pressed', 'true')
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-sayit.png', fullPage: true })
+  // grade through the whole deck to the tally
+  await page.getByRole('button', { name: /nailed it/ }).click()
+  for (let i = 0; i < 5; i++) {
+    await page.getByRole('button', { name: 'flip → model answer' }).click()
+    await page.getByRole('button', { name: /partial/ }).click()
+  }
+  await expect(page.getByText('Deck done.')).toBeVisible()
+  await expect(page.getByText('1 nailed')).toBeVisible()
+  await expect(page.getByText('5 partial')).toBeVisible()
+  await page.screenshot({ path: 'e2e/shots/manual-sayit-done.png', fullPage: true })
+  // unknown sub-paths degrade to the briefing, never 404 (ADR 0004)
+  await page.goto('/#/manual/briefings/networking/not-a-mode')
+  await expect(page).toHaveURL(/#\/manual\/briefings\/networking$/)
+  // sections without a deck bounce their say-it URL back to the briefing
+  await page.goto('/#/manual/briefings/api-design/say-it')
+  await expect(page).toHaveURL(/#\/manual\/briefings\/api-design$/)
+  // and the deck holds the 380px floor
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/manual/briefings/networking/say-it')
+  await expect(page.getByText('INTERVIEWER', { exact: true })).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+  await page.screenshot({ path: 'e2e/shots/manual-sayit-380px.png', fullPage: true })
+})
+
 test('manual: shelves open a section with its interactive viz', async ({ page }) => {
   await page.goto('/#/manual')
   await page.getByRole('button', { name: /Managing long-running tasks/ }).click()

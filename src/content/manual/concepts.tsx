@@ -207,6 +207,14 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
           JSON stays at the public edge, while internal calls often move to <T k="grpc">gRPC</T> and{' '}
           <T k="protobuf">Protobuf</T> once message size and parse cost show up in the budget.
         </p>
+        <p>
+          Two shapes the slider cannot show. How you address the NEXT page decides whether deep paging stays cheap: a{' '}
+          <T k="cursor">cursor</T> asks for what comes after the last item seen, so page 1,000 costs what page 1 costs and
+          an insert mid-scroll cannot make you skip a row — where an offset makes the database count past every skipped
+          row. And when clients want genuinely different field sets, <T k="graphql">GraphQL</T> lets each ask for exactly
+          what it needs in one round trip, trading away the URL-level caching and per-endpoint rate limiting that made
+          REST easy to operate.
+        </p>
       </>
     ),
     viz: (
@@ -407,7 +415,18 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
         <p style={{ color: C.dim }}>
           The catch lives in the tail. A hot key's <T k="ttl">TTL</T> expires and thousands of misses race to recompute the
           same answer at once — a <T k="stampede">stampede</T>, where the cache's <i>absence</i> is the load spike. Defenses
-          all break the synchronization: jittered TTLs, dogpile locks, serving stale while refreshing.
+          all break the synchronization: jittered TTLs, <T k="coalescing">request coalescing</T> so the first miss fetches
+          while every duplicate waits on it, serving stale while refreshing.
+        </p>
+        <p>
+          Underneath the slider sit three decisions. WHO fills the cache: <T k="cacheaside">cache-aside</T> puts the logic
+          in the application, so a cache outage is a latency event rather than an outage;{' '}
+          <T k="readthrough">read-through</T> makes the cache fetch on a miss, centralizing that logic and making the cache
+          a hard dependency; <T k="writethrough">write-through</T> writes both together so the cache is never stale, paid
+          for on every write. WHAT leaves when memory fills is <T k="eviction">eviction</T> — least-recently-used, an
+          approximation of the thing you cannot know. And HOW a value is invalidated is the hardest of the three, which is
+          why <T k="keyversion">key versioning</T> avoids it entirely: put a content hash in the key and a change becomes a
+          miss instead of a delete you would have to chase through every layer.
         </p>
       </>
     ),

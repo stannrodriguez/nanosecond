@@ -313,9 +313,18 @@ describe('schema: glossary coverage (law L6)', () => {
 
   // Groups that have opted into the full speakable contract. A group joins this
   // list when its bundle lands (networking: spec 065; storage/queues/resilience:
-  // spec 072) and never leaves — every key in an opted-in group carries all three
-  // fields, so the Reference screen renders a speakable block for the whole shelf.
-  const SPEAKABLE_GROUPS = ['networking', 'storage', 'queues', 'resilience']
+  // spec 072; caching: spec 073) and never leaves — every key in an opted-in group
+  // carries all three fields, so the Reference screen renders a speakable block for
+  // the whole shelf.
+  //
+  // `traffic` is deliberately ABSENT, and that is not an omission. Spec 073 shipped
+  // its five new traffic keys (jwt, rbac, cursor, rangerequest, apikey) with the full
+  // contract, but the group's ~18 pre-existing keys are backfilled by the briefing
+  // specs that own them (F7, F12). The group joins this list there. The per-key
+  // assertions below still hold every one of those five to the contract.
+  const SPEAKABLE_GROUPS = ['networking', 'storage', 'queues', 'resilience', 'caching']
+
+  const SPEAKABLE_STRAGGLERS = ['jwt', 'rbac', 'cursor', 'rangerequest', 'apikey']
 
   it.each(SPEAKABLE_GROUPS)('the %s group carries the speakable contract', (groupId) => {
     const g = REFERENCE_GROUPS.find((x) => x.id === groupId)
@@ -326,6 +335,14 @@ describe('schema: glossary coverage (law L6)', () => {
       expect(e.reachFor?.trim().length, `${k}.reachFor`).toBeGreaterThan(0)
       expect(e.trap?.trim().length, `${k}.trap`).toBeGreaterThan(0)
     }
+  })
+
+  it.each(SPEAKABLE_STRAGGLERS)('%s carries the contract ahead of its group (spec 073)', (k) => {
+    const e = GLOSSARY[k]
+    expect(e, `${k} must exist`).toBeDefined()
+    expect(e.say?.trim().length, `${k}.say`).toBeGreaterThan(0)
+    expect(e.reachFor?.trim().length, `${k}.reachFor`).toBeGreaterThan(0)
+    expect(e.trap?.trim().length, `${k}.trap`).toBeGreaterThan(0)
   })
 
   // §1: the trap quotes the wrong sentence and replaces it with a mechanism —

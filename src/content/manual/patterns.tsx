@@ -35,6 +35,13 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           events server-side. When the payload is live media rather than events, <T k="webrtc">WebRTC</T> moves it
           peer-to-peer and off your servers entirely.
         </p>
+        <p>
+          "Off your servers entirely" needs one correction. Both peers usually sit behind <T k="nat">NAT</T>, sharing a
+          public address with no inbound mapping, so neither can be dialed until it has sent something outward first. They
+          therefore meet on a <T k="signaling">signaling</T> server — an ordinary WebSocket — to trade addresses and codecs
+          before any direct link exists, and a relay still carries the peers whose NAT refuses to cooperate. Only the media
+          is peer-to-peer; the introduction never is.
+        </p>
       </>
     ),
     viz: (
@@ -338,6 +345,12 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           The app server only ever handles tiny metadata; the heavy <T k="throughput">throughput</T> is between the client
           and the storage/CDN edge, which are built for exactly that. For huge files, multipart upload splits the blob into
           parts uploaded in parallel and retried independently.
+        </p>
+        <p>
+          Downloads get the same treatment in reverse, through the <T k="rangerequest">range request</T>: the client asks
+          for bytes 5,000,000 through 6,000,000 rather than the whole object. That one header is why seeking inside a video
+          works without fetching the file first, and why a connection dropping at 90% resumes from byte 1.8 GB instead of
+          starting over — which on a flaky link is the difference between finishing and never finishing.
         </p>
       </>
     ),

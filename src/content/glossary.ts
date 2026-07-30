@@ -51,10 +51,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   cache: {
     name: 'Cache',
     def: "A small, fast store (RAM) holding copies of recently-used answers in front of the database. A lookup that finds its answer there (a 'hit') skips the database entirely — ~1ms instead of ~5–50ms, at roughly 10× the capacity per dollar. It accelerates only reads: a write still has to reach the database.",
+    say: "A cache is a small fast store of recent answers in front of the database, so a hit skips the database entirely at roughly ten times the capacity per dollar.",
+    reachFor:
+      "Read-heavy traffic concentrated on a small hot set — popular posts, session data, expensive computed aggregates.",
+    trap: "Wrong: 'add a cache to make it faster.' A cache accelerates reads only, and every write still has to reach the database. Say 'at a 95% hit rate the cache absorbs most reads, so the database only has to survive the miss traffic' — with the hit rate said out loud.",
   },
   hitrate: {
     name: 'Hit rate',
     def: 'The percentage of lookups the cache answers itself; an 80% hit rate means only 20% of reads reach the database. It is driven by how concentrated requests are on the same keys: a viral post read by everyone can exceed 99%, while random user-profile lookups sit far lower. The database only has to survive the miss traffic, so this percentage sets its required read capacity.',
+    say: "The hit rate is the share of lookups the cache answers itself, and it is the single number deciding how much read traffic the database actually has to survive.",
+    reachFor:
+      "Sizing a database that sits behind a cache, and pressure-testing any 'we'll add a cache' claim with the arithmetic.",
+    trap: "Wrong: 'the cache will handle the reads.' At 80% it handles four in five, and the remaining fifth is still the database's entire problem. Say '100k reads a second at a 95% hit rate is 5k reaching the database — and a cache restart briefly makes that 100k.'",
   },
   virtualmemory: {
     name: 'Virtual memory',
@@ -179,6 +187,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   stampede: {
     name: 'Cache stampede',
     def: "A hot key expires (or a cache restarts) and thousands of concurrent misses recompute the same answer against the database at once — the load spike is created by the cache's absence. The standard defenses all break the synchronization: a dogpile lock so one request recomputes while the rest wait, random jitter added to TTLs, and serving stale content while a refresh runs.",
+    say: "A cache stampede is a hot key expiring and thousands of concurrent misses recomputing the same answer at once, so the load spike is created by the cache's absence rather than by users.",
+    reachFor:
+      "Hot keys, cache restarts, and any incident where the database spiked with no change in user traffic at all.",
+    trap: "Wrong: 'it's just a cache miss.' One miss is fine; ten thousand simultaneous copies of it is an outage. Say 'I'd break the synchronization — a dogpile lock so one request recomputes, jittered TTLs, and serving stale while the refresh runs.'",
   },
   consistency: {
     name: 'Consistency',
@@ -207,6 +219,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   ttl: {
     name: 'TTL (time to live)',
     def: "An expiry stamp on a cached value: after this long, the cache discards it and the next lookup refetches. Short TTLs keep data fresher at the cost of more misses reaching the database; long TTLs invert the trade. Many keys expiring in the same second produce a synchronized miss storm, which is why real systems add random jitter to TTLs.",
+    say: "A TTL is an expiry stamp trading freshness against misses, and because keys written in the same second expire in the same second, real systems jitter it.",
+    reachFor:
+      "Any cached value that can go stale, and any decision about how wrong a read is permitted to be.",
+    trap: "Wrong: 'we cache it for an hour.' That is a staleness promise you just made to every user. Say 'a 60-second TTL with jitter, because this data can be a minute stale and I don't want every key expiring on the same tick.'",
   },
   wal: {
     name: 'Write-ahead log (WAL)',
@@ -251,6 +267,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   fanout: {
     name: 'Fan-out',
     def: "One incoming event triggering many outgoing operations — one tweet written to a million follower timelines, one request calling six microservices. Fan-out multiplies load invisibly: 1k posts/s × 500 followers = 500k timeline writes/s. Every feed design chooses between fan-out-on-write (pay when posting) and fan-out-on-read (pay when reading), priced by the follower distribution.",
+    say: "Fan-out is one incoming event triggering many outgoing operations, which multiplies load invisibly — a thousand posts a second at five hundred followers each is five hundred thousand timeline writes a second.",
+    reachFor:
+      "Feeds, notifications, and any microservice call graph where one inbound request becomes six outbound ones.",
+    trap: "Wrong: 'it's one write.' It is one write times the follower count. Say 'fan-out-on-write pays at post time and fan-out-on-read pays at read time, and celebrity accounts usually force a hybrid of the two.'",
   },
   backpressure: {
     name: 'Backpressure',
@@ -415,6 +435,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   cdn: {
     name: 'CDN',
     def: "Servers in hundreds of cities that cache content near users — a round trip is bounded by distance, so serving from 50 km away beats any optimization applied from 2,000 km away. A CDN can absorb most read traffic before it reaches the origin, often the cheapest capacity available. It helps only cacheable responses; personalized and write traffic still travels the full distance.",
+    say: "A CDN caches content in hundreds of cities so the round trip is bounded by 50 kilometers instead of 2,000, absorbing most read traffic before it ever reaches the origin.",
+    reachFor:
+      "Static assets, images, video, and any cacheable global read — usually the cheapest capacity available to you.",
+    trap: "Wrong: 'we'll put a CDN in front of it.' It helps only cacheable responses; personalized and write traffic still travels the full distance. Say 'the CDN takes the static and shared responses, and I'd size the origin for exactly what's left.'",
   },
   autoscaling: {
     name: 'Autoscaling',
@@ -1029,6 +1053,132 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'Sustained overload where a queue would grow without bound — a sale spike, a thundering herd, a downstream that just got slower.',
     trap: "Wrong: 'we will queue the extra requests.' A queue absorbs a burst, not a sustained overload; past capacity it only adds latency before the same failure. Say 'above capacity I shed — cheapest requests first, paying customers last — and return a retry-after rather than letting them time out.'",
   },
+
+  /* ================= Networking — spec 073, coverage-map §B.3 ================= */
+  graphql: {
+    name: 'GraphQL',
+    def: 'A query language where the client declares exactly which fields it wants and the server returns that shape, replacing many fixed endpoints with one flexible one. It removes over-fetching (a mobile client no longer downloads a whole profile object to show a name) and under-fetching (no more three sequential calls to assemble one screen). The cost moves to the server: an arbitrary query cannot be cached by URL, cannot be rate-limited per endpoint, and one careless nested query can fan out into thousands of database calls.',
+    say: 'GraphQL lets the client ask for exactly the fields it needs in one round trip, which kills over-fetching and under-fetching and moves the cost onto a server that can no longer cache by URL.',
+    reachFor:
+      'Many different clients with different field needs — mobile, web, partners — reading one graph, especially where round trips are expensive.',
+    trap: "Wrong: 'GraphQL is faster than REST.' It moves work rather than removing it, and one nested query can explode into thousands of resolver calls. Say 'it saves round trips for diverse clients, and I'd pay for that with query-depth limits, cost analysis, and batching at the resolver.'",
+  },
+  nat: {
+    name: 'NAT',
+    def: 'Network Address Translation: a router rewrites outgoing packets so many private devices share one public address, remembering each mapping so replies find their way back. It is why the IPv4 internet still functions with far more devices than addresses — and why an outside host cannot simply open a connection to your laptop, because no mapping exists until you send something first. Everything peer-to-peer inherits that asymmetry.',
+    say: "NAT lets many private devices share one public address by rewriting packets and remembering the mapping, which is why nothing outside can start a connection to you until you've sent something first.",
+    reachFor:
+      'Any peer-to-peer or inbound-connection design — video calls, gaming, device control — and any question about why the client always initiates.',
+    trap: "Wrong: 'the peers just connect directly.' Both are usually behind NATs with no inbound mapping. Say 'we need STUN to discover the public mapping and a TURN relay for the peers whose NAT will not cooperate — and that relay is real bandwidth we pay for.'",
+  },
+  signaling: {
+    name: 'Signaling',
+    def: 'The out-of-band channel two peers use to find each other and agree how to talk before any direct connection exists — exchanging network candidates, codecs, and encryption keys. It is a separate server, usually a plain WebSocket, because peers cannot negotiate over a link that does not exist yet. Once the media path is established, signaling steps out of it entirely.',
+    say: 'Signaling is the separate server two peers use to exchange addresses and codecs before a direct connection exists, and it drops out of the path once the media flows.',
+    reachFor:
+      'WebRTC designs — video calls, screen share, live audio — and explaining precisely which parts of "peer-to-peer" still need servers.',
+    trap: "Wrong: 'peer-to-peer means no servers.' Peers cannot introduce themselves over a connection they have not built yet. Say 'signaling introduces them, STUN discovers addresses, TURN relays the stubborn cases — only the media is actually peer-to-peer.'",
+  },
+
+  /* ================= Requests & Traffic — spec 073, coverage-map §B.3 ================= */
+  jwt: {
+    name: 'JWT',
+    def: 'A signed token carrying claims about the user — id, roles, expiry — that any service can verify with a public key, without calling an auth service or touching a session store. That statelessness is both the point and the problem: the token is valid until it expires, so revoking one early means keeping exactly the shared state you were trying to avoid. Short expiries plus a revocable refresh token are how real systems bound the damage.',
+    say: 'A JWT is a signed bundle of claims any service can verify locally without a session lookup, which is exactly why revoking one before it expires is the hard part.',
+    reachFor:
+      'Stateless auth across many services, and any design where a session-store lookup on every single request would be a bottleneck.',
+    trap: "Wrong: 'we log the user out by deleting the token.' Deleting the client's copy does nothing — the signature is still valid wherever it is presented. Say 'access tokens live about 15 minutes with a revocable refresh token, so a stolen one has a bounded blast radius.'",
+  },
+  rbac: {
+    name: 'RBAC',
+    def: 'Role-based access control: permissions attach to roles and users are granted roles, so authorization becomes a small table lookup rather than a rule per person. It scales administratively — onboarding is assigning a role, and an audit is reading the role definitions. It strains when permission depends on the specific object rather than the job title, which is where ownership checks or attribute-based rules take over.',
+    say: 'RBAC attaches permissions to roles rather than to people, so access is a lookup and onboarding someone is assigning a role instead of working a checklist.',
+    reachFor:
+      'Any multi-user product with distinct job functions — admin, support, viewer — where permissions are stable across the people holding them.',
+    trap: "Wrong: 'RBAC handles authorization.' It answers what a role may do, not whether this user owns this particular record. Say 'the role gates the endpoint and an ownership check gates the row — you need both, and the second one is where the bugs live.'",
+  },
+  cursor: {
+    name: 'Cursor pagination',
+    def: "A pagination scheme that returns an opaque pointer to the last item seen — usually an encoded sort key — so the next page asks for what comes AFTER this rather than to skip the first 10,000 rows. The database seeks straight to that position through the index instead of counting past everything before it, so page 1,000 costs what page 1 costs. It also stays stable under concurrent writes, where offsets silently duplicate or skip rows.",
+    say: 'Cursor pagination asks for what comes after the last item I saw, so page one thousand costs the same as page one and an insert mid-scroll cannot make me skip a row.',
+    reachFor:
+      'Any list that grows, is written to while being read, or is paged deep — feeds, logs, search results, exports.',
+    trap: "Wrong: 'we paginate with limit and offset.' Offset makes the database count past every skipped row, and one insert during paging shifts everything down a slot. Say 'I'd use a cursor on the sort key, so deep pages stay cheap and the results stay stable under writes.'",
+  },
+  rangerequest: {
+    name: 'Range request',
+    def: 'An HTTP request for a byte range of a resource rather than the whole thing, which is what makes video seeking, resumable downloads, and parallel chunked transfers possible. The client asks for bytes 5,000,000 through 6,000,000 and the server answers with exactly those. Without it, a connection dropping at 90% means starting again from zero.',
+    say: 'A range request asks for a byte window instead of the whole object, which is how both seeking inside a video and resuming a failed download actually work.',
+    reachFor:
+      'Large media delivery, resumable downloads, and any transfer big enough that a dropped connection before the end is likely rather than unlucky.',
+    trap: "Wrong: 'the download failed, so we retry it.' Restarting a two-gigabyte transfer from byte zero on a flaky link may never finish. Say 'the client resumes with a Range header from the last byte it holds — which is the same idea multipart upload uses in the other direction.'",
+  },
+  apikey: {
+    name: 'API key',
+    def: 'A long random string identifying the calling application rather than a human user, presented on every request. It exists for attribution and rate limiting — quota attaches to the key, so one noisy integration is throttled without touching anyone else — not for user identity or fine-grained permission. Because it is a bearer credential with no expiry by default, scoping and rotation are the actual security work.',
+    say: 'An API key identifies the calling application so quota and attribution attach to it, which is a different job from authenticating a user.',
+    reachFor:
+      'Public and partner APIs, service-to-service calls, and anywhere per-caller rate limiting is the real requirement.',
+    trap: "Wrong: 'the API key authenticates the request.' It identifies a caller, and it is a bearer string that leaks into logs, repos, and mobile binaries. Say 'the key is for attribution and rate limiting — scoped and rotatable — with user identity carried separately.'",
+  },
+
+  /* ================= Caching & Delivery — spec 073, coverage-map §B.3 ================= */
+  cacheaside: {
+    name: 'Cache-aside',
+    def: 'The default caching pattern, where the application owns the logic: look in the cache, and on a miss read the database, populate the cache, then return. Nothing else needs to know the cache exists, so if it goes down the application still works — just slower. The costs are that every reader must implement it identically, and that between the database read and the cache write there is a window where a concurrent update can leave a stale value behind.',
+    say: 'Cache-aside puts the logic in the application — check the cache, miss to the database, populate on the way back — so a cache outage degrades latency rather than correctness.',
+    reachFor:
+      'The default for read-heavy workloads, and any case where surviving a cache failure matters more than keeping write paths simple.',
+    trap: "Wrong: 'the cache sits in front of the database.' In cache-aside nothing sits in front of anything — the application calls both. Say 'the app reads the cache and populates it on a miss, which is what makes a cache failure a latency event instead of an outage.'",
+  },
+  writethrough: {
+    name: 'Write-through',
+    def: 'A write pattern where every write goes to the cache and the backing store together, so the cache is never stale. Reads immediately after a write always find warm data, at the cost of a slower write — it now waits on both — and a cache filling with data nobody may ever read. Its sibling write-behind acknowledges from the cache and persists asynchronously: much faster, and it can lose data if the cache dies before the flush.',
+    say: 'Write-through writes to the cache and the database together so the cache is never stale, paying for that on every write and caching data that may never be read.',
+    reachFor:
+      'Write-then-immediately-read patterns, and small hot datasets where keeping cache and store identical is worth the added write latency.',
+    trap: "Wrong: 'write-through is safer, so default to it.' It roughly doubles write latency and fills memory with cold data. Say 'write-through when reads follow writes closely, cache-aside otherwise, and write-behind only where losing the last few seconds is genuinely acceptable.'",
+  },
+  readthrough: {
+    name: 'Read-through',
+    def: 'A caching mode where the cache itself, not the application, fetches from the backing store on a miss. The application only ever talks to the cache, which keeps miss logic in one place instead of duplicated across every reader that might drift. The trade is coupling and blast radius: the cache now needs credentials and knowledge of the store, and if it is down the application cannot read at all.',
+    say: 'Read-through has the cache fetch from the database on a miss, so the application only talks to the cache and the miss logic lives in exactly one place.',
+    reachFor:
+      'Many services reading the same data, where duplicating cache-aside logic in each of them would drift apart over time.',
+    trap: "Wrong: 'read-through and cache-aside are the same thing.' They differ in who performs the fetch, and therefore in what happens when the cache dies. Say 'read-through centralizes the logic and makes the cache a hard dependency; cache-aside keeps the cache optional.'",
+  },
+  eviction: {
+    name: 'Eviction',
+    def: 'What a cache does when it is full and something new arrives: throw an existing entry out. The policy picks which — LRU discards the least recently used, LFU the least frequently used — and both are approximations of the thing you actually want, which is whatever will not be needed soonest. Eviction is not a failure; a cache that never evicts is either oversized or holding data nobody reads.',
+    say: 'Eviction is a full cache choosing what to discard, usually least-recently-used, and every policy is an approximation of the thing you cannot know — what will not be needed next.',
+    reachFor:
+      'Sizing a cache, explaining why the hit rate fell after the working set grew, or reasoning about where the cache cliff sits.',
+    trap: "Wrong: 'we set a TTL so the cache stays small.' TTL bounds staleness and eviction bounds capacity — different pressures with different symptoms. Say 'the TTL decides how wrong a value may be, and the eviction policy decides what survives when memory runs out.'",
+  },
+  coalescing: {
+    name: 'Request coalescing',
+    def: 'Collapsing many identical in-flight requests into one: the first miss goes to the origin and every duplicate waits on that same result instead of launching its own. Also called request collapsing or a dogpile lock, it is the direct defense against a stampede — because the problem was never the miss, it was ten thousand simultaneous copies of the miss.',
+    say: 'Request coalescing lets the first miss fetch while every duplicate waits on that same in-flight result, which is what turns ten thousand simultaneous misses into one.',
+    reachFor:
+      'Hot keys with expiring TTLs, CDN origin protection, and any expensive computation that many callers request at the same instant.',
+    trap: "Wrong: 'we'll set a longer TTL so it stops stampeding.' A longer TTL makes the stampede rarer and not one bit smaller. Say 'I'd coalesce duplicate misses behind a single in-flight fetch and jitter the TTLs so keys stop expiring together.'",
+  },
+  keyversion: {
+    name: 'Key versioning',
+    def: 'Invalidating cached data by changing its key rather than deleting anything — putting a version number or content hash in the key, so new content simply misses and old entries age out on their own. It sidesteps the hardest problem in caching, which is reaching every copy in every layer to delete something, and it makes rollback trivial because the old key still holds the old value. The cost is memory holding entries nobody will ask for again.',
+    say: 'Versioning the cache key makes a change a miss instead of a delete, so I never have to reach into every cache layer to invalidate anything.',
+    reachFor:
+      'Static assets, rendered fragments, and any value cached in several layers at once — browser, CDN, application — where coordinated invalidation is impossible.',
+    trap: "Wrong: 'we purge the cache on deploy.' You can purge yours; you cannot purge the browser's or an intermediary's. Say 'I put a content hash in the key, so new content is a new key and every stale copy simply goes unread.'",
+  },
+  edgecache: {
+    name: 'Edge cache',
+    def: "A cache running in the CDN's point of presence, tens of kilometers from the user rather than in your origin region. Distance IS the latency, so an edge hit is single-digit milliseconds where an origin round trip crosses a continent. It also absorbs the request entirely — traffic served at the edge never reaches your infrastructure at all, which is why the CDN is usually the cheapest capacity you can buy.",
+    say: 'An edge cache serves from a point of presence near the user, so a hit is a few milliseconds and the request never reaches my origin at all.',
+    reachFor:
+      'Static assets, media, and any cacheable response with a geographically spread audience — the first capacity to add before scaling the origin.',
+    trap: "Wrong: 'the CDN caches our site.' It caches what you let it cache, and anything personalized defaults to uncacheable. Say 'static and shared responses live at the edge, and personalized pages need a split — a cacheable shell plus one small personalized call.'",
+  },
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY
@@ -1052,6 +1202,9 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
       'request', 'read', 'write', 'rps', 'readpct', 'burst', 'iot', 'phonehome',
       'util', 'throughput', 'p99', 'sla', 'lb', 'appserver', 'apigateway',
       'rest', 'pagination', 'autoscaling',
+      // spec 073 (coverage-map §B.3): the traffic bundle. These five carry the
+      // speakable contract; the group as a whole does NOT yet — see the schema test.
+      'jwt', 'rbac', 'cursor', 'rangerequest', 'apikey',
     ],
   },
   {
@@ -1063,6 +1216,8 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
     keys: [
       'ip', 'rtt', 'tcp', 'udp', 'quic', 'handshake', 'headofline', 'dns', 'tls',
       'grpc', 'protobuf', 'websocket', 'sse', 'polling', 'lasteventid', 'webrtc',
+      // spec 073 (coverage-map §B.3): the networking bundle.
+      'graphql', 'nat', 'signaling',
     ],
   },
   {
@@ -1073,7 +1228,12 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
   {
     id: 'caching',
     label: 'Caching & Delivery',
-    keys: ['cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'fanout'],
+    keys: [
+      'cache', 'hitrate', 'ttl', 'stampede', 'cdn', 'fanout',
+      // spec 073 (coverage-map §B.3): the caching-and-delivery bundle.
+      'cacheaside', 'writethrough', 'readthrough', 'eviction', 'coalescing',
+      'keyversion', 'edgecache',
+    ],
   },
   {
     id: 'storage',

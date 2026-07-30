@@ -13,7 +13,7 @@ import {
   type ManualSection,
 } from '../../content/manual'
 import type { Shelf } from '../../content/manual/types'
-import { GLOSSARY, REFERENCE_GROUPS } from '../../content/glossary'
+import { GLOSSARY, REFERENCE_GROUPS, type GlossaryEntry } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
 import { useProgress } from '../../state/progress'
@@ -124,6 +124,7 @@ function LadderCard({ onClick }: { onClick: () => void }) {
 
 const REF_GROUP_COLOR: Record<string, string> = {
   traffic: C.net,
+  networking: C.net,
   cpu: C.compute,
   caching: C.mem,
   storage: C.storage,
@@ -137,10 +138,8 @@ function ReferenceRow({ termKey, color, focused }: { termKey: string; color: str
   return (
     <div
       id={`ref-${termKey}`}
+      className="ns-ref-row"
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(120px, 180px) 1fr',
-        gap: '2px 16px',
         padding: '10px 8px',
         borderBottom: `1px solid #1B2C48`,
         borderRadius: 6,
@@ -153,8 +152,44 @@ function ReferenceRow({ termKey, color, focused }: { termKey: string; color: str
       <span className="mono" style={{ fontSize: 12, fontWeight: 600, color, overflowWrap: 'break-word' }}>
         {entry.name}
       </span>
-      <span style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{entry.def}</span>
+      <span style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>
+        {entry.def}
+        {entry.say && <Speakable entry={entry} color={color} />}
+      </span>
     </div>
+  )
+}
+
+// Spec 065: the speakable half of an entry — how to say it out loud, when to
+// reach for it, and the sentence that gets people in trouble. Authored for the
+// Networking group today; rendered wherever it exists.
+function Speakable({ entry, color }: { entry: GlossaryEntry; color: string }) {
+  const aside = (label: string, body: string) => (
+    <span style={{ display: 'block', marginTop: 6, fontSize: 12.5, color: C.dim, lineHeight: 1.5 }}>
+      <span className="mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, color: C.faint }}>
+        {label}
+      </span>{' '}
+      {body}
+    </span>
+  )
+  return (
+    <span
+      style={{
+        display: 'block',
+        marginTop: 10,
+        paddingLeft: 10,
+        borderLeft: `2px solid ${color}55`,
+      }}
+    >
+      <span style={{ display: 'block', fontSize: 13, color: C.text, lineHeight: 1.55 }}>
+        <span className="mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, color }}>
+          SAY IT
+        </span>{' '}
+        “{entry.say}”
+      </span>
+      {entry.reachFor && aside('REACH FOR', entry.reachFor)}
+      {entry.trap && aside('TRAP', entry.trap)}
+    </span>
   )
 }
 

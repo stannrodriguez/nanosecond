@@ -252,6 +252,26 @@ describe('schema: glossary coverage (law L6)', () => {
     }
   })
 
+  it('the Networking group carries the speakable contract (spec 065)', () => {
+    const g = REFERENCE_GROUPS.find((x) => x.id === 'networking')
+    expect(g, 'the Networking reference group must exist').toBeDefined()
+    for (const k of g!.keys) {
+      const e = GLOSSARY[k]
+      expect(e.say?.trim().length, `${k}.say`).toBeGreaterThan(0)
+      expect(e.reachFor?.trim().length, `${k}.reachFor`).toBeGreaterThan(0)
+      expect(e.trap?.trim().length, `${k}.trap`).toBeGreaterThan(0)
+    }
+  })
+
+  it('every `say` is ONE sentence — if you can\'t say it in a breath, it\'s wrong', () => {
+    for (const [k, e] of Object.entries(GLOSSARY)) {
+      if (!e.say) continue
+      const terminators = e.say.match(/[.!?](\s|$)/g) ?? []
+      expect(terminators.length, `${k}.say must be a single sentence`).toBeLessThanOrEqual(1)
+      expect(e.say.trim().endsWith('.'), `${k}.say should end in a period`).toBe(true)
+    }
+  })
+
   it('no orphan glossary entries: every key is taught somewhere in copy', () => {
     // Terms whose in-copy teaching lives in On-Call pattern/event cards (plain
     // strings, not JSX) until those specs land. Keep this list shrinking.

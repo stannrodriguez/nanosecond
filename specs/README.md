@@ -23,7 +23,7 @@ this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080
 | 086 | deep-tier-compute (ADR 0005 arc) | ✅ |
 | 088 | deep-tier-memory (ADR 0005 arc) | ✅ |
 | 060 | on-call | ✅ |
-| 065 | networking-glossary (Say-it slice 1/3) | ☐ |
+| 065 | networking-glossary (Say-it slice 1/3) | ✅ |
 | 066 | say-it-content (slice 2/3) | ☐ |
 | 067 | say-it-ui (slice 3/3) | ☐ |
 | 070 | forge | ✅ |

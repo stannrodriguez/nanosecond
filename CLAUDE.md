@@ -59,8 +59,23 @@ until verify.sh is green.**
 - **Explanations + visualizations are the product's center of gravity** (playtest-
   confirmed: they're what players love). Every concept — core concepts, key
   technologies, common patterns — teaches through a visualization the player can
-  poke; the prose annotates the viz, never the reverse. A wall of text is a bug.
-  Template: `docs/content-pipeline.md` §7.
+  poke; the prose annotates the viz, never the reverse. UNANCHORED prose is the
+  bug — depth is not: a briefing may run several substantial blocks as long as
+  each block keeps something pokeable in reach. Template:
+  `docs/content-pipeline.md` §7.
+- **Three registers, every concept** (user-set content philosophy, 2026-07-30 —
+  applies to ALL milestones; enforce in specs and reviews):
+  1. **UNDERSTAND** — depth first. Real technical explanations are preferred
+     over catchy summaries; go as deep as the concept honestly requires.
+  2. **GROUND** — precision AND intuition, deliberately doubled. State the
+     exact mechanism (terms, numbers, causality), then restate it as the felt
+     consequence, analogy, or interaction. Saying one thing twice in two
+     registers is a feature, not redundancy — doing both in one sentence is
+     usually doing neither.
+  3. **RETRIEVE** — compress for the interview. One-breath speakable sentences
+     (glossary `say`), explicit relations to neighboring concepts (`related`,
+     hand-off paragraphs), and scheduled exercises (say-it decks, drills,
+     puzzles). Succinctness lives HERE, not in the teaching prose.
 - Every displayed number is derivable: it must exist in `src/content/numbers.ts`
   with a `derivation`.
 - Every jargon word in player-facing copy is a `<Term>` with a glossary entry.

@@ -27,7 +27,7 @@ this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080
 | 068 | briefing-terms-panel (networking pilot) | ✅ |
 | 066 | say-it-content (slice 2/3) | ✅ |
 | 067 | say-it-ui (slice 3/3) | ✅ |
-| 069 | networking-briefing (three-registers reference impl) | ☐ |
+| 069 | networking-briefing (three-registers reference impl) | ✅ |
 | 070 | forge | ✅ |
 | 080 | polish | ☐ |
 | 090 | backlog (v2 — do NOT build) | — |

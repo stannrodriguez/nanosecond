@@ -142,6 +142,7 @@ export function LayerStack({ accent = C.net }: { accent?: string }) {
                 onClick={() => setOpen(on ? null : f.id)}
                 aria-expanded={on}
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'baseline',
                   gap: '4px 10px',
@@ -150,7 +151,7 @@ export function LayerStack({ accent = C.net }: { accent?: string }) {
                   textAlign: 'left',
                   background: 'none',
                   border: 'none',
-                  padding: '9px 12px',
+                  padding: '9px 26px 9px 12px',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -159,7 +160,12 @@ export function LayerStack({ accent = C.net }: { accent?: string }) {
                   {f.label}
                 </span>
                 <span style={{ fontSize: 12.5, color: C.dim }}>{f.note}</span>
-                <span className="mono" aria-hidden style={{ marginLeft: 'auto', fontSize: 11, color: C.faint }}>
+                {/* pinned so a wrapping note can never strand it on its own line */}
+                <span
+                  className="mono"
+                  aria-hidden
+                  style={{ position: 'absolute', right: 12, top: 9, fontSize: 11, color: C.faint }}
+                >
                   {on ? '−' : '+'}
                 </span>
               </button>

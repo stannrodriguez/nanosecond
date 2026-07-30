@@ -411,6 +411,22 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
 
   /* ---- Networking (spec 065) — the transport floor everything above assumes.
      Every entry here carries the full speakable set: say / reachFor / trap. */
+  ip: {
+    name: 'IP',
+    def: "The Internet Protocol — the L3 contract that gives every machine an address and best-effort delivery of packets to any of them, anywhere on earth. 'Best effort' means it promises to try, not to succeed: packets can be dropped, duplicated, or reordered in flight, and everything reliable is built on top of that honesty. Routing, BGP, and peering keep the promise invisibly, which is why an application developer can address a machine on another continent without knowing a single hop on the way.",
+    say: 'IP gives every machine an address and best-effort packet delivery — a promise to try, not to succeed — and everything reliable on the internet is built on top of that honesty.',
+    reachFor:
+      'Naming why regions, round trips, and geography constrain a design — the L3 facts an architecture inherits before you choose anything.',
+    trap: "Wrong: 'the network will deliver it.' IP never promised that. Say 'IP is best-effort — TCP papers over the loss and UDP hands it to me raw, so reliability is a choice I make at L4, not something the wire owes me.'",
+  },
+  rtt: {
+    name: 'RTT (round trip)',
+    def: "Round-trip time: one full there-and-back between two endpoints — the network's basic unit of cost. Light in fiber covers about 200,000 km/s, so geography sets a hard floor: ~1 ms across a city, ~70 ms across a country, ~150 ms across an ocean, and no protocol tuning beats it. Handshakes, retransmits, and consensus rounds are each priced in round trips, which is why counting them predicts latency better than counting bytes.",
+    say: "A round trip is the network's unit of cost — the speed of light in fiber puts a hard floor under it — so handshakes, retransmits, and consensus rounds are all priced in RTTs you can't engineer away.",
+    reachFor:
+      'Any latency budget: what a handshake or retransmit really costs, and why cross-region anything starts ~70–150 ms behind.',
+    trap: "Wrong: 'we have plenty of bandwidth, so latency is covered.' A fat pipe moves more bytes per trip, never the trip itself. Say 'bandwidth and latency are different budgets — this path costs ~70 ms per round trip, so the fix is fewer round trips, not a faster link.'",
+  },
   tcp: {
     name: 'TCP',
     def: 'The connection-oriented transport under HTTP: it numbers every byte, acknowledges what arrived, retransmits what did not, and slows itself down when the network starts dropping. That bookkeeping is what makes a stream ordered and complete — and it is also what makes it wait, because a missing segment holds back every byte already sitting behind it. You buy reliability with setup round trips and with delay you cannot see coming.',
@@ -442,6 +458,14 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     reachFor:
       "Explaining why multiplexing onto one connection isn't free, why one slow consumer stalls a whole partition, or why a single poison message drains a worker pool.",
     trap: "Wrong: 'HTTP/2 fixed head-of-line blocking.' It fixed it at the HTTP layer only. Say 'HTTP/2 removed the application-level queue, but every stream still shares one TCP connection, so a dropped packet stalls all of them — QUIC is what gives each stream its own recovery.'",
+  },
+  quic: {
+    name: 'QUIC',
+    def: "A modern transport that rebuilds TCP's ideas on top of UDP: one connection carries many independent streams, each ordered on its own, so a lost packet stalls only its stream instead of the whole connection. TLS is folded into the very first round trip, and it rides inside UDP because kernels and middleboxes have ossified around TCP — a brand-new native transport could never have deployed. HTTP/3 is HTTP running over QUIC, which is what finally removed cross-stream head-of-line blocking.",
+    say: "QUIC is TCP's ideas rebuilt over UDP — independent streams so one loss doesn't stall the rest, with encryption folded into the first round trip — and HTTP/3 is HTTP running on it.",
+    reachFor:
+      "Explaining why HTTP/2's single-connection multiplexing made head-of-line blocking worse, or naming the modern fix in one sentence.",
+    trap: "Wrong: 'we should build this on QUIC.' It is a depth signal, not a default. Say 'QUIC is why HTTP/3 exists — each stream repairs its own losses — and I'd reach for it only where handshake latency or head-of-line blocking is actually the bottleneck.'",
   },
   grpc: {
     name: 'gRPC',
@@ -507,8 +531,8 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
     id: 'networking',
     label: 'Networking',
     keys: [
-      'tcp', 'udp', 'handshake', 'headofline', 'dns', 'tls', 'grpc', 'protobuf',
-      'websocket', 'sse', 'polling', 'lasteventid', 'webrtc',
+      'ip', 'rtt', 'tcp', 'udp', 'quic', 'handshake', 'headofline', 'dns', 'tls',
+      'grpc', 'protobuf', 'websocket', 'sse', 'polling', 'lasteventid', 'webrtc',
     ],
   },
   {

@@ -2,9 +2,12 @@
 // Contract + bar: docs/content-pipeline.md §7. The viz carries the explanation.
 
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { C } from '../../theme'
 import { Term as T } from '../../ui/Term'
 import { Slidey, Toggler, Stepper, HashRing } from '../../ui/viz'
+import { LayerStack } from '../../ui/LayerStack'
+import { LossToggle } from '../../ui/LossToggle'
 import type { ManualSection } from './types'
 
 const mono = (children: ReactNode) => (
@@ -13,46 +16,169 @@ const mono = (children: ReactNode) => (
   </span>
 )
 
+// In-prose § link to a sibling briefing (networking block 4 hand-offs).
+const Sec = ({ to, children }: { to: string; children: ReactNode }) => (
+  <Link to={`/manual/briefings/${to}`} style={{ color: C.net }}>
+    §&nbsp;{children}
+  </Link>
+)
+
+/* ---------- networking (spec 069): the three-registers reference briefing ----------
+   Four viz-led blocks; Appendix B of specs/069-networking-briefing.md is the
+   approved content baseline. Block 1's parts double as the section's legacy
+   body/viz/simplifies fields, which the type still requires. */
+
+const NET_STACK_BODY = (
+  <>
+    <p>
+      Every protocol you will ever name in an interview answers the same question:{' '}
+      <b>what should this layer promise the one above it?</b> <T k="ip">IP</T> promises: hand me a packet and an
+      address, and I will probably get it there — anywhere on earth. <T k="tcp">TCP</T> promises: hand me bytes, and
+      the far side will receive every one of them, in order. HTTP promises: ask a named server for a thing, and you
+      get a labeled answer back. Each promise is a contract — the layer above builds on it without knowing how it is kept, and the
+      layer below keeps it without knowing why it is wanted. That contract structure, not any particular protocol, is
+      the deep fact about networks. It is the reason you can ship a web app without once thinking about fiber, radio,
+      or routing tables: three contracts down, someone is turning your bytes into light.
+    </p>
+    <p>
+      The OSI model names seven such layers; for system design, three do all the work. <b>L3</b> gets packets to a
+      machine, <b>L4</b> turns packets into a conversation, <b>L7</b> gives the conversation meaning. And the action
+      clusters where it does for a reason: L3 and L4 are kept by the operating system's kernel — decades old,
+      ferociously optimized, near-impossible to change — which is why the internet has run on TCP and{' '}
+      <T k="udp">UDP</T> for fifty years, and why <T k="quic">QUIC</T>, the first serious newcomer, had to smuggle
+      itself inside UDP to get deployed. L7 lives in your own process, where anyone can invent a protocol this
+      afternoon — which is why that floor is crowded: HTTP, <T k="grpc">gRPC</T>, <T k="websocket">WebSockets</T>, and
+      whatever your company built internally.
+    </p>
+  </>
+)
+
+const NET_STACK_VIZ = (
+  <>
+    <LayerStack accent={C.net} />
+    <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
+      Used as a filing system, the stack organizes half of networking vocabulary by itself. Regions, round trips, and
+      the speed of light: L3 facts. TCP vs UDP, <T k="handshake">handshakes</T>, head-of-line blocking: L4. REST vs
+      gRPC, <T k="polling">polling</T> vs push, everything you can {mono('curl')}: L7. When an interviewer says “L4{' '}
+      <T k="lb">load balancer</T>,” they are telling you which promises it can see — addresses and connections, never
+      the request inside.
+    </p>
+  </>
+)
+
+const NET_TRANSPORT_BODY = (
+  <>
+    <p>
+      L4 is where networking's foundational trade gets made, so it earns this page's full attention.{' '}
+      <b>TCP's promise is completeness.</b> It numbers every byte, the receiver acknowledges what arrived, and anything
+      unacknowledged is sent again. Ordering is absolute: if byte 4,001 is missing, bytes 4,002 through 4,000,000 sit
+      in a buffer and reach your application only once the gap is filled. That refusal to reorder is{' '}
+      <T k="headofline">head-of-line blocking</T>, and it is the honest price of a guaranteed stream —{' '}
+      <b>the stream is never wrong, but it can be arbitrarily late.</b> Repairing one lost packet costs at least one{' '}
+      <T k="rtt">round trip</T>, because the sender has to learn about the loss before it can resend — and a round trip
+      is geography: ~1&nbsp;ms across a city, ~70&nbsp;ms across a country, ~150&nbsp;ms across an ocean.
+    </p>
+    <p>
+      <b>UDP's promise is speed, kept by promising nothing else.</b> A datagram is an addressed envelope: it may
+      arrive, arrive twice, or arrive after the one sent behind it — and the instant it does arrive, your application
+      has it. No handshake before the first byte, no acknowledgments, no buffer holding fresh data hostage to old
+      losses. This is not a lesser TCP; it is the correct product for a different customer. A video call that receives
+      a 400-ms-old audio packet has received garbage — the conversation has moved on — and one crackled syllable beats
+      a call that freezes, then fast-forwards. <b>The decision rule: reach for UDP exactly when a late packet is worse
+      than a lost one</b> — live audio and video, game state, high-volume telemetry — and check the escape hatch
+      first, because browsers can't speak raw UDP: on the web, this choice arrives dressed as{' '}
+      <T k="webrtc">WebRTC</T>.
+    </p>
+  </>
+)
+
+const NET_TRANSPORT_VIZ = (
+  <>
+    <LossToggle accent={C.net} />
+    <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
+      One pattern worth internalizing, because it explains modern protocol history: TCP's head-of-line blocking is per{' '}
+      <i>connection</i>, so when HTTP/2 multiplexed many requests onto one TCP connection, a single lost packet could
+      stall all of them at once. QUIC exists precisely to fix that — independent streams that don't block each other,
+      with TLS folded into the first round trip — and HTTP/3 is HTTP over QUIC. You will rarely need QUIC in an
+      interview answer, but saying <i>why it exists</i> is a one-sentence proof that you understand the layer under
+      you.
+    </p>
+  </>
+)
+
+const NET_STACK_SIMPLIFIES =
+  "Real deployments run TCP/IP's four layers wearing OSI's seven names — layers 5–6 exist mostly in textbooks, because HTTP absorbed their jobs."
+
+const NET_TAP_BODY = (
+  <>
+    <p>
+      Now watch the contracts cooperate. A tap resolves a name — <T k="dns">DNS</T>, which is L7 asking L3's question —
+      then opens a conversation: TCP's <T k="handshake">handshake</T> costs one round trip, and <T k="tls">TLS</T> one
+      to two more. Only then does the <T k="request">request</T> itself go out — HTTP, finally speaking. On a
+      70&nbsp;ms cross-country path, a cold connection spends
+      140–210&nbsp;ms in handshakes before your API sees byte one — pure L4 tax, which is why connections are pooled
+      and reused, and why a <T k="cdn">CDN</T> terminates TLS near the user even for traffic it can't cache.
+      {/* RTT numbers here and in the stepper captions: numbers.ts `fiber-rtt-floor` (≥56 ms transatlantic) */}
+    </p>
+  </>
+)
+
+// The pre-069 request-path stepper, demoted to the worked example: captions now
+// name the layer doing each step's work, and the trip ends with the teardown.
+const NET_TAP_VIZ = (
+  <Stepper
+    accent={C.net}
+    nodes={['phone', 'DNS', 'TLS', 'CDN edge', 'LB', 'app', 'DB']}
+    steps={[
+      { active: [0], cap: <>A tap. Nothing has left the phone yet — but a cold connection is about to pay tolls on three floors of the stack.</> },
+      { active: [0, 1], edge: [0, 1], cap: <>{mono('DNS')} — L7 asking L3's question — turns the name into an address. Cached almost everywhere; a cold lookup is real milliseconds.</> },
+      { active: [0, 2], edge: [0, 2], cap: <>L4's toll: the TCP handshake (SYN → SYN-ACK → ACK) spends one round trip, {mono('TLS')} one to two more. ~100–200 ms for a distant user, before the first byte.</> },
+      { active: [3], edge: [0, 3], cap: <>A {mono('CDN')} edge — L7, terminating TLS near the user — may answer cacheable content here, never crossing the ocean to your origin.</> },
+      { active: [3, 4], edge: [3, 4], cap: <>Whatever is dynamic passes the {mono('LB')} — L4 or L7, depending on which promises it needs to see — onto interchangeable app servers.</> },
+      { active: [5, 6], edge: [5, 6], cap: <>The app — your own L7 — runs the logic and asks the database: the slowest stop, protected by everything upstream.</> },
+      { active: [0, 6], edge: [6, 0], cap: <>The reply streams back — and unless the connection is kept alive, it is torn down with FIN/ACK. Keep-alive exists so the next request skips every toll.</> },
+    ]}
+  />
+)
+
+const NET_HANDOFF_BODY = (
+  <p style={{ color: C.dim }}>
+    The rest of the stack's decisions live on their own pages: shaping L7 APIs — REST's resources, gRPC's contracts —
+    is <Sec to="api-design">API design</Sec>; pushing instead of pulling (polling, SSE, WebSockets) is{' '}
+    <Sec to="realtime-updates">Pushing realtime updates</Sec>; how a balancer that can only see L4 differs from one
+    that reads L7 — and why WebSockets care — is <Sec to="load-balancer">Load balancer</Sec>; and what geography does
+    to every number on this page is <Sec to="cdn">CDN</Sec>. The stack you just learned is the map — each of those
+    pages is one floor of this building, furnished.
+  </p>
+)
+
 export const CONCEPTS_SECTIONS: ManualSection[] = [
   {
     id: 'networking',
     shelf: 'concepts',
     title: 'Networking essentials',
-    thesis: 'What actually happens between a tap and your code running?',
-    body: (
-      <>
-        <p>
-          Before your first line of logic runs, a tap has already paid a chain of tolls. Scrub the trip: a{' '}
-          <T k="dns">DNS</T> lookup turns the name into an address, then <T k="tcp">TCP</T> plus the <T k="tls">TLS</T>{' '}
-          <T k="handshake">handshake</T> spend 1–2 round trips agreeing on encryption. For a far user that is
-          100–200&nbsp;ms of pure geography — which is why a <T k="cdn">CDN</T> terminates connections nearby and why
-          connections are reused.
-        </p>
-        <p style={{ color: C.dim }}>
-          Only then does the <T k="request">request</T> reach your <T k="lb">load balancer</T> and an <T k="appserver">app
-          server</T>. The whole chain is orderly because TCP guarantees delivery — which also means one lost packet can{' '}
-          <T k="headofline">stall every byte behind it</T>, the trade <T k="udp">UDP</T> refuses to make. First-visit
-          latency (handshakes, geography) and steady-state <T k="throughput">throughput</T> are different problems with
-          different fixes — say which one the requirement names.
-        </p>
-      </>
-    ),
-    viz: (
-      <Stepper
-        accent={C.net}
-        nodes={['phone', 'DNS', 'TLS', 'CDN edge', 'LB', 'app', 'DB']}
-        steps={[
-          { active: [0], cap: <>A tap. Nothing has left the phone yet — but a cold connection is about to pay four tolls.</> },
-          { active: [0, 1], edge: [0, 1], cap: <>{mono('DNS')} resolves the name → IP. Cached almost everywhere; a cold lookup is real milliseconds.</> },
-          { active: [0, 2], edge: [0, 2], cap: <>TCP + {mono('TLS')} handshakes: 1–2 round trips before the first byte. ~100–200 ms for a distant user.</> },
-          { active: [3], edge: [0, 3], cap: <>A {mono('CDN')} edge may answer cacheable content here — never crossing the ocean to your origin.</> },
-          { active: [3, 4], edge: [3, 4], cap: <>Whatever is dynamic passes the {mono('LB')}, which spreads it across interchangeable app servers.</> },
-          { active: [5, 6], edge: [5, 6], cap: <>The app runs your logic and asks the database — the slowest stop, protected by everything upstream.</> },
-        ]}
-      />
-    ),
-    simplifies:
-      'Collapses TCP and TLS into one step, ignores HTTP/2 multiplexing and connection reuse, and treats DNS as a single hop rather than a cache hierarchy.',
+    thesis: 'What is each layer promising your code — and what does it cost to keep that promise?',
+    body: NET_STACK_BODY,
+    viz: NET_STACK_VIZ,
+    simplifies: NET_STACK_SIMPLIFIES,
+    blocks: [
+      { heading: 'THE STACK — the organizing model', body: NET_STACK_BODY, viz: NET_STACK_VIZ, simplifies: NET_STACK_SIMPLIFIES },
+      {
+        heading: 'TRANSPORT — the guarantees you order, and their price',
+        body: NET_TRANSPORT_BODY,
+        viz: NET_TRANSPORT_VIZ,
+        simplifies:
+          'Assumes 30 packets a second and an 80 ms round trip; real TCP recovers smarter (fast retransmit, SACK) and real video hides loss behind jitter buffers — the shape of the trade survives all of it.',
+      },
+      {
+        heading: 'ONE TAP, EVERY LAYER — the model in motion',
+        body: NET_TAP_BODY,
+        viz: NET_TAP_VIZ,
+        simplifies:
+          'Collapses TCP and TLS into one step, ignores HTTP/2 multiplexing and connection reuse, treats DNS as a single hop rather than a cache hierarchy — and shows one request, where a real browser opens several connections and reuses them all.',
+      },
+      { heading: 'WHERE THIS PAGE HANDS OFF', body: NET_HANDOFF_BODY },
+    ],
     related: {
       toys: ['light', 'pipe'],
       terms: ['request', 'dns', 'tls', 'tcp', 'udp', 'handshake', 'headofline', 'cdn', 'lb', 'appserver', 'throughput'],

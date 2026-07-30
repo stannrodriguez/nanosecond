@@ -203,6 +203,38 @@ test('manual: the networking briefing carries its terms on the page (spec 068)',
   await page.screenshot({ path: 'e2e/shots/manual-terms-380px.png', fullPage: true })
 })
 
+test('manual: the networking briefing is a four-block deep briefing (spec 069)', async ({ page }) => {
+  await page.goto('/#/manual/briefings/networking')
+  // the four numbered blocks, in order
+  await expect(page.getByRole('heading', { name: /THE STACK/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /TRANSPORT/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /ONE TAP, EVERY LAYER/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /WHERE THIS PAGE HANDS OFF/ })).toBeVisible()
+  // LayerStack: L4 starts open (block 2 deepens it); dim floors are not buttons
+  const l4 = page.getByRole('button', { name: /L4 · Transport/ })
+  await expect(l4).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('button', { name: /L5–6/ })).toHaveCount(0)
+  const l7 = page.getByRole('button', { name: /L7 · Application/ })
+  await expect(l7).toHaveAttribute('aria-expanded', 'false')
+  await l7.click()
+  await expect(l7).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByText('HTTP · DNS · WebSocket · SSE · gRPC · WebRTC')).toBeVisible()
+  // LossToggle: at the initial 2% loss both lanes state their price…
+  await expect(page.getByText('4.8% of each second spent frozen')).toBeVisible()
+  await expect(page.getByText('2% of frames simply gone')).toBeVisible()
+  // …and a clean wire makes both promises free
+  await page.getByRole('slider', { name: 'packet loss' }).fill('0')
+  await expect(page.getByText('smooth — nothing to repair')).toBeVisible()
+  await expect(page.getByText('smooth — nothing to lose')).toBeVisible()
+  // the worked example ends on the FIN/ACK teardown note
+  const stepper = page.getByText('step 1 / 7')
+  await expect(stepper).toBeVisible()
+  for (let i = 0; i < 6; i++) await page.getByRole('button', { name: 'Next step' }).click()
+  await expect(page.getByText(/torn down with FIN\/ACK/)).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-networking.png', fullPage: true })
+})
+
 test('say it: the deck is L2-gated, flips, grades, and reaches the tally (spec 067)', async ({ page }) => {
   // a cold deep link (briefing never opened) shows the lock, not the cards
   await page.goto('/#/manual/briefings/networking/say-it')

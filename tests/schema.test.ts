@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { Fragment, createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
@@ -400,8 +401,9 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
   })
 
   it('sections with blocks meet the block contract (spec 069)', () => {
+    // block bodies may carry § links to sibling briefings, so render in a router
     const plain = (node: ReactNode) =>
-      renderToStaticMarkup(createElement(Fragment, null, node))
+      renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Fragment, null, node)))
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
@@ -416,6 +418,8 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
         if (b.viz) expect(b.simplifies?.trim().length, `${m.id} · ${b.heading} viz needs simplifies`).toBeGreaterThan(20)
       }
     }
+    // the three-registers reference implementation (spec 069) is a deep briefing
+    expect(MANUAL.find((m) => m.id === 'networking')?.blocks, 'networking must use blocks').toBeDefined()
   })
 
   it('termShelf, when present, resolves to a reference group (spec 068)', () => {

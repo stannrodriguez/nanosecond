@@ -37,6 +37,13 @@ until verify.sh is green.**
    templates exactly (the content-authoring skill enforces this).
 7. Every simulation change keeps the balance suite green — those tests encode
    "the game teaches true things" and are load-bearing.
+8. Landing a spec is PART OF doing it, not a follow-up. Once verify is green,
+   the flagged shots are reviewed, the boxes are checked and the row is
+   flipped: push the branch, open a PR against main (repo template), and MERGE
+   it. Do not stop to ask per slice — this file is the standing authorization,
+   and it covers the `specs/` queue in this repo and nothing else. Two hard
+   stops: never merge with verify red (leave the branch pushed and report where
+   you are stuck), and an irreversible decision still triggers rule 5's ADR.
 
 ## Token discipline (context is a budget)
 - Start from the spec's **Context** block; read only what it lists. Grep before

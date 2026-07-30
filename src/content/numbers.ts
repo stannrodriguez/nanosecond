@@ -459,6 +459,20 @@ export const NUMBERS: NumberEntry[] = [
     confusions: 'The 1-RTT floor is the best case — a retransmission timeout on a quiet connection can cost several RTTs.',
   },
   {
+    id: 'fiber-rtt-floor',
+    value: 56,
+    unit: 'ms round trip, NY↔London floor',
+    derivation: [
+      'Light in fiber travels at ~200,000 km/s — glass slows it to about two-thirds of its vacuum speed.',
+      'New York to London is ~5,600 km, so one way costs 5,600 ÷ 200,000 ≈ 28 ms; there and back is ≥56 ms.',
+      'That is the floor before a single byte is processed — every handshake, retransmit, and consensus round is priced in multiples of it.',
+    ],
+    boundingPhysics: 'Speed of light in glass; no protocol, codec, or amount of bandwidth shortens a round trip.',
+    toyId: 'light',
+    confusions:
+      'Real routes are worse than the great-circle floor — cables detour and routers add queueing, so NY↔London measures ~70–80 ms in practice. And a fatter pipe does not help: bandwidth moves more bytes per trip, never the trip itself.',
+  },
+  {
     id: 'middlebox-idle-timeout',
     value: 60,
     unit: 's (typical idle timeout)',

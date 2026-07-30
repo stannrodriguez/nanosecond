@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { Fragment, createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { NUMBERS } from '../src/content/numbers'
 import { TOYS } from '../src/content/toys'
@@ -397,6 +398,28 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
       for (const t of m.related.toys ?? []) expect(toyIds.has(t), `${m.id} → toy ${t}`).toBe(true)
       for (const s of m.related.sections ?? []) expect(sectionIds.has(s), `${m.id} → section ${s}`).toBe(true)
     }
+  })
+
+  it('sections with blocks meet the block contract (spec 069)', () => {
+    // block bodies may carry § links to sibling briefings, so render in a router
+    const plain = (node: ReactNode) =>
+      renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Fragment, null, node)))
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    for (const m of MANUAL) {
+      if (!m.blocks) continue
+      expect(m.blocks.length, `${m.id} needs ≥2 blocks`).toBeGreaterThanOrEqual(2)
+      const withViz = m.blocks.filter((b) => b.viz)
+      expect(withViz.length, `${m.id} needs ≥2 blocks with a viz`).toBeGreaterThanOrEqual(2)
+      for (const b of m.blocks) {
+        expect(b.heading.trim().length, `${m.id} block heading`).toBeGreaterThan(0)
+        expect(plain(b.body).length, `${m.id} · ${b.heading} body empty`).toBeGreaterThan(0)
+        if (b.viz) expect(b.simplifies?.trim().length, `${m.id} · ${b.heading} viz needs simplifies`).toBeGreaterThan(20)
+      }
+    }
+    // the three-registers reference implementation (spec 069) is a deep briefing
+    expect(MANUAL.find((m) => m.id === 'networking')?.blocks, 'networking must use blocks').toBeDefined()
   })
 
   it('termShelf, when present, resolves to a reference group (spec 068)', () => {

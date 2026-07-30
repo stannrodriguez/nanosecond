@@ -11,44 +11,44 @@ rework — write in the repo's voice, and never drift toward the source PDF's
 phrasing. Appendix A is the source-coverage map the SOURCE SUPERSET rule
 requires.
 
-- [ ] `ManualSection` gains optional `blocks[]`: `{ heading, body (JSX), viz?
+- [x] `ManualSection` gains optional `blocks[]`: `{ heading, body (JSX), viz?
       (JSX), simplifies? }`. When present, the briefing page renders blocks in
       order (numbered heading → prose → viz → fine print), and the legacy
       `body`/`viz`/`simplifies` fields are ignored for that section (they stay
       required by the type — point them at block 1's content so the other 26
       sections and existing schema tests are untouched). Document in
       content-pipeline §7.
-- [ ] Networking briefing rebuilt as the 4 blocks of Appendix B (content
+- [x] Networking briefing rebuilt as the 4 blocks of Appendix B (content
       baseline — no claim dropped; rephrasing and reorganizing within/across
       blocks is fine), with the new thesis. THE TERMS, WHERE YOU'LL FEEL
       THIS, and SAY IT render below, unchanged.
-- [ ] New viz `LayerStack` (block 1): 7 floors drawn top-down L7→L1; L7/L4/L3
+- [x] New viz `LayerStack` (block 1): 7 floors drawn top-down L7→L1; L7/L4/L3
       bright and clickable (detail: GIVES sentence + HIDES / LIVES HERE / THE
       FORK rows per Appendix B), L5–6 and L1–2 dim, dashed, and non-interactive
       with their one-line labels; **L4 starts open** (it's the floor block 2
       deepens). Keyboard: floors are buttons with aria-expanded; visible focus.
-- [ ] New viz `LossToggle` (block 2): packet-loss slider 0–10% (step 0.5,
+- [x] New viz `LossToggle` (block 2): packet-loss slider 0–10% (step 0.5,
       init 2%), two lanes (TCP · live video call / UDP · the same call), each
       showing the stat line and the felt-consequence band for the current loss
       per Appendix B's copy table. Assumes 30 packets/s and 80 ms RTT —
       stated in the simplifies line.
-- [ ] Block 3 keeps the existing request-path Stepper with two upgrades:
+- [x] Block 3 keeps the existing request-path Stepper with two upgrades:
       each step's caption names the layer doing the work (DNS at L7, TCP+TLS
       handshakes at L4, …) and a final-step note that the connection is torn
       down with FIN/ACK unless kept alive. The "100–200 ms" prose claim and
       the caption RTT numbers cite `fiber-rtt-floor`.
-- [ ] Glossary: `ip`, `quic`, `rtt` added to the **Networking** group with the
+- [x] Glossary: `ip`, `quic`, `rtt` added to the **Networking** group with the
       full speakable contract (say/reachFor/trap — the existing schema test
       enforces it automatically). Every new jargon word in Appendix B prose is
       dotted: ip, quic, rtt join the existing tcp/udp/handshake/headofline/
       dns/tls/cdn/webrtc/request terms.
-- [ ] `numbers.ts` gains `fiber-rtt-floor`: light in fiber ≈ 200,000 km/s →
+- [x] `numbers.ts` gains `fiber-rtt-floor`: light in fiber ≈ 200,000 km/s →
       NY↔London ≈ 5,600 km → ≥56 ms round trip before any processing; used by
       block 3 and available to drills.
-- [ ] Schema tests: a section with `blocks` has ≥2 blocks, every block body
+- [x] Schema tests: a section with `blocks` has ≥2 blocks, every block body
       non-empty, ≥2 blocks carry a viz, and every block with a viz has
       `simplifies` fine print; networking uses blocks.
-- [ ] verify.sh green; flagged screenshots reviewed at desktop AND 380px per
+- [x] verify.sh green; flagged screenshots reviewed at desktop AND 380px per
       autonomy rule 3 (this page grows a lot — check the 380px flow top to
       bottom: stack floors, loss lanes, stepper, terms, say-it card).
 

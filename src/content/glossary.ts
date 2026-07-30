@@ -91,22 +91,42 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   replica: {
     name: 'Read replica',
     def: "A live copy of the database that receives every write from the primary and serves reads. Each replica adds read capacity — on the order of ~20k reads/s — without touching the write path. The copies lag slightly behind the primary, so a just-written comment may not appear on a replica for a moment.",
+    say: "A read replica applies every write from the primary and serves reads, so each one adds read capacity without touching the write path at all.",
+    reachFor:
+      "Read-heavy workloads with diverse keys that a cache would not concentrate — reporting, browse pages, anything with a long tail.",
+    trap: "Wrong: 'add replicas to scale.' Replicas scale reads only, and every copy still applies every write. Say 'replicas add read capacity and a failover target, and the write ceiling is exactly where it was.'",
   },
   shard: {
     name: 'Shard',
     def: "Splitting data across multiple independent databases — users A–M on box 1, N–Z on box 2. It is how write capacity scales: replicas don't help writes, because every copy must apply every write, while each shard takes only its own share. The cost is that queries crossing shards become joins across machines, so sharding usually comes after caching and replication are exhausted.",
+    say: "Sharding splits data across independent databases so each one takes only its share of the writes, which is the single thing replicas cannot do for you.",
+    reachFor:
+      "A write rate genuinely past one primary's ceiling, or a dataset past one node's disk — after caching and replicas are exhausted.",
+    trap: "Wrong: 'we'll shard so it scales.' Sharding buys write capacity and costs cross-shard queries, distributed transactions, and a rebalancing project. Say 'at this many writes a second I'm past one primary, so I shard on a key that spreads' — with the number said out loud.",
   },
   queue: {
     name: 'Queue',
     def: "A durable waiting line (Kafka, SQS) between accepting a write and processing it. The app appends a message in ~1ms and replies immediately; workers drain the line into the database at a rate the database can sustain. A burst then costs processing delay instead of capacity — the messages wait rather than overload the database.",
+    say: "A queue is a durable waiting line between accepting a write and processing it, so a burst costs processing delay instead of costing you capacity.",
+    reachFor:
+      "Work that can be asynchronous — email, image resizing, report generation — and bursts you would rather absorb than provision for.",
+    trap: "Wrong: 'we'll add a queue so it scales.' A queue smooths bursts; it does not raise throughput. Say 'it absorbs the spike, but if the steady arrival rate exceeds drain capacity the backlog grows forever and we've only delayed the failure.'",
   },
   worker: {
     name: 'Worker',
     def: "A background process that pulls messages off the queue and does the deferred work (writing to the database, resizing the image). It serves no user directly, so it can run steadily at its own pace. Drain rate scales with the number of workers, which makes backlog recovery a provisioning knob rather than a redesign.",
+    say: "A worker pulls messages off the queue and does the deferred work at its own pace, which makes drain rate a provisioning knob rather than a redesign.",
+    reachFor:
+      "Any async pipeline, and any backlog incident where the first question is whether more workers would actually help.",
+    trap: "Wrong: 'add workers to clear the backlog.' They help only if the workers are the bottleneck rather than the database behind them. Say 'I'd check what the workers are waiting on first, because doubling them against a saturated database just relocates the queue.'",
   },
   backlog: {
     name: 'Backlog / lag',
     def: "Messages waiting in the queue because they arrive faster than workers drain them. A backlog that grows during a burst and shrinks afterward is the queue absorbing the burst. A backlog that never shrinks means the steady arrival rate exceeds drain capacity — the queue is then only deferring the overload, and either the workers or the downstream bottleneck have to grow.",
+    say: "A backlog is messages waiting because they arrive faster than workers drain them — healthy when it shrinks after the burst, terminal when it never does.",
+    reachFor:
+      "The most diagnostic queue metric there is: it tells you whether you have a burst problem or a capacity problem.",
+    trap: "Wrong: 'the queue is deep, add workers.' Depth alone does not say which problem you have. Say 'I'd look at whether the backlog is shrinking — steady growth means arrival rate exceeds drain rate, and no amount of buffering fixes that.'",
   },
   p99: {
     name: 'p99 latency',
@@ -119,6 +139,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   durable: {
     name: 'Durability (fsync)',
     def: "A write is durable when it is physically on disk and survives a power cut. Forcing bytes to disk (fsync) is orders of magnitude slower than writing to RAM, which is the reason a database handles ~10k writes/s but ~10× more reads/s. Reads can be served from memory; every durable write pays the flush.",
+    say: "A write isn't durable until it is physically on disk, and that fsync is exactly why one primary does thousands of writes a second while reads run ten times faster out of memory.",
+    reachFor:
+      "Any write-throughput ceiling question, and any moment someone proposes writing faster without naming what the flush costs.",
+    trap: "Wrong: 'the write is saved once the database returns.' It is saved once the log is fsynced — which is what the return was waiting on, and what a fsync-relaxing config quietly removes. Say 'durability costs a flush per commit, which is what bounds one primary to ~8,000 writes a second.'",
   },
   lb: {
     name: 'Load balancer',
@@ -139,10 +163,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   errorbudget: {
     name: 'Error budget',
     def: "The amount of failure users tolerate before trust erodes, written down as a number: a 99.9% success target leaves a 0.1% budget. Teams spend it deliberately on launches and experiments, or lose it accidentally to outages; when it runs out, feature work stops until reliability is restored. It converts 'how reliable is enough' from an argument into arithmetic.",
+    say: "An error budget writes down the failure users tolerate as a number — a 99.9% target leaves 0.1% to spend — so how-reliable-is-enough becomes arithmetic instead of an argument.",
+    reachFor:
+      "Reliability-versus-velocity conversations, and justifying the moment feature work should stop.",
+    trap: "Wrong: 'we aim for zero downtime.' Zero is unpriced, and each extra nine costs roughly ten times the last. Say 'we target 99.9%, which is 43 minutes a month, and we spend that budget deliberately on launches.'",
   },
   idempotent: {
     name: 'Idempotent',
     def: "An operation that is safe to repeat: doing it twice has the same effect as doing it once ('set status = PAID', unlike 'add $10'). At-least-once delivery guarantees occasional duplicates, so a retried operation is only safe when every side effect is idempotent — usually arranged with a unique operation ID the receiver remembers.",
+    say: "An idempotent operation is safe to repeat — set status to PAID rather than add ten dollars — which is what makes retries and at-least-once delivery survivable.",
+    reachFor:
+      "Every retry path, every queue consumer, every payment endpoint — anywhere a duplicate is a matter of when rather than if.",
+    trap: "Wrong: 'we retry on failure.' Retrying a non-idempotent operation double-charges the customer. Say 'the consumer dedupes on an operation id it remembers, so the second delivery has no second effect.'",
   },
   stampede: {
     name: 'Cache stampede',
@@ -151,14 +183,26 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   consistency: {
     name: 'Consistency',
     def: "Whether every reader sees the same data at the same moment. Strong consistency means a read after a write always shows the write, which requires the copies to coordinate before answering — and coordination costs round trips. Eventual consistency answers immediately from whatever a copy has, and the copies converge later. The choice trades latency and availability against staleness, one operation at a time.",
+    say: "Strong consistency means a read after a write always shows that write, which requires the copies to coordinate before answering — and coordination is round trips.",
+    reachFor:
+      "Deciding which operations pay for coordination, and pricing that decision in milliseconds across zones or regions.",
+    trap: "Wrong: 'we need the data to be consistent.' Consistency is a spectrum with a price per rung. Say 'this read must see its own write and that one can be a second stale' — naming the operations rather than the system.",
   },
   consensus: {
     name: 'Consensus',
     def: "The protocol family (Raft, Paxos) by which several machines agree on one value — who is leader, what order writes happened in — even while some of them crash. Agreement takes multiple round trips among a majority of nodes, which is why a strongly-consistent cross-region write costs ~150ms: two rounds × ~70ms of geography. Consensus prices are paid only where two conflicting truths would be catastrophic.",
+    say: "Consensus is how several machines agree on one value — who leads, what order writes happened in — while some of them are crashed, and agreement costs round trips among a majority.",
+    reachFor:
+      "Leader election, distributed locks, and anywhere two conflicting truths would be catastrophic rather than merely untidy.",
+    trap: "Wrong: 'we'll use consensus for consistency.' It is expensive — one cross-region round trip is ~70 ms and a write needs more than one. Say 'consensus for the metadata and the leader, cheaper replication for the bulk data.'",
   },
   failover: {
     name: 'Failover',
     def: "Promoting a replica to primary when the primary dies. It is never instant: detection takes seconds — a dead node and a slow node look alike at first — promotion takes more, and clients must rediscover the new primary. Writes fail during the gap, and writes the dead primary had not yet replicated are lost or need reconciling, which is why failover is rehearsed rather than assumed.",
+    say: "Failover promotes a replica when the primary dies, and it is never instant, because detection alone takes seconds — a dead node and a slow node look identical at first.",
+    reachFor:
+      "Availability questions, and stating honestly what a database outage looks like measured in seconds of failed writes.",
+    trap: "Wrong: 'we have a replica, so failover is automatic.' Automatic is not the same as fast or lossless — writes the dead primary had not replicated can be gone. Say 'writes fail for the detection plus promotion window, and I'd rehearse it rather than assume it.'",
   },
   ttl: {
     name: 'TTL (time to live)',
@@ -167,22 +211,42 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   wal: {
     name: 'Write-ahead log (WAL)',
     def: "The database's crash-recovery log: before changing any data structure, it appends the intended change to a sequential log and fsyncs it, so a crash mid-write is repaired by replaying the log. This works because sequential appends are the one thing disks do fast. It is also why every durable write costs a sequential flush, bounding a primary to thousands — not millions — of writes per second.",
+    say: "Every change is appended to a sequential log and fsynced before any data page moves, so a crash is repaired by replaying the log — sequential appends being the one thing disks do fast.",
+    reachFor:
+      "Explaining crash recovery, why a commit costs a flush, or where replication and change-data-capture streams physically come from.",
+    trap: "Wrong: 'the WAL is our backup.' It is a recovery log with a retention horizon, not an archive. Say 'the log makes a half-finished write repairable and is what replicas and CDC consume — backups are a separate thing with a separate retention.'",
   },
   lsm: {
     name: 'LSM-tree',
     def: "A storage engine (Cassandra, RocksDB, LevelDB) that never overwrites in place: writes go to a memory buffer, then flush as sorted immutable files that background jobs merge. Writes become pure sequential appends, which are fast; reads may have to check several files (read amplification). It is the engine that fits when writes dominate reads.",
+    say: "An LSM never overwrites in place — writes buffer in memory and flush as immutable sorted files that merge in the background — so writes become sequential appends and reads pay by checking more files.",
+    reachFor:
+      "Write-heavy workloads: time series, event ingestion, anything on Cassandra or a RocksDB-backed store.",
+    trap: "Wrong: 'LSM engines are just faster.' Faster at writes, slower at reads, and the deferred merge lands on your disk bandwidth later. Say 'it converts random writes into sequential ones and pays for that in compaction and read amplification.'",
   },
   btree: {
     name: 'B-tree',
     def: "The classic database index (Postgres, MySQL): a wide, shallow tree in which each node is one disk page, so any row is ~3–4 page reads away. Reads are fast and predictable; writes must find and update pages in place, paying random I/O. The B-tree/LSM choice is the read-optimized versus write-optimized fork — same data, opposite physics.",
+    say: "A B-tree is a wide, shallow tree of page-sized nodes, so any row is three or four page reads away — predictable reads bought with random writes that update pages in place.",
+    reachFor:
+      "The default index choice, and any question about why a lookup stays fast as the table grows.",
+    trap: "Wrong: 'the table got big, so the index got slow.' Fan-out is in the hundreds, so depth barely moved. Say 'depth went from three page reads to four — what actually changed is the buffer-cache hit rate or the maintenance window.'",
   },
   gsi: {
     name: 'Secondary index (GSI)',
     def: "An extra copy of the table sorted by a different key, so queries can address something other than the primary key. In distributed stores (DynamoDB's Global Secondary Index) it is literally a second table the system keeps in sync: every write now costs two writes, and the index copy can lag. Indexes are paid for with write amplification, not conjured for free.",
+    say: "A secondary index is a second copy of the table sorted by a different key, so querying a non-primary attribute costs another write on every insert and a copy that can lag.",
+    reachFor:
+      "DynamoDB and Cassandra modeling, and the moment a requirement appears that the partition key cannot serve.",
+    trap: "Wrong: 'we'll add a secondary index so we can query that.' It is an entire extra table the system maintains asynchronously. Say 'that doubles the write cost and the index is eventually consistent, so read-after-write against it can miss.'",
   },
   cdc: {
     name: 'Change data capture (CDC)',
     def: "Tapping the database's own replication log and streaming every committed change to other systems — search indexes, caches, warehouses. It beats dual-writing from the app because the log is authoritative: nothing is missed, order is preserved, and consumers can replay history. The cost is that downstream systems are eventually consistent by construction.",
+    say: "Change data capture taps the database's own replication log and streams every committed change downstream, so search indexes and caches update from an authoritative, ordered, replayable feed.",
+    reachFor:
+      "Keeping a search index, cache, or warehouse in sync — instead of dual-writing from application code and hoping.",
+    trap: "Wrong: 'the app writes to the database and to the search index.' A dual write fails halfway and nothing tells you which half. Say 'I'd drive the index off CDC so the log is the single ordered source, and accept that the index is eventually consistent.'",
   },
   fanout: {
     name: 'Fan-out',
@@ -191,10 +255,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   backpressure: {
     name: 'Backpressure',
     def: "What a system does when a producer outruns a consumer and the buffer between them is full: block the producer, shed work, or degrade output. The alternative — an unbounded buffer — converts overload into memory exhaustion and a later, larger crash. Where to refuse work, and whose work to refuse, is a design decision; leaving it unmade is choosing the crash.",
+    say: "Backpressure is what a system does when a producer outruns its consumer — block, shed, or degrade — because the alternative is an unbounded buffer and a larger crash later.",
+    reachFor:
+      "Every producer-consumer boundary: an ingestion pipeline, a stream job, a write path in front of a database.",
+    trap: "Wrong: 'we'll just buffer it.' An unbounded buffer converts overload into memory exhaustion. Say 'I'd bound the buffer and decide explicitly whose work we refuse — leaving that decision unmade is choosing the crash.'",
   },
   ratelimit: {
     name: 'Rate limiting',
     def: "Refusing requests beyond a quota (per user, per IP, per API key) before they consume real capacity, usually with token buckets. It converts unbounded abuse and retry storms into a clean, predictable 429. Protecting the write path with a limiter is often cheaper than provisioning for the worst client the system will ever meet.",
+    say: "Rate limiting refuses requests past a quota before they consume real capacity, converting abuse and retry storms into a clean, predictable 429.",
+    reachFor:
+      "Any public API, any expensive endpoint, and the write path in front of a database you cannot cheaply scale.",
+    trap: "Wrong: 'we'll scale to handle the load.' You would be provisioning for the worst client you will ever meet. Say 'I'd rate-limit per key with a token bucket, which is far cheaper than sizing the fleet for abuse.'",
   },
   dns: {
     name: 'DNS',
@@ -215,66 +287,130 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   connpool: {
     name: 'Connection pool',
     def: "A small set of pre-opened database connections that many app threads share, because connections are expensive for the database — each one costs memory and a process or thread, and Postgres degrades past a few hundred. 10,000 concurrent users do not get 10,000 connections; they queue briefly for ~100 pooled ones. An exhausted pool is a queue, with all the queue math attached.",
+    say: "A connection pool shares a small set of pre-opened database connections across many app threads, because the database charges memory and a process per connection and degrades past a few hundred.",
+    reachFor:
+      "Any 'the database is slow' investigation, and any autoscaling design where each new app instance multiplies the connection count.",
+    trap: "Wrong: 'we'll raise the pool size.' More connections on the same cores buys contention, not throughput, and the waiting just moves inside the database. Say 'the pool is a queue — I'd measure wait time at the pool before blaming the database.'",
   },
   herd: {
     name: 'Thundering herd',
     def: "Thousands of clients acting in perfect sync — reconnecting after a network blip, retrying on the same backoff schedule, or hammering one just-expired cache key. Each client behaves reasonably; the synchronization is what overloads the target. Every defense breaks the sync: random jitter on retries and TTLs, staggered reconnects, dogpile locks.",
+    say: "A thundering herd is thousands of clients acting in perfect sync — reconnecting, retrying, or missing the same expired key — where every client is individually reasonable and the synchronization is what kills you.",
+    reachFor:
+      "Reconnect storms after a blip, cache stampedes on a hot key, and any device fleet sharing a schedule.",
+    trap: "Wrong: 'each client only makes one request.' Ten thousand simultaneous single requests IS the outage. Say 'every defense breaks the synchronization — jitter on retries and TTLs, staggered reconnects, a dogpile lock on the miss.'",
   },
   breaker: {
     name: 'Circuit breaker',
     def: "A wrapper that watches calls to a dependency and, after enough failures, opens: further calls fail instantly instead of waiting out timeouts. That frees the caller’s threads, sheds load off the failing dependency so it can recover, and periodically lets a probe through to test for recovery. It converts \"one slow service drags down everything\" into \"one feature degrades\".",
+    say: "A circuit breaker opens after enough failures so calls fail instantly instead of waiting out timeouts, freeing the caller's threads and shedding load off the dependency so it can recover.",
+    reachFor:
+      "Any dependency whose failure should degrade one feature rather than take the whole service down with it.",
+    trap: "Wrong: 'the timeout handles it.' A timeout still costs you the full wait on every single request. Say 'the breaker opens so we stop paying the timeout at all, and it lets a probe through periodically to test for recovery.'",
   },
   bulkhead: {
     name: 'Bulkhead',
     def: "Giving each dependency or tenant its own bounded pool — threads, connections, queue slots — so exhaustion in one cannot spread to the rest. Without bulkheads, one slow payments API quietly consumes every thread in the service and takes checkout, search, and login down with it. The isolation costs a little capacity fragmentation; shared-everything failure costs the whole service.",
+    say: "A bulkhead gives each dependency or tenant its own bounded pool of threads and connections, so exhaustion in one cannot spread into the rest.",
+    reachFor:
+      "A service with several downstream dependencies of differing reliability, or a multi-tenant system where one tenant must not sink the others.",
+    trap: "Wrong: 'a shared thread pool is more efficient.' It is, right up until one slow payments API consumes every thread and takes checkout, search, and login with it. Say 'I'd bound each dependency's pool and trade a little capacity fragmentation for containment.'",
   },
   bluegreen: {
     name: 'Blue-green deploy',
     def: "Running two identical environments: blue serves traffic while the new version deploys to green, then the router flips. Rollback is flipping back — seconds, not a re-deploy. The costs are double hardware during the window and a shared database, so schema changes must stay compatible with both versions at once.",
+    say: "Blue-green runs two identical environments and flips the router between them, so rollback is a flip back in seconds rather than a re-deploy under pressure.",
+    reachFor:
+      "Releases where fast rollback matters more than the cost of doubled capacity during the switch window.",
+    trap: "Wrong: 'blue-green makes deploys safe.' Both halves share one database, so a schema change only the new version understands breaks the rollback path. Say 'the flip is safe exactly when the migration is compatible with both versions at once.'",
   },
   canary: {
     name: 'Canary deploy',
     def: "Shipping a new version to a small slice (1–5%) of traffic, watching error rates and latency, then widening or rolling back. It bounds the blast radius of a bad release to the slice. The limit is representativeness: a 1% canary can miss bugs that appear only at full load or only for specific user cohorts.",
+    say: "A canary ships the new version to a small slice of traffic and watches error rate and latency before widening, which bounds the blast radius of a bad release to that slice.",
+    reachFor:
+      "Any risky release whose failure mode you expect to show up in metrics rather than in tests.",
+    trap: "Wrong: 'the canary was clean, so ship it.' One percent of traffic can easily miss a bug that only appears at full load or for one cohort. Say 'the canary bounds the blast radius; it does not prove correctness at scale.'",
   },
   cap: {
     name: 'CAP theorem',
     def: "During a network partition, a distributed system must choose: refuse some requests (consistency) or answer with possibly-stale data (availability). It is a proof, not a slogan, and in practice a statement about geography — partitions between regions are a matter of when, not if. The working question is per-operation: which requests may return stale data, and which must never?",
+    say: "During a network partition a distributed system must choose, per operation, between refusing requests it cannot confirm and answering with possibly-stale data.",
+    reachFor:
+      "Any multi-region or replicated design — and it is really a statement about geography, since partitions between regions are a matter of when.",
+    trap: "Wrong: 'we're a CP system.' CAP applies per operation, not per system. Say 'checkout has to be consistent and the browse page can be stale — which requests may return old data is the actual design question.'",
   },
   quorum: {
     name: 'Quorum',
     def: "Requiring a majority (2 of 3, 3 of 5) of replicas to acknowledge a write or serve a read, so that any two majorities overlap in at least one node holding the latest value. The overlap is what keeps the system consistent while a minority of nodes is down. It is why replica counts are odd, and why every quorum write waits on the slowest member of its majority.",
+    say: "A quorum requires a majority of replicas to answer, so any two majorities must overlap in at least one node holding the latest value — and that overlap is the entire guarantee.",
+    reachFor:
+      "Explaining tunable consistency, why replica counts are odd, and how split brain is actually prevented.",
+    trap: "Wrong: 'quorum means most of them agreed.' It means the read set and the write set are forced to intersect. Say 'W plus R greater than N is what makes the read see the write — pigeonhole arithmetic, not a vote.'",
   },
   leader: {
     name: 'Leader election',
     def: "Picking exactly one node to accept writes, so ordering has a single source of truth; the election is done with consensus so a network split cannot crown two leaders (split-brain). During an election — triggered precisely when the system is already failing — there is no leader, and writes stall. Leader-based systems are therefore engineered around how short that gap can be made.",
+    say: "Leader election picks exactly one node to accept writes so ordering has a single source of truth, and it runs on consensus precisely so a network split cannot crown two.",
+    reachFor:
+      "Any single-writer design — a primary database, a partition leader, a cron that must run exactly once across a fleet.",
+    trap: "Wrong: 'the leader keeps things consistent.' There is a window with no leader at all, triggered exactly when the system is already failing. Say 'writes stall during the election, so the design question is how short that gap can be made.'",
   },
   exactlyonce: {
     name: 'Exactly-once',
     def: "A message delivered and processed precisely one time — the guarantee no network can natively provide, because acknowledgements themselves can be lost. Real systems compose it honestly: at-least-once delivery plus idempotent processing, deduplicating by operation ID, so duplicates arrive but have no second effect. A vendor claiming exactly-once is describing that composition, and the load-bearing part is where the idempotency key lives.",
+    say: "Exactly-once is not a delivery guarantee any network can provide — it is at-least-once delivery plus idempotent processing that dedupes on an operation id.",
+    reachFor:
+      "Correcting a vendor claim, or explaining how Kafka transactions and Flink checkpoints actually achieve what they advertise.",
+    trap: "Wrong: 'the broker gives us exactly-once.' Acknowledgements can be lost, so redelivery is unavoidable. Say 'exactly-once is composed from at-least-once plus deduplication, and the load-bearing question is where the idempotency key lives.'",
   },
   atleastonce: {
     name: 'At-least-once',
     def: "The workhorse delivery guarantee: keep retrying until acknowledged, so nothing is lost — but the same message may arrive twice, because the acknowledgement, not the message, may be what got lost. Accepting at-least-once makes duplicates a promise rather than a bug, so every consumer must be idempotent. The alternative, at-most-once, trades duplicates for silent loss.",
+    say: "At-least-once keeps retrying until acknowledged, so nothing is lost and the same message may arrive twice — because it is usually the acknowledgement, not the message, that got lost.",
+    reachFor:
+      "The default and correct choice for nearly every queue, paired with an idempotent consumer.",
+    trap: "Wrong: 'we'll use at-most-once to avoid duplicates.' You just traded visible duplicates for silent loss. Say 'I take at-least-once and make the consumer idempotent, because a duplicate I can dedupe beats a message I never knew about.'",
   },
   visibility: {
     name: 'Visibility timeout',
     def: "A queue's crash-recovery window: receiving a message hides it, rather than deleting it, while a worker processes it. If the worker finishes, it deletes the message; if it crashes, the timeout expires and the message reappears for another worker. The timeout has to exceed the slowest processing time, or healthy work reappears mid-flight and gets processed twice.",
+    say: "A visibility timeout hides a message rather than deleting it while a worker processes it, so a crashed worker's message simply reappears for someone else.",
+    reachFor:
+      "SQS-style queues, and explaining how at-least-once delivery is actually implemented rather than just asserted.",
+    trap: "Wrong: 'set a short visibility timeout so failures recover quickly.' Shorter than your slowest processing time and healthy work reappears mid-flight and runs twice. Say 'the timeout has to exceed p99 processing time, and the consumer must be idempotent regardless.'",
   },
   dlq: {
     name: 'Dead-letter queue',
     def: "Where messages go after failing N processing attempts, so one poison message — malformed, or triggering a bug — cannot clog the queue with endless retries while healthy work backs up behind it. The DLQ doubles as the forensic record: it converts 'processing kept crashing all night' into 'these 14 exact messages failed — replay them after the fix'.",
+    say: "A dead-letter queue catches messages that failed N attempts, so one poison message cannot clog the pipeline with endless retries while healthy work backs up behind it.",
+    reachFor:
+      "Every production queue — it is the operational answer to what happens to the messages you cannot process.",
+    trap: "Wrong: 'failed messages get retried.' Retried forever is how one malformed message takes down the night shift. Say 'after N attempts it goes to a DLQ, which doubles as the forensic record — these fourteen messages failed, replay them after the fix.'",
   },
   hotpartition: {
     name: 'Hot partition',
     def: "One shard receiving far more traffic than its siblings because many writers compute the same partition key — a timestamp bucket, today's date, a viral post's ID. The cluster is large and mostly idle while one node saturates: total capacity means nothing when per-key capacity is the limit. The defense is salting or composing keys so concurrent writers spread across partitions.",
+    say: "A hot partition is one shard taking most of the traffic because many writers compute the same key, so the cluster sits mostly idle while a single node saturates.",
+    reachFor:
+      "Any partition-key review, and any incident where total capacity looks healthy while one node throttles.",
+    trap: "Wrong: 'we'll provision more capacity.' Per-partition limits are per key range, so a hot key gets exactly one partition no matter what the table is provisioned for. Say 'I'd salt or compose the key so concurrent writers land on different partitions.'",
   },
   readyourwrites: {
     name: 'Read-your-own-writes',
     def: "The consistency promise users actually notice: after saving, the author's own next read shows the change — even if strangers see stale data a moment longer. Replication lag breaks it: write to the primary, read from a lagging replica, and the new comment has 'vanished'. The standard fixes pin a user's reads to the primary briefly after their write, or route reads by session.",
+    say: "Read-your-own-writes is the promise that after saving, the author's own next read shows the change, even while strangers may see stale data a moment longer.",
+    reachFor:
+      "Any post, comment, or edit flow — it is the consistency guarantee users actually notice, and the cheapest one to provide.",
+    trap: "Wrong: 'we need strong consistency.' Usually you need this much weaker and much cheaper thing. Say 'I'd pin the author's reads to the primary for a few seconds after their write, rather than making every read in the system coordinate.'",
   },
   replag: {
     name: 'Replication lag',
     def: "The delay between a write committing on the primary and appearing on a replica — milliseconds normally, unbounded under load, because lag is a queue and queues explode past the knee. It is the fine print on 'just add replicas': every read from a replica is a read of the recent past. The design question is which reads tolerate that and which must not.",
+    say: "Replication lag is the delay between a write committing on the primary and appearing on a replica — milliseconds normally, unbounded under load, because lag is a queue.",
+    reachFor:
+      "Any design that reads from replicas, and the inevitable follow-up about what a user sees immediately after they post.",
+    trap: "Wrong: 'lag is only a few milliseconds.' It is a queue, so it is a few milliseconds right up until it is not. Say 'reads that must see their own write go to the primary, and every replica read is a read of the recent past.'",
   },
   cdn: {
     name: 'CDN',
@@ -287,6 +423,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   index: {
     name: 'Index',
     def: "A sorted copy of chosen columns that turns \"scan a billion rows\" into \"walk a tree in a few page reads\". The price is paid on the write path: every insert must also update every index, and each index is more storage and more write amplification. An index is the read-versus-write trade taken one table at a time.",
+    say: "An index is a sorted copy that turns scanning a billion rows into a few page reads, paid for on every single write that has to maintain it.",
+    reachFor:
+      "Any slow-query conversation, and any schema review where someone proposes the fourth or fifth index on one table.",
+    trap: "Wrong: 'add an index, it can only help.' Each index is storage plus one more write per insert, and on a small or low-selectivity table the planner will not even use it. Say 'I'd index the column this query filters on, and accept one extra write per insert.'",
   },
   throughput: {
     name: 'Throughput vs latency',
@@ -295,10 +435,18 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   timeout: {
     name: 'Timeout',
     def: "How long a caller waits on a dependency before giving up. Without one, a slow dependency silently holds the caller's threads until everything upstream is stuck — slowness propagates farther than errors do. Timeouts must shrink as calls go deeper, because the caller's budget bounds the callee's, and every timeout needs a decided fallback: retry, degrade, or fail.",
+    say: "A timeout is how long a caller waits before giving up, and without one a slow dependency silently holds your threads until everything upstream is stuck too.",
+    reachFor:
+      "Every network call without exception, and any incident whose symptom is everything got slow rather than something returned an error.",
+    trap: "Wrong: 'we set a generous timeout to be safe.' Generous means your threads are held longer during precisely the failure you were protecting against. Say 'timeouts shrink as calls go deeper, because the caller's budget bounds the callee's, and each one has a decided fallback.'",
   },
   retry: {
     name: 'Retry (with backoff + jitter)',
     def: "Repeating a failed call, waiting exponentially longer each time, with randomness added so thousands of clients do not retry in lockstep — a synchronized retry wave is a self-inflicted thundering herd. Transient failures are common enough that retries are load-bearing, and two rules make them safe: the operation must be idempotent, and retries must be budgeted so they cannot multiply load during an outage.",
+    say: "Retries repeat a failed call with exponentially growing waits plus jitter, because a synchronized retry wave is a thundering herd you inflicted on yourself.",
+    reachFor:
+      "Transient failures — a blip, a brief overload, a failover — where the second attempt genuinely has a different outcome.",
+    trap: "Wrong: 'we retry three times.' Without jitter every client retries in lockstep, and without a budget retries multiply load during the outage. Say 'exponential backoff with jitter, a retry budget, and an idempotent operation — otherwise retries are an amplifier, not a fix.'",
   },
   rest: {
     name: 'REST API',
@@ -311,34 +459,66 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   normalization: {
     name: 'Normalization',
     def: "Storing each fact exactly once and referencing it by key, so an update touches one row and the data cannot contradict itself. The cost is paid at read time: assembling a view requires joining several tables, and joins grow more expensive as data grows. Read-heavy systems therefore often denormalize on top of a normalized core.",
+    say: "Normalizing stores each fact exactly once and reassembles it with a join, so an update touches one row and the data cannot contradict itself.",
+    reachFor:
+      "Write-heavy and correctness-critical models — ledgers, inventory, anything where two copies disagreeing is a page at 3am.",
+    trap: "Wrong: 'normalize everything, it's correct.' Correct and fast are different axes, and a read-heavy feed pays the join on every single request. Say 'I normalize the source of truth and denormalize the read path on top of it.'",
   },
   denormalization: {
     name: 'Denormalization',
     def: "Deliberately duplicating data — pre-joining it into the shape a screen needs — so a read becomes a single lookup instead of a multi-table join. It trades write cost and consistency risk for read speed: every copy must be updated, and copies can drift. The trade is right when reads vastly outnumber writes, and wrong otherwise.",
+    say: "Denormalizing pre-joins data into the shape the screen needs so a read is one lookup, at the cost of updating every copy on every write.",
+    reachFor:
+      "Read-heavy screens with a fixed shape — a feed, a profile, a product listing — where reads outnumber writes by orders of magnitude.",
+    trap: "Wrong: 'denormalize for performance.' Performance for whom — the cost moved to the write path and the copies can now drift. Say 'reads outnumber writes a hundred to one here, so I duplicate and eat the write fan-out.'",
   },
   join: {
     name: 'Join',
     def: "Combining rows from multiple tables on a shared key at query time. Joins are what let data stay normalized — stored once — but they cost CPU and I/O that grow with table size, and they become hard or impossible once data is sharded across machines. That limit is a major reason NoSQL stores drop them.",
+    say: "A join combines rows on a shared key at query time, which is what lets data stay stored once — and what stops working cleanly once the tables live on different machines.",
+    reachFor:
+      "Relational modeling, and explaining precisely what NoSQL gave up in order to scale horizontally.",
+    trap: "Wrong: 'joins are slow.' A well-indexed join of a few tables is fast; what is slow is a join across shards, or one the planner can no longer order well. Say 'joins are cheap until the data is distributed, which is the point where you denormalize.'",
   },
   acid: {
     name: 'ACID',
     def: "The transactional guarantees of a classic database: Atomicity (all-or-nothing), Consistency (declared rules always hold), Isolation (concurrent transactions don't see each other's partial work), Durability (committed data survives a crash). They are why a bank transfer cannot lose money in the middle — and why every commit pays an fsync, bounding write throughput to thousands per second.",
+    say: "ACID is atomicity, consistency, isolation and durability — all-or-nothing, declared rules always hold, concurrent transactions don't see partial work, and a commit survives a crash.",
+    reachFor:
+      "Justifying a relational store for money, inventory, or bookings — anywhere a half-applied operation is a real-world problem.",
+    trap: "Wrong: 'it's ACID, so concurrency is handled.' The I is a dial, and it ships set to read committed. Say 'ACID gives me atomicity and durability outright; isolation is a level I have to choose and pay for.'",
   },
   nosql: {
     name: 'NoSQL',
     def: "A family of non-relational databases — key-value, document, wide-column, graph — that drop joins and strict ACID in exchange for horizontal scale and a data model shaped to one access pattern. The queries must be known up front, because the partition key is designed first and everything else follows from it. The fit is real when the access pattern is fixed and the scale demands it.",
+    say: "NoSQL trades joins and strict ACID for horizontal scale and a model shaped to one access pattern, which means the queries have to be known before the schema is.",
+    reachFor:
+      "Fixed, well-understood access patterns at scale — a session store, a feed, a device-telemetry table.",
+    trap: "Wrong: 'NoSQL scales better.' It scales differently, by making you commit to the access pattern up front. Say 'I'd use it because I know the query and can pick a partition key that spreads — not because relational ran out of road.'",
   },
   blob: {
     name: 'Blob / object storage',
     def: "Large binary objects — images, video, backups — stored in a flat key→bytes service (S3, GCS) at ~$0.02/GB/mo, far cheaper and more scalable than block storage. Blobs stay out of the database because a multi-megabyte row bloats indexes, evicts useful cache, and costs several times more. The object lives in blob storage; only its key lives in the database.",
+    say: "Blob storage keeps large binaries in a flat key-to-bytes service at around two cents per gigabyte-month, so the object lives there and only its key lives in the database.",
+    reachFor:
+      "Images, video, PDFs, backups — anything measured in megabytes rather than bytes.",
+    trap: "Wrong: 'we'll store the file in the database.' A multi-megabyte row bloats indexes, evicts useful cache, and costs several times more per byte. Say 'the bytes go to object storage and the row carries the key plus the metadata I actually query on.'",
   },
   presigned: {
     name: 'Presigned URL',
     def: "A time-limited, permission-scoped link that lets a client read or write one specific object in blob storage directly, without the bytes passing through the application servers. It exists because a 2 GB upload would otherwise pin an app-server thread and its memory for minutes. The API issues the ticket; the heavy transfer runs between client and storage.",
+    say: "A presigned URL is a time-limited, permission-scoped link that lets the client move bytes straight to object storage, so a two-gigabyte upload never occupies an app server.",
+    reachFor:
+      "Any large upload or download path — user media, data exports, backups — where proxying would pin threads and memory for minutes.",
+    trap: "Wrong: 'the upload goes through our API.' That pins a thread and its buffers for the whole transfer and turns your app tier into a bandwidth bill. Say 'the API issues a presigned URL, the client uploads directly, and then calls back with the key.'",
   },
   invertedindex: {
     name: 'Inverted index',
     def: "The data structure behind search: a map from each word to the list of documents containing it, so a text query becomes a lookup and a merge instead of a scan of every row. It is built at write time by tokenizing and indexing each document. Search therefore lives in a separate, eventually-consistent system fed from the database, rather than inside the primary store.",
+    say: "An inverted index maps each word to the documents containing it, so full-text search becomes a lookup and a merge instead of a scan of every row.",
+    reachFor:
+      "Any search requirement — product search, log search, autocomplete — where a wildcard LIKE would be a full scan.",
+    trap: "Wrong: 'we'll add a search index to the database and be done.' Search is a separate, eventually-consistent system fed from your database. Say 'I'd run a search cluster fed by change-data-capture, and say out loud that it lags the source of truth.'",
   },
   apigateway: {
     name: 'API gateway',
@@ -347,18 +527,34 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   stream: {
     name: 'Stream (event log)',
     def: "An ordered, retained, replayable log of events (Kafka) that many independent consumers read at their own offset — unlike a queue, consuming a message does not delete it. A broker sustains ~1M msgs/s because it only ever appends sequentially. Retention plus offsets mean a new consumer can be added later and reprocess all of history.",
+    say: "A stream is an ordered retained log that many consumers read at their own offset, so consuming does not delete and a new consumer added next year can replay all of history.",
+    reachFor:
+      "Multiple independent consumers of the same events, audit requirements, or any need to reprocess history after fixing a bug.",
+    trap: "Wrong: 'a stream is basically a queue.' A queue deletes on consume; a log deletes on retention. Say 'the log keeps events for the retention window, which is exactly what makes replay and independent consumers possible.'",
   },
   eventsourcing: {
     name: 'Event sourcing',
     def: "Storing the sequence of changes (events) as the source of truth and deriving current state by replaying them, instead of storing only the latest state. It yields a complete audit log and the ability to rebuild any view — or fix a bug retroactively — by replaying. The costs are more storage and the obligation to keep old event schemas replayable forever.",
+    say: "Event sourcing stores the sequence of changes as the source of truth and derives current state by replaying them, which buys a complete audit log and the ability to rebuild any view.",
+    reachFor:
+      "Domains where history IS the requirement — ledgers, order lifecycles, compliance — or where you need to fix a bug retroactively.",
+    trap: "Wrong: 'we'll event-source it for flexibility.' You have signed up to keep every old event schema replayable forever. Say 'I'd use it where the audit trail is a hard requirement, and treat schema evolution as the permanent tax.'",
   },
   distlock: {
     name: 'Distributed lock',
     def: "A lock shared across machines so only one worker performs a critical action at a time (charging a card once, running one cron). A holder can pause or crash, so correct locks are time-bounded leases carrying a fencing token that the protected resource checks. Because the lock is agreement among machines, robust implementations sit on a consensus store (etcd, ZooKeeper) rather than a lone Redis key.",
+    say: "A distributed lock lets only one worker across many machines perform a critical action, and because a holder can pause or crash it has to be a time-bounded lease carrying a fencing token.",
+    reachFor:
+      "Charging a card once, running one cron across a fleet, or any side effect that must not happen twice.",
+    trap: "Wrong: 'we use a Redis key as a lock.' A lone key gives you neither consensus nor fencing. Say 'a lock is agreement among machines — I'd put it on etcd or ZooKeeper and have the resource itself check the fencing token.'",
   },
   lease: {
     name: 'Lease',
     def: "A lock granted for a bounded time that must be renewed to keep, so a crashed holder's lock expires on its own instead of deadlocking the system. The subtlety: a paused holder can lose its lease while still believing it owns the resource. That stale writer is rejected by a fencing token — a monotonically rising number the resource validates on every operation.",
+    say: "A lease is a lock granted for a bounded time that must be renewed to keep, so a crashed holder's lock expires on its own instead of deadlocking the system.",
+    reachFor:
+      "Distributed locks, leader terms, and session-based coordination where the holder might simply vanish mid-operation.",
+    trap: "Wrong: 'the lease expired, so the old holder stopped.' The old holder was paused and has no idea. Say 'expiry bounds the deadlock, and a fencing token is what actually stops the stale writer at the resource.'",
   },
   websocket: {
     name: 'WebSocket',
@@ -387,26 +583,50 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   saga: {
     name: 'Saga',
     def: "A transaction spanning several services, run as a sequence of local steps, each paired with a compensating action that undoes it if a later step fails. It trades atomicity for availability: there is a window where some steps are done and others are not. Every step must therefore be idempotent, and a failure that cannot be compensated goes to a human via a dead-letter queue.",
+    say: "A saga runs a cross-service transaction as a sequence of local steps, each paired with a compensating action, trading atomicity for availability.",
+    reachFor:
+      "Workflows spanning services with separate databases — booking, checkout, onboarding — where two-phase commit would block.",
+    trap: "Wrong: 'the saga rolls back on failure.' Each step already committed; there is nothing to roll back. Say 'each step ships with a compensating action, and I'd order the steps so the hardest one to compensate runs last.'",
   },
   '2pc': {
     name: 'Two-phase commit (2PC)',
     def: "A protocol in which a coordinator asks every participant to prepare, then — if all agree — to commit, yielding atomicity across separate databases. It blocks: participants hold locks while they wait, and a coordinator crash can leave them stuck holding those locks. It is reserved for a few fast steps that truly must be atomic; at scale, sagas are preferred.",
+    say: "Two-phase commit has a coordinator ask every participant to prepare and then to commit, buying atomicity across separate databases at the price of participants holding locks while they wait.",
+    reachFor:
+      "A small number of fast steps that genuinely must be atomic, inside one trust and latency domain.",
+    trap: "Wrong: 'we'll use 2PC across the services.' It blocks, and a coordinator crash leaves participants holding locks with nobody to tell them what happened. Say 'past a couple of fast local participants I use a saga and design the compensations.'",
   },
   optimistic: {
     name: 'Optimistic concurrency',
     def: "Handling contention by letting writers race without locks: read a version number, and commit only if it has not changed (compare-and-set), otherwise retry. With rare conflicts it is the fastest scheme, because no one waits on a lock. Under heavy contention it thrashes on repeated retries — there, a pessimistic lock or a single serialized owner wins.",
+    say: "Optimistic concurrency lets writers race without locks and commits only if the version is unchanged, which is fastest exactly when conflicts are rare.",
+    reachFor:
+      "Low-contention updates — editing a profile, saving a document — where holding a lock would cost more than the occasional retry.",
+    trap: "Wrong: 'optimistic is faster.' Under high contention every loser redoes its work and throughput collapses. Say 'optimistic wins below some conflict rate and pessimistic wins above it, and the conflict rate is measurable rather than a matter of taste.'",
   },
   geohash: {
     name: 'Geohash',
     def: "An encoding that interleaves latitude and longitude bits into a single string, so nearby points share a common prefix and an ordinary index answers \"near me\" with a prefix range scan. It turns a 2D proximity query into a 1D lookup. The catch is cell borders: a point near an edge requires checking the neighboring cells too.",
+    say: "A geohash interleaves latitude and longitude bits into one sortable string so nearby points share a prefix, turning a two-dimensional proximity query into an ordinary index range scan.",
+    reachFor:
+      "Find-things-near-me on a database you already run, without adopting a spatial engine.",
+    trap: "Wrong: 'the prefix gives you everything nearby.' A point near a cell border has its closest neighbours under a completely different prefix. Say 'I query the cell plus its eight neighbours, then filter by true distance.'",
   },
   quadtree: {
     name: 'Quadtree',
     def: "A spatial index that recursively splits a region into four quadrants, subdividing only where points are dense — cities get fine cells, oceans stay coarse. It adapts to uneven density far better than a fixed grid. The price is a heavier structure to maintain as objects move, which is the trade weighed against a simpler geohash.",
+    say: "A quadtree recursively splits a region into four quadrants only where points are dense, so cities get fine cells, oceans stay coarse, and both cost about the same query.",
+    reachFor:
+      "Highly uneven spatial density, where a fixed grid would be mostly empty cells and a few overloaded ones.",
+    trap: "Wrong: 'a quadtree is faster than a geohash.' It adapts better and costs more to maintain as objects move. Say 'I'd start with geohashing on the index I already have and reach for a quadtree or R-tree when density is genuinely uneven.'",
   },
   consistenthash: {
     name: 'Consistent hashing',
     def: "Placing nodes and keys on a hash ring where each key belongs to the next node clockwise, so adding or removing a node re-homes only about 1/N of the keys instead of nearly all of them. It is what lets distributed caches and partitioned stores change size without a system-wide reshuffle — which, for a cache, would be a total miss storm.",
+    say: "Consistent hashing puts nodes and keys on a ring where a key belongs to the next node clockwise, so a membership change re-homes about one in N of the keys instead of nearly all of them.",
+    reachFor:
+      "Distributed caches and partitioned stores that must grow or shrink without a system-wide reshuffle — which for a cache is a total miss storm.",
+    trap: "Wrong: 'consistent hashing balances the load.' It bounds movement; virtual nodes are what balance it. Say 'it keeps a resize from re-homing everything, and I add virtual nodes so the arcs come out even.'",
   },
 
   /* ---- Networking (spec 065) — the transport floor everything above assumes.

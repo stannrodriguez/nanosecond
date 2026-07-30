@@ -543,8 +543,9 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
         <p style={{ color: C.dim }}>
           Drag the node count. Adding a node steals only its new clockwise slice — about <b>1/N</b> of the keys move, not all
           of them. That is a bound on MOVEMENT, not a promise of evenness: with one point per node, random placement
-          leaves arcs of wildly different sizes. Real systems give each node hundreds of <T k="vnode">virtual nodes</T> on
-          the ring, so load averages out and a death is absorbed by many neighbours instead of doubling one.
+          leaves arcs of wildly different sizes. Real systems give each machine hundreds of small{' '}
+          <T k="vnode">virtual nodes</T> scattered around the circle, so load averages out and a death is absorbed by
+          many neighbours instead of doubling one.
         </p>
         <p style={{ color: C.dim }}>
           A ring is not the only way to bound movement. Redis Cluster cuts the key space into 16,384 fixed{' '}

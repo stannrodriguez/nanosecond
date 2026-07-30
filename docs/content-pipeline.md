@@ -160,7 +160,17 @@ Fields: { id, shelf ('concepts' | 'technologies' | 'patterns'), title, body (JSX
 plain language, every jargon word a <Term>), viz (interactive or animated diagram
 component — REQUIRED, a section without one is not authorable), related { toys[],
 terms[], sections[] }, feltIn (one line: the mode/scenario where this concept bites),
-termShelf? (glossary group rendered on the page, spec 068) }.
+termShelf? (glossary group rendered on the page, spec 068),
+blocks? (spec 069 — a DEEP briefing as ordered viz-led blocks) }.
+
+Blocks (spec 069): a section may carry `blocks[]: { heading, body (JSX), viz?,
+simplifies? }`. When present, the briefing page renders the blocks in order —
+numbered heading → prose → viz → fine print — and the legacy `body`/`viz`/
+`simplifies` fields are IGNORED for that section. They stay required by the
+type: point them at block 1's content so single-block sections and the existing
+schema tests are untouched. Contract (tests/schema.test.ts): ≥2 blocks, every
+block body non-empty, ≥2 blocks carry a viz, and every block with a viz has
+`simplifies` fine print. Reference implementation: the networking briefing.
 
 THE THREE REGISTERS (content philosophy, 2026-07-30 — every briefing serves all
 three, in this order):

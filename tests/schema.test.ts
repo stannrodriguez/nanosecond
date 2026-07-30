@@ -399,6 +399,25 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
     }
   })
 
+  it('sections with blocks meet the block contract (spec 069)', () => {
+    const plain = (node: ReactNode) =>
+      renderToStaticMarkup(createElement(Fragment, null, node))
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    for (const m of MANUAL) {
+      if (!m.blocks) continue
+      expect(m.blocks.length, `${m.id} needs ≥2 blocks`).toBeGreaterThanOrEqual(2)
+      const withViz = m.blocks.filter((b) => b.viz)
+      expect(withViz.length, `${m.id} needs ≥2 blocks with a viz`).toBeGreaterThanOrEqual(2)
+      for (const b of m.blocks) {
+        expect(b.heading.trim().length, `${m.id} block heading`).toBeGreaterThan(0)
+        expect(plain(b.body).length, `${m.id} · ${b.heading} body empty`).toBeGreaterThan(0)
+        if (b.viz) expect(b.simplifies?.trim().length, `${m.id} · ${b.heading} viz needs simplifies`).toBeGreaterThan(20)
+      }
+    }
+  })
+
   it('termShelf, when present, resolves to a reference group (spec 068)', () => {
     const groupIds = new Set(REFERENCE_GROUPS.map((g) => g.id))
     for (const m of MANUAL) {

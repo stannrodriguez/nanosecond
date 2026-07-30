@@ -14,6 +14,17 @@ export const SHELVES: { id: Shelf; label: string; blurb: string }[] = [
   { id: 'patterns', label: 'Common Patterns', blurb: 'shapes that recur' },
 ]
 
+/** Spec 069: one viz-led block of a multi-block briefing (content-pipeline §7,
+ *  "three registers"). Blocks render in order: numbered heading → prose → viz →
+ *  fine print. A block without a viz is allowed (e.g. a hand-off block), but a
+ *  block WITH one must carry `simplifies` (schema test). */
+export interface SectionBlock {
+  heading: string
+  body: ReactNode
+  viz?: ReactNode
+  simplifies?: string
+}
+
 export interface ManualSection {
   id: string
   shelf: Shelf
@@ -26,6 +37,10 @@ export interface ManualSection {
   viz: ReactNode
   /** honesty fine print for the viz (docs/architecture.md) */
   simplifies: string
+  /** Spec 069: deep briefings render these blocks IN PLACE OF body/viz/
+   *  simplifies (which stay required — point them at block 1's content so
+   *  single-block sections and their tests are untouched). */
+  blocks?: SectionBlock[]
   related: {
     toys?: string[] // ids into content/toys.ts
     terms: string[] // keys into content/glossary.ts (≥1)

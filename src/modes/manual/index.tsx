@@ -398,6 +398,44 @@ function SayItCard({ s }: { s: ManualSection }) {
   )
 }
 
+/* Spec 069: a deep briefing renders as numbered, viz-led blocks (content-
+   pipeline §7 "three registers"); the legacy body/viz/simplifies fields are
+   ignored when blocks exist — block 1 points at the same content. */
+function SectionBlocks({ s }: { s: ManualSection }) {
+  const col = SHELF_COLOR[s.shelf]
+  return (
+    <>
+      {s.blocks!.map((b, i) => (
+        <section key={b.heading} aria-label={b.heading} style={{ marginTop: i === 0 ? 0 : 36 }}>
+          <h3
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              margin: '0 0 10px',
+              paddingTop: i === 0 ? 0 : 14,
+              borderTop: i === 0 ? 'none' : `1px solid ${C.line}`,
+            }}
+          >
+            <span className="mono" style={{ fontSize: 11.5, color: col, letterSpacing: 1 }}>
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span className="mono" style={{ fontSize: 12.5, letterSpacing: 1.2 }}>
+              {b.heading}
+            </span>
+          </h3>
+          <div style={{ fontSize: 14, lineHeight: 1.6 }}>{b.body}</div>
+          {b.viz}
+          {b.simplifies && <FinePrint text={b.simplifies} />}
+        </section>
+      ))}
+    </>
+  )
+}
+
 function SectionView({ s }: { s: ManualSection }) {
   const markSectionRead = useProgress((st) => st.markSectionRead)
   useEffect(() => {
@@ -409,9 +447,15 @@ function SectionView({ s }: { s: ManualSection }) {
       <p className="mono" style={{ fontSize: 12, color: C.net, margin: '0 0 12px' }}>
         {s.thesis}
       </p>
-      <div style={{ fontSize: 14, lineHeight: 1.6 }}>{s.body}</div>
-      {s.viz}
-      <FinePrint text={s.simplifies} />
+      {s.blocks ? (
+        <SectionBlocks s={s} />
+      ) : (
+        <>
+          <div style={{ fontSize: 14, lineHeight: 1.6 }}>{s.body}</div>
+          {s.viz}
+          <FinePrint text={s.simplifies} />
+        </>
+      )}
       {s.termShelf && <TermsPanel s={s} />}
       <RelatedRow s={s} />
       <div

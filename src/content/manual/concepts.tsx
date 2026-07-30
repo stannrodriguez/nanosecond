@@ -269,6 +269,12 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
           and eats the write <T k="fanout">fan-out</T>; a write-heavy ledger normalizes and eats the join. An{' '}
           <T k="index">index</T> is the same trade in miniature — a sorted copy that speeds a read and taxes every write.
         </p>
+        <p>
+          There is a third position between the two toggles: keep the normalized truth AND store the assembled answer as
+          a <T k="materializedview">materialized view</T>, refreshed in the background rather than recomputed per request.
+          Reads stop paying for the join, writes stop fanning out to every copy, and the price moves to a place you can
+          state out loud — the view is exactly as stale as its last refresh.
+        </p>
       </>
     ),
     viz: (
@@ -331,6 +337,24 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
           write amplification. Storage engines make the same trade at the root: a <T k="btree">B-tree</T> overwrites in place
           (read-optimized), an <T k="lsm">LSM-tree</T> only appends and merges later (write-optimized) — both first append
           intent to a <T k="wal">write-ahead log</T>.
+        </p>
+        <p>
+          The slider shows one index. In practice you also choose its SHAPE. A <T k="compositeindex">composite index</T>{' '}
+          sorts by several columns in order and can be entered from any leading prefix — put the filter column first and
+          the sort column next, and one traversal answers both halves of the query. A{' '}
+          <T k="coveringindex">covering index</T> also carries the columns you return, so the engine answers from the
+          index and skips the random heap fetch. A <T k="partialindex">partial index</T> covers only rows matching a
+          condition, which is how a job table's handful of pending rows gets an index small enough to stay in RAM. And
+          when the question is spatial, sorted order fails outright: an <T k="rtree">R-tree</T> groups objects into
+          fitted, overlapping rectangles, which is what lets it index polygons and not only points.
+        </p>
+        <p style={{ color: C.dim }}>
+          Zoom into the LSM half of that trade and the read count above is built from four stages: a write lands in the
+          in-memory <T k="memtable">memtable</T> — already durable, because the log was fsynced first — which flushes to
+          an immutable <T k="sstable">SSTable</T>, which <T k="compaction">compaction</T> later merges to keep the file
+          count, and therefore the read cost, from growing forever. A <T k="bloomfilter">bloom filter</T> per file is
+          what makes that read survivable: it rules keys OUT with certainty, so most files are skipped without a disk
+          trip at all.
         </p>
       </>
     ),
@@ -432,8 +456,9 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          <T k="shard">Sharding</T> scales <T k="write">writes</T> by splitting data across independent databases — and the
-          partition key decides everything. The cluster can only spread load as evenly as your keys spread. Toggle to a{' '}
+          <T k="shard">Sharding</T> scales <T k="write">writes</T> by splitting data across independent databases — and the{' '}
+          <T k="partitionkey">partition key</T> decides everything. The cluster can only spread load as evenly as your keys
+          spread. Toggle to a{' '}
           <T k="hotpartition">hot key</T> (this hour's bucket, a viral post's id): every concurrent writer funnels to one
           node while the rest of the expensive cluster idles.
         </p>
@@ -441,6 +466,13 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
           Total capacity is a lie; per-key capacity is what saturates. Fixes: salt or compose the key so writers spread.
           Querying by a non-key column means a <T k="gsi">secondary index</T> — a second copy that doubles writes — and one
           event reaching many partitions is a <T k="fanout">fan-out</T> choice, priced by your most-followed user.
+        </p>
+        <p>
+          The bars above assume every query knows its key. One that doesn't becomes a{' '}
+          <T k="scattergather">scatter-gather</T>: the coordinator asks every shard and waits for the slowest, so that
+          query gets worse with each shard you add. Inside a partition, ordering is a second decision — the{' '}
+          <T k="clusteringkey">clustering key</T> is the physical sort on disk, which is why "this user's newest first"
+          is one sequential read and any other order is a scan plus a sort.
         </p>
       </>
     ),
@@ -510,8 +542,14 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
         </p>
         <p style={{ color: C.dim }}>
           Drag the node count. Adding a node steals only its new clockwise slice — about <b>1/N</b> of the keys move, not all
-          of them. Real systems give each node many virtual points on the ring so load stays even; it's how distributed
-          caches and partitioned stores grow without a stampede.
+          of them. That is a bound on MOVEMENT, not a promise of evenness: with one point per node, random placement
+          leaves arcs of wildly different sizes. Real systems give each node hundreds of <T k="vnode">virtual nodes</T> on
+          the ring, so load averages out and a death is absorbed by many neighbours instead of doubling one.
+        </p>
+        <p style={{ color: C.dim }}>
+          A ring is not the only way to bound movement. Redis Cluster cuts the key space into 16,384 fixed{' '}
+          <T k="hashslot">hash slots</T> and assigns slots to nodes, so rebalancing means handing over whole slots and
+          every client just caches the slot table — same goal, a lookup instead of a ring walk.
         </p>
       </>
     ),
@@ -539,6 +577,14 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
           <T k="consensus">consensus</T> that also runs the <T k="leader">leader election</T> so a split can't crown two
           leaders. That agreement is round trips — which is why strong cross-region writes cost ~150&nbsp;ms. The interview
           question is never "CP or AP?" but "which requests may be stale, which must never be?"
+        </p>
+        <p>
+          The quorum is not ceremony — it is what prevents <T k="splitbrain">split brain</T>, where both sides of a
+          partition elect a leader and both accept writes. At most one side can hold a majority, so at most one side may
+          act. Pick AP instead and you have signed up for the reconciliation: a coordinator takes writes for absent
+          replicas as a <T k="hintedhandoff">hinted handoff</T> and replays them on recovery, and genuinely concurrent
+          edits are resolved by <T k="lastwritewins">last write wins</T> — which always converges and silently discards
+          the losing write. Say which of your writes can afford to be the one discarded.
         </p>
       </>
     ),

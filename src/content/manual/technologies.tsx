@@ -32,6 +32,13 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
           <T k="replag">replication lag</T> — every replica read is a read of the recent past, and after the primary dies a{' '}
           <T k="failover">failover</T> stalls writes for seconds.
         </p>
+        <p>
+          The A, C and D in ACID are yours for free; the I is a dial. The{' '}
+          <T k="isolationlevel">isolation level</T> decides which concurrency anomalies a transaction may see, and the
+          default is read committed, not <T k="serializable">serializable</T> — so the guarantees your code assumes are
+          usually still permitted unless you asked. Raising the level costs either lock contention or aborts the client
+          must retry, which is why "we're ACID, so it's safe" is the sentence to stop saying.
+        </p>
       </>
     ),
     viz: (
@@ -195,6 +202,12 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
           You pay at write time (tokenizing and indexing every document) and in freshness: the search index is a separate
           system, usually fed from the database's own <T k="cdc">change-data-capture</T> stream, so it is eventually
           consistent. Search is a specialized read replica, not a replacement for your source of truth.
+        </p>
+        <p>
+          The inverted index runs term → documents, which is exactly backwards for sorting and faceting — those need
+          document → value. So the engine stores the same field a second time, column-wise, as{' '}
+          <T k="docvalues">doc values</T> on disk. Two layouts of one field, each for the direction of access it is good
+          at, which is how a search engine also does analytics without the heap exploding.
         </p>
       </>
     ),
@@ -373,14 +386,25 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
       <>
         <p>
           A queue deletes a message once it's consumed. A <T k="stream">stream</T> (Kafka) keeps an ordered, replayable log
-          and lets many independent consumers read it at their own offset — one broker handles ~1,000,000 msgs/s because it
-          only ever appends sequentially. Toggle the two below.
+          and lets many independent consumers read it at their own <T k="offset">offset</T> — one broker handles
+          ~1,000,000 msgs/s because it only ever appends sequentially. Toggle the two below. Work is shared by a{' '}
+          <T k="consumergroup">consumer group</T>, which gives each partition to exactly one member — so the partition
+          count, not the consumer count, is your parallelism ceiling, and a second group reading the same topic gets its
+          own full copy of the stream.
         </p>
         <p style={{ color: C.dim }}>
           <T k="eventsourcing">Event sourcing</T> takes this to its conclusion: store the events, not the current state, and
           derive every view by replaying them. The same <T k="cdc">change-data-capture</T> feed can fan a single write out to
           a search index, a cache, and a warehouse — one source of truth, many eventually-consistent projections. The cost:
           you now reason about a <T k="backlog">consumer backlog</T> and replay, not just rows.
+        </p>
+        <p>
+          Computing anything over that log needs a boundary, because the log never ends: <T k="windowing">windowing</T>{' '}
+          cuts it into tumbling, sliding, or session chunks so an aggregate can finish. Events arrive late and out of
+          order, so "this window is closed" is a judgment — the <T k="watermark">watermark</T> is the processor asserting
+          nothing older than T is still coming, trading completeness for latency. And because that running state is
+          real, a <T k="checkpoint">checkpoint</T> snapshots it together with the input offsets, so a crashed job resumes
+          and replays rather than starting the world over.
         </p>
       </>
     ),
@@ -426,9 +450,18 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
         </p>
         <p style={{ color: C.dim }}>
           The subtle killer is the paused holder: a GC pause or network blip lets your lease expire while you still <i>think</i>
-          you own it. The fix is a fencing token — a monotonically increasing number the resource checks, rejecting the
-          stale holder. Because a lock is agreement among machines, correct implementations lean on <T k="consensus">consensus</T>
-          / a <T k="quorum">quorum</T> (etcd, ZooKeeper), not a single Redis key.
+          you own it. The fix is a <T k="fencingtoken">fencing token</T> — a monotonically increasing number the resource
+          checks, rejecting the stale holder. Because a lock is agreement among machines, correct implementations lean on{' '}
+          <T k="consensus">consensus</T> / a <T k="quorum">quorum</T> (etcd, ZooKeeper), not a single Redis key.
+        </p>
+        <p>
+          How does the lock notice you died at all? By your silence. The lock is an{' '}
+          <T k="ephemeral">ephemeral node</T> tied to your session, and the session lives only as long as your{' '}
+          <T k="heartbeat">heartbeat</T> — so a crash releases the lock automatically, one session timeout later. That
+          timeout is the whole failure-detection trade: short detects fast and buries healthy nodes, long is stable and
+          leaves a corpse holding the lock. Peer-to-peer clusters make the same guess with{' '}
+          <T k="gossip">gossip</T> instead of a coordinator, which is why membership there is a suspicion level rather
+          than a fact.
         </p>
       </>
     ),

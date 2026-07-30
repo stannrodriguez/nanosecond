@@ -499,6 +499,316 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'Any feed or notification stream where a client dropping off Wi-Fi for ten seconds must not silently lose the updates it missed.',
     trap: "Wrong: 'SSE handles reconnection for us.' It reconnects; it does not backfill by itself. Say 'the browser resends Last-Event-ID automatically, so we keep the last N events per channel server-side and replay from that id.'",
   },
+
+  /* ================= Storage & Data — spec 072, coverage-map §B.3 ================= */
+  partitionkey: {
+    name: 'Partition key',
+    def: 'The field a distributed store hashes to decide WHICH node holds a row. It is fixed at table-creation time and is the only thing that routes a query straight to one machine — a query that cannot supply it fans out to every node instead. Choosing it wrong cannot be fixed with an index later; it is a rewrite, which is why it is the first schema decision rather than the last.',
+    say: "I pick the partition key by asking what every read already knows, because a query that supplies it hits one node and a query that doesn't fans out to all of them.",
+    reachFor:
+      'Any wide-column or key-value store (Cassandra, DynamoDB), and any sharding conversation — "what is the partition key?" is the question that exposes whether a design actually spreads.',
+    trap: "Wrong: 'we'll partition by timestamp so the data stays ordered.' Every writer shares the current timestamp, so every write lands on one node. Say 'I partition on a high-cardinality value the reads already carry — user id, tenant id — and put time in the clustering key, where it sorts without concentrating writes.'",
+  },
+  clusteringkey: {
+    name: 'Clustering key',
+    def: 'The field or fields that sort rows INSIDE a partition, after the partition key has already chosen the node. Because that sort is physical layout on disk, a range query along the clustering key ("this user\'s last 50 messages") is one sequential read rather than a scan and a sort. It also means the orders you did not choose are expensive forever.',
+    say: 'The partition key picks the node and the clustering key sorts the rows inside it, so "this user\'s most recent messages" becomes one sequential read instead of a sort.',
+    reachFor:
+      'Cassandra and DynamoDB table design, and every feed or time-series model: partition by the entity, cluster by time descending.',
+    trap: "Wrong: 'we can sort by another column later.' Sort order inside a partition is physical, not a query option. Say 'the clustering key IS the on-disk order — any other ordering means reading the whole partition and sorting it in memory.'",
+  },
+  vnode: {
+    name: 'Virtual node',
+    def: 'Instead of giving each physical machine one position on the hash ring, you give it many small ones — typically 128 to 256. Load then averages across many small arcs rather than depending on where one random position happened to land, and when a machine dies its arcs are absorbed by many different neighbours instead of dumping entirely onto one. The cost is bookkeeping: the ring now tracks thousands of entries instead of dozens.',
+    say: 'Virtual nodes give each machine hundreds of small arcs on the ring instead of one big one, so load averages out and a failure spreads across every neighbour rather than doubling one of them.',
+    reachFor:
+      'Cassandra and Dynamo-style rings, and any consistent-hashing answer where the follow-up is about imbalance or about what happens when a node dies.',
+    trap: "Wrong: 'consistent hashing spreads load evenly.' With one position per node it does not — random placement leaves arcs of wildly different sizes. Say 'consistent hashing bounds how much data MOVES when the topology changes; virtual nodes are what make the distribution even.'",
+  },
+  hashslot: {
+    name: 'Hash slot',
+    def: "Redis Cluster's alternative to a continuous ring: the key space is cut into a fixed 16,384 slots, every key hashes into exactly one, and slots are assigned to nodes. Rebalancing means handing whole slots between nodes, so the topology is a small explicit table every client caches rather than a ring computation. A fixed slot count turns routing into a lookup.",
+    say: 'Redis Cluster hashes every key into one of 16,384 fixed slots and assigns slots to nodes, so rebalancing is moving slots and clients just cache the slot table.',
+    reachFor:
+      'Explaining Redis Cluster specifically, or contrasting a fixed-slot scheme against a continuous hash ring when asked how rebalancing actually works.',
+    trap: "Wrong: 'Redis Cluster uses consistent hashing.' It uses a fixed slot map — the same goal reached by a different mechanism. Say 'it hashes into 16,384 slots and migrates slots between nodes, which bounds movement without a ring.'",
+  },
+  sstable: {
+    name: 'SSTable',
+    def: 'A Sorted String Table: an immutable file of key-value pairs written out in sorted order when a memtable fills. Immutability is the whole point — nothing is ever modified in place, so writes stay sequential and readers never need a lock. The cost is that one key\'s history can be spread across many SSTables, so a single read may have to consult several files.',
+    say: 'An SSTable is an immutable sorted file flushed from memory, so writes stay sequential and readers never block, at the cost of a read possibly checking several files.',
+    reachFor:
+      'LSM internals — Cassandra, RocksDB, LevelDB — whenever the question is why write-optimized engines absorb writes so much faster than B-trees.',
+    trap: "Wrong: 'the SSTable gets updated.' It never does; an update appends a newer entry and compaction resolves it later. Say 'updates and deletes are appends — the newest version wins at read time, and compaction eventually drops the older ones.'",
+  },
+  memtable: {
+    name: 'Memtable',
+    def: 'The in-memory sorted structure an LSM engine writes into first, before anything reaches disk. It absorbs writes at RAM speed and keeps them in order, so the eventual flush is one sequential write of a whole SSTable. Durability does not rest on it — the write-ahead log is fsynced first, so a crash replays the log rather than losing the buffer.',
+    say: 'Writes land in an in-memory sorted memtable backed by a fsynced write-ahead log, and when it fills it flushes to disk as one sequential SSTable.',
+    reachFor:
+      'Explaining where an LSM\'s write speed actually comes from, and where its durability actually comes from — two different components people merge into one.',
+    trap: "Wrong: 'the memtable makes the write durable.' It is volatile memory. Say 'the write-ahead log is what makes the write durable and the memtable is what makes it fast — they are written together, which is why the write is both.'",
+  },
+  compaction: {
+    name: 'Compaction',
+    def: 'The background job that merges SSTables, keeps only the newest version of each key, and physically drops the tombstones left by deletes. It is what keeps read amplification bounded — without it every read would consult an ever-growing pile of files. It is also where an LSM pays for its cheap writes: the same data is rewritten several times over its life, consuming disk bandwidth that competes with live traffic.',
+    say: 'Compaction merges SSTables in the background to bound how many files a read must check, and it is where an LSM actually pays for its cheap writes.',
+    reachFor:
+      'Any LSM performance question — latency spikes with no traffic change, disk usage that will not fall after a mass delete, or the size-tiered versus leveled trade-off.',
+    trap: "Wrong: 'deleting rows frees the space.' A delete is a tombstone — a marker — and the space returns only when compaction runs. Say 'deletes are writes; the space comes back at compaction, which is why a deletion-heavy workload can temporarily grow.'",
+  },
+  bloomfilter: {
+    name: 'Bloom filter',
+    def: 'A small probabilistic bit array that answers one question: is this key definitely NOT in this file? It can say "maybe" when the answer is no (a false positive) but never says "no" when the answer is yes, and that asymmetry is exactly what a read path needs — a negative answer skips a disk read with certainty. A few bits per key buys the ability to skip most files without touching them.',
+    say: 'A bloom filter tells me a key is definitely not in this file and never that it definitely is, so an LSM read skips most SSTables for a few bits per key.',
+    reachFor:
+      'LSM read-path mitigations, and any "how do we avoid a disk trip just to learn nothing was there?" question — including cache-penetration defenses.',
+    trap: "Wrong: 'the bloom filter tells us whether the key exists.' It only rules keys OUT. Say 'a negative is certain and a positive is a maybe, so it eliminates disk reads for absent keys and costs one wasted lookup at the false-positive rate.'",
+  },
+  compositeindex: {
+    name: 'Composite index',
+    def: 'One index over several columns in a declared order: rows are sorted by the first column, then by the second within it, and so on. Because the sort is nested, the index serves a query only from a leading PREFIX of its columns — an index on (tenant, created_at) helps a query filtering on tenant, but not one filtering only on created_at. Ordered well, a single composite index satisfies a filter and its sort in one traversal.',
+    say: 'A composite index sorts by its columns in order so it serves any leading prefix, and one built as filter-column-then-sort-column answers both halves of the query in a single traversal.',
+    reachFor:
+      'Query tuning wherever a filter and an ORDER BY appear together, and the perennial "why is my index not being used?" question.',
+    trap: "Wrong: 'I indexed both columns, so the query is covered.' Two separate indexes are not a composite one, and a composite one cannot be entered from its second column. Say 'the leading-prefix rule decides usability — equality filter first, sort column next.'",
+  },
+  coveringindex: {
+    name: 'Covering index',
+    def: 'An index that already contains every column a particular query needs, so the engine answers from the index and never fetches the row from the heap. That removes one random I/O per result row — the expensive half of an index scan. The price is duplication: those columns are now stored twice and rewritten on every update.',
+    say: 'A covering index carries every column the query returns, so the engine answers from the index alone and skips the random heap fetch entirely.',
+    reachFor:
+      'One proven-hot, narrow, high-volume query where the heap fetch dominates the cost — and only after measuring that it does.',
+    trap: "Wrong: 'add covering indexes for speed.' Every covered column is stored twice and maintained on every write. Say 'it is a targeted optimization justified by removing a measured heap fetch, not a default — the modern take is that it is a niche win.'",
+  },
+  partialindex: {
+    name: 'Partial index',
+    def: "An index built over only the rows matching a condition — WHERE status = 'pending'. When the interesting rows are a thin slice of a huge table, the index is a fraction of the size, stays resident in memory, and skips maintenance entirely for every row outside the condition. It helps only queries whose predicate the planner can prove the condition covers.",
+    say: "A partial index covers only the rows matching a condition, so a job table's few pending rows get a tiny hot index instead of one spanning millions of finished rows.",
+    reachFor:
+      'Queue-like tables, soft-deleted tables, and any workload whose queries always filter on the same small, stable subset.',
+    trap: "Wrong: 'just index the status column.' On a table that is 99% 'done' that index is mostly dead weight, and the planner may skip it. Say 'I would make it partial on the pending rows — small enough to stay in memory, and no maintenance cost for completed rows.'",
+  },
+  materializedview: {
+    name: 'Materialized view',
+    def: 'A query result stored as a real table and refreshed on a schedule or on write, rather than recomputed per request. It moves an expensive aggregation off the read path and onto a background job, which is what makes dashboards fast. What you give up is freshness: the view is exactly as stale as its last refresh, and the refresh itself is load you have to schedule.',
+    say: 'A materialized view stores a query result as a table refreshed in the background, trading freshness for a read that no longer recomputes the aggregate.',
+    reachFor:
+      'Dashboards, leaderboards, and rollups where the same expensive aggregation is read constantly and a minute of staleness costs nothing.',
+    trap: "Wrong: 'a materialized view keeps the numbers up to date.' It is a cache with a refresh policy. Say 'reads see the last refresh, so I would state the staleness window out loud — that window is the entire trade.'",
+  },
+  rtree: {
+    name: 'R-tree',
+    def: 'A spatial index that groups nearby objects into bounding rectangles, then groups those rectangles into larger ones, building a tree fitted to where the data actually is. Unlike a fixed grid it adapts to density, and unlike a geohash it indexes SHAPES — polygons and lines, not only points. The catch is that sibling rectangles may overlap, so one search can be forced down several branches.',
+    say: 'An R-tree nests bounding rectangles fitted to the data so it can index polygons as well as points, but overlapping boxes mean a search sometimes has to descend more than one branch.',
+    reachFor:
+      'PostGIS, and any query mixing points with regions — "which delivery zones contain this address?" — where a geohash\'s point-only model runs out.',
+    trap: "Wrong: 'an R-tree is basically a quadtree.' A quadtree subdivides SPACE on fixed quadrants; an R-tree groups OBJECTS into fitted boxes and tolerates overlap. Say 'quadtrees split space, R-trees group objects — which is why R-trees handle polygons and can search multiple branches.'",
+  },
+  docvalues: {
+    name: 'Doc values',
+    def: "Elasticsearch's column-oriented copy of a field, written to disk beside the inverted index. The inverted index answers \"which documents contain this term?\", but sorting, aggregating, and faceting need the opposite direction — \"what value does THIS document have?\" — and doc values supply it without loading the field into heap memory. Two layouts of the same data, each serving the direction of access it is good at.",
+    say: 'The inverted index maps a term to documents and doc values store the same field column-wise for the reverse lookup, which is what lets a search engine sort and aggregate without exhausting the heap.',
+    reachFor:
+      'Explaining how a search engine also does analytics, or why a field has to be explicitly enabled before you can aggregate on it.',
+    trap: "Wrong: 'the inverted index handles the sorting too.' It maps terms to documents, which is precisely backwards for sorting. Say 'matching reads the inverted index and sorting or aggregating reads doc values — a column-oriented copy of the same field.'",
+  },
+  lastwritewins: {
+    name: 'Last write wins (LWW)',
+    def: 'A conflict-resolution rule for concurrent writes to the same key on different replicas: stamp each write with a timestamp and keep the highest one. It needs no coordination and always converges, which is why AP systems default to it. It also silently DISCARDS the other write, so a concurrent increment or a merge is simply lost — and "last" means by clock, which can be skewed between nodes.',
+    say: 'Last-write-wins resolves replica conflicts by keeping the highest timestamp, which always converges and silently throws the losing write away.',
+    reachFor:
+      'Cassandra and Dynamo-style stores, and any AP design where you must state out loud what happens when two replicas take the same key at once.',
+    trap: "Wrong: 'conflicting writes get merged.' LWW does not merge, it discards — and it decides by a clock that may be skewed. Say 'LWW keeps the newest timestamp and drops the other write, so anything that must accumulate needs a CRDT or an append-only model instead.'",
+  },
+  hintedhandoff: {
+    name: 'Hinted handoff',
+    def: 'When a replica is unreachable, the coordinating node accepts the write anyway and stores a "hint" — a note recording who this was meant for — then delivers it once that node returns. It keeps writes available across a brief outage without blocking on repair. It is best-effort: hints expire after a window, and a node down longer than that needs a full anti-entropy repair instead.',
+    say: "Hinted handoff lets a coordinator accept a write for a node that's down and replay it on recovery, which keeps writes available through short outages.",
+    reachFor:
+      'Cassandra availability questions, and any AP answer that needs to describe what concretely happens during a node failure rather than in principle.',
+    trap: "Wrong: 'hinted handoff guarantees every replica eventually gets the write.' Hints have a time limit and die with the coordinator that holds them. Say 'it covers short outages; past the hint window you depend on read repair and anti-entropy to reconcile.'",
+  },
+  scattergather: {
+    name: 'Scatter-gather',
+    def: 'A query pattern where a coordinator sends the request to every shard, waits for all of them, and merges what comes back. It is precisely what a query without the partition key costs. Its latency is the SLOWEST shard\'s rather than the average, so adding shards makes the tail worse, and the merge, sort, and pagination all land on the coordinator.',
+    say: "A query without the partition key scatters to every shard and gathers the results, so its latency is the slowest shard's and it gets worse as you add shards.",
+    reachFor:
+      'Explaining why the partition key matters, or why search and analytics fan-outs have such bad tail latency.',
+    trap: "Wrong: 'more shards means faster queries.' For scatter-gather it means more chances to hit a slow one. Say 'sharding speeds up queries that carry the partition key and slows down every query that does not.'",
+  },
+  isolationlevel: {
+    name: 'Isolation level',
+    def: 'The setting that decides which concurrency anomalies a transaction is permitted to see: read committed, repeatable read, snapshot, serializable. Each level up removes a class of anomaly and costs more locking or more aborts. The default is not the strongest — Postgres ships read committed — so the anomalies your code quietly assumes away are usually still allowed unless you asked for otherwise.',
+    say: 'The isolation level decides which anomalies are permitted, and since the default is read committed rather than serializable, the guarantees I want have to be requested.',
+    reachFor:
+      'Any transaction-correctness question — double booking, inventory, balance transfers — where you have to say what the database actually promises rather than what ACID implies.',
+    trap: "Wrong: 'transactions are ACID, so this is safe.' The I is a dial, not a guarantee. Say 'at read committed this specific anomaly is allowed, so I would raise the level or take an explicit lock, and name what that costs.'",
+  },
+  serializable: {
+    name: 'Serializable',
+    def: 'The strongest isolation level: the outcome must equal SOME order in which the transactions ran one at a time. It is the only level that rules out every anomaly — including the ones you did not anticipate, like write skew — without you having to enumerate them. Databases reach it either by locking more or by detecting conflicts and aborting, so the cost appears as reduced concurrency or as transactions the client must retry.',
+    say: 'Serializable means the result matches some order in which the transactions ran one at a time, which is the only level that rules out anomalies I did not think to look for.',
+    reachFor:
+      'Correctness-critical invariants that span rows — ledgers, seat allocation, shift coverage — where being wrong costs more than being slow.',
+    trap: "Wrong: 'we will just run everything serializable.' It buys correctness with aborts or lock contention, and the application must handle the retries. Say 'I would use it where an invariant spans rows, and budget for serialization failures the client retries.'",
+  },
+  writeskew: {
+    name: 'Write skew',
+    def: 'Two transactions read the same rows, each concludes its own change is fine, and each writes DIFFERENT rows — so no row is ever contended, neither blocks the other, and both commit. The invariant that spanned those rows is now broken: both on-call doctors go off shift, because each saw the other still on. Since there is no shared row to lock, version, or compare, snapshot isolation cannot detect it and neither can a per-row compare-and-set — that absence is exactly why the cheaper tools miss it.',
+    say: 'Write skew is two transactions reading the same rows and writing different ones, so nothing conflicts row by row while the invariant across them breaks.',
+    reachFor:
+      'Any invariant that lives across rows rather than in one — "at least one person on call", "the total stays under budget", "no two bookings overlap".',
+    trap: "Wrong: 'we version the row, so concurrent updates are safe.' There is no shared row to version — that is the entire anomaly. Say 'write skew needs serializable isolation or an explicit lock on the predicate, because a per-row compare-and-set has nothing to compare against.'",
+  },
+
+  /* ================= Queues & Streams — spec 072, coverage-map §B.3 ================= */
+  offset: {
+    name: 'Offset',
+    def: "A consumer's position in a partition's log, stored as a single number: I have processed up to message 4,812. Because the log is immutable and the position belongs to the consumer, replaying history is just moving that number backwards, and several consumers can read the same partition at different positions without interfering. It also makes delivery progress the consumer's responsibility rather than the broker's.",
+    say: "A consumer's offset is just its position in the log, so replaying is moving the number backwards and two consumers can read the same partition independently.",
+    reachFor:
+      'Kafka and any log-based stream, especially the "how would we reprocess history?" and "what happens when a consumer crashes?" follow-ups.',
+    trap: "Wrong: 'the broker deletes the message once it has been consumed.' A log broker deletes by retention, not by acknowledgment. Say 'consumers track an offset and the data stays until retention expires — which is exactly what makes replay possible.'",
+  },
+  consumergroup: {
+    name: 'Consumer group',
+    def: 'A set of consumers sharing the work of a topic, with each partition assigned to exactly one member. Adding members adds parallelism up to the partition count and not one consumer further; a member that dies has its partitions reassigned to the survivors, which is a rebalance. Two different groups reading the same topic each receive every message, which is how one stream feeds many independent pipelines.',
+    say: 'A consumer group splits partitions across its members so each partition has exactly one reader, which caps parallelism at the partition count and gives every separate group a full copy of the stream.',
+    reachFor:
+      'Sizing consumers against partitions, and explaining how one event stream fans out to several services without duplicating the stream.',
+    trap: "Wrong: 'we will add consumers to catch up faster.' Past the partition count the extra members sit idle. Say 'partitions set the parallelism ceiling, so scaling consumers means planning the partition count first.'",
+  },
+  watermark: {
+    name: 'Watermark',
+    def: "A stream processor's running assertion that no event older than time T will still arrive — which is what lets it decide a time window is finished and emit a result. It exists because events arrive out of order and late, so \"the window is over\" is a judgment rather than a fact. Set it aggressively and you emit sooner and drop more late data; set it conservatively and you are more complete and slower.",
+    say: 'A watermark is the processor asserting that nothing older than this timestamp is still coming, which is what lets it close a window and emit — trading completeness against latency.',
+    reachFor:
+      'Flink and any event-time processing question, especially the immediate follow-up about late-arriving data.',
+    trap: "Wrong: 'we window by when the event was received.' Processing time makes the answer depend on your infrastructure's hiccups rather than on reality. Say 'I would window on event time with a watermark, and decide explicitly whether late events are dropped or trigger an update.'",
+  },
+  windowing: {
+    name: 'Windowing',
+    def: 'Cutting an unbounded stream into finite chunks so an aggregation has something to finish: tumbling windows are fixed and non-overlapping, sliding windows are fixed and overlapping, session windows are bounded by a gap in activity. The choice decides both what the number MEANS and how much state the processor must hold at once. Windows are the reason a stream can answer "how many in the last five minutes" at all.',
+    say: 'Windowing cuts an endless stream into finite pieces — tumbling, sliding, or session — so an aggregate finally has a boundary it can complete at.',
+    reachFor:
+      'Any streaming aggregation: rate limits, real-time metrics, fraud rules evaluated over a recent interval.',
+    trap: "Wrong: 'we aggregate the stream.' Aggregating an unbounded stream never terminates. Say 'five-minute tumbling windows on event time' — which also tells your listener how much state each operator has to hold.",
+  },
+  checkpoint: {
+    name: 'Checkpoint',
+    def: "A periodic, consistent snapshot of a stream processor's in-flight state together with its input positions, written to durable storage. After a failure the job restarts from the last checkpoint and replays its input from the recorded offsets, which is how exactly-once semantics survive a crash. The interval is a direct trade: more often means less replay after a failure and more overhead in steady state.",
+    say: 'A checkpoint snapshots operator state together with the input offsets, so a crashed job resumes from that point and replays rather than starting over.',
+    reachFor:
+      "Flink's exactly-once story, and any stateful stream job where you must explain what happens when a worker dies mid-window.",
+    trap: "Wrong: 'the job is stateless, so checkpoints do not matter.' Any aggregation, join, or window IS state. Say 'checkpointing state and offsets together is what makes recovery consistent — restore one without the other and you double-count or lose data.'",
+  },
+  compensation: {
+    name: 'Compensating transaction',
+    def: 'An action that semantically undoes a step that already committed, when a later step in the workflow fails: refund the charge, release the seat, restock the item. It is not a rollback — the original effect really happened and may already have been seen, so the compensation is itself a new and visible business event. Every step in a saga needs one designed up front, and some steps (an email that went out) cannot be compensated at all.',
+    say: 'A compensating transaction semantically undoes a step that already committed — a refund rather than a rollback — because in a distributed workflow the effect was real and visible.',
+    reachFor:
+      'Sagas and any cross-service workflow — book the flight, the hotel, the car — where a distributed transaction is not on the table.',
+    trap: "Wrong: 'we roll the saga back.' There is nothing to roll back; every step committed independently. Say 'each step ships with a compensating action, and I would order the steps so the hardest one to compensate runs last.'",
+  },
+  choreography: {
+    name: 'Choreography',
+    def: 'A saga style with no coordinator: each service reacts to events other services publish and emits its own. It stays decoupled and has no central point of failure, so adding a participant is cheap. The cost is that the workflow exists nowhere as a single artifact — understanding it means tracing events across services, and so does debugging one that got stuck.',
+    say: 'Choreography runs a workflow by having each service react to events with no coordinator, which keeps services decoupled and leaves the process itself written down nowhere.',
+    reachFor:
+      'Short workflows of two or three steps, and teams that must stay independently deployable more than they need central visibility.',
+    trap: "Wrong: 'choreography scales better.' It decouples better; it does not observe better. Say 'past a few steps I move to orchestration, because with choreography nobody can answer where a given order is stuck.'",
+  },
+  orchestration: {
+    name: 'Orchestration',
+    def: 'A saga style where one coordinator holds the workflow definition, invokes each step, and decides what happens on failure. The process becomes an inspectable artifact: you can query where any instance sits, retry a single step, and read the whole state machine in one place. The cost is a component every participant depends on, which must itself be made durable.',
+    say: 'Orchestration puts the workflow in one coordinator that calls each step and handles failures, so the process is inspectable and every instance\'s position is a query.',
+    reachFor:
+      'Workflows past about three steps, anything needing operational visibility, and anything with a compensation path a human may need to trigger by hand.',
+    trap: "Wrong: 'the orchestrator is a single point of failure.' It is if you hand-build it as one — which is what durable execution engines exist to prevent. Say 'I would run the orchestrator on a durable workflow engine so its own state survives a crash.'",
+  },
+  durableexecution: {
+    name: 'Durable execution',
+    def: 'A runtime that records every step of a workflow — each call made and each result received — to a durable log, so a crashed process is resumed by REPLAYING that history to rebuild its exact state and then continuing from the first unfinished step. The workflow is written as ordinary sequential code that can wait days without occupying a process. It is not retrying: a retry re-runs work, while a replay reconstructs what already happened and never re-executes a completed step.',
+    say: "A durable execution engine records each step's result and resumes a crashed workflow by replaying that history to the first unfinished step, so long-running code survives restarts without redoing completed work.",
+    reachFor:
+      'Long, stateful workflows with human waits or day-long delays — Temporal, Step Functions — where a process in memory or a cron table would be too fragile to trust.',
+    trap: "Wrong: 'it just retries the workflow after a failure.' Retrying re-runs completed steps and double-charges the customer; replay does not. Say 'the engine replays the recorded history to rebuild state, then continues from the first step that never completed.'",
+  },
+
+  /* ================= Resilience — spec 072, coverage-map §B.3 ================= */
+  compareandset: {
+    name: 'Compare-and-set (CAS)',
+    def: 'The single primitive underneath conditional writes, version checks, ETags, and optimistic concurrency: write this value only if the current value is still the one I read. One atomic operation both checks and updates, so two concurrent writers cannot both succeed — the loser is told to re-read and try again. Whether it appears as a version column, an If-Match header, a DynamoDB condition expression, or a Redis WATCH, it is the same move.',
+    say: "Compare-and-set writes only if the value is still what I read, so concurrent writers cannot both win — one is told to retry, and that single atomic check-and-set is what optimistic concurrency is built out of.",
+    reachFor:
+      'Any lost-update problem where conflicts are rare — inventory decrements, profile edits, acquiring a distributed lock.',
+    trap: "Wrong: 'we read it, check it, then write it.' Two separate operations leave a window in between where somebody else writes. Say 'the check and the write have to be one atomic compare-and-set — otherwise I have described the race, not the fix.'",
+  },
+  aba: {
+    name: 'The ABA problem',
+    def: "A compare-and-set only knows whether the value LOOKS unchanged. If another writer changed A to B and back to A while you were deciding, your compare-and-set succeeds even though the world moved underneath it, and you overwrite decisions made in between. The fix is to compare something that can never repeat — a version number, a sequence, a commit id. Values that only ever increase are immune by construction, because an old value can never come back to fool the comparison.",
+    say: "ABA is a compare-and-set succeeding because the value returned to what I read while I was not looking, so I compare a monotonically increasing version instead — a number that only goes up can never repeat, so it cannot fool the check.",
+    reachFor:
+      'Lock-free structures, and any conditional write whose compared field can legitimately return to an earlier value — a status, a counter that moves both ways, a reused pointer or slot.',
+    trap: "Wrong: 'we compare the value, so the write is safe.' Equality does not mean untouched. Say 'I compare a monotonic version rather than the value, because a version that only increases cannot be reused — which is exactly what closes the ABA hole.'",
+  },
+  pessimistic: {
+    name: 'Pessimistic locking',
+    def: 'Take the lock BEFORE reading, hold it while you decide, and release it after writing — SELECT ... FOR UPDATE. Conflicts become waiting instead of retrying, so a contended write succeeds on its first attempt rather than after several failed rounds. What you pay is concurrency plus a new operational risk: everyone behind the lock waits, and a holder that stalls stalls all of them.',
+    say: 'Pessimistic locking takes the lock before reading so conflicts become waiting instead of retrying, which is what I want once contention is high enough that optimistic retries keep losing.',
+    reachFor:
+      'Hot single rows — the last ticket, one popular seat, a counter thousands of writers hit — where retry storms waste more work than a queue would cost.',
+    trap: "Wrong: 'locks are slow, so always go optimistic.' Under high contention optimistic is slower, because every loser redoes its work. Say 'optimistic wins when conflicts are rare and pessimistic wins when they are common — the crossover is the actual conflict rate, which is measurable.'",
+  },
+  fencingtoken: {
+    name: 'Fencing token',
+    def: 'A monotonically increasing number issued with every lock grant, which the protected resource checks and refuses if it is lower than the highest it has already seen. It exists because a lock can EXPIRE while its holder is paused — in a garbage-collection pause or behind a partition — and that holder wakes up still believing it holds the lock. The token makes the stale writer fail at the resource, which no amount of correctness in the lock service can do on its own.',
+    say: 'A fencing token is an increasing number handed out with each lock grant that the resource itself checks, so a holder whose lease quietly expired during a pause gets rejected when it finally writes.',
+    reachFor:
+      'Any distributed lock protecting a real side effect — a file write, a payment, a state transition — and the standard follow-up about what happens if the holder pauses.',
+    trap: "Wrong: 'the lease expires, so the old holder cannot write.' The old holder does not know its lease expired. Say 'expiry alone is not safe — the resource has to reject the lower fencing token, or both holders write and one silently clobbers the other.'",
+  },
+  gossip: {
+    name: 'Gossip protocol',
+    def: 'Nodes learn cluster state by periodically exchanging what they know with a few randomly chosen peers, instead of consulting a central registry. Information spreads exponentially, so a change reaches the whole cluster in a logarithmic number of rounds with no coordinator and no single point of failure. What you give up is a consistent instant view: at any moment different nodes hold slightly different pictures of who is up.',
+    say: 'Gossip spreads cluster membership by having each node swap state with a few random peers every second, so news reaches everyone in log-many rounds with no coordinator and no exact global view.',
+    reachFor:
+      'Cassandra and Dynamo-style membership, and any "how does the cluster notice a failure without a master?" question.',
+    trap: "Wrong: 'the cluster knows that node is down.' Different nodes conclude it at different moments, which is why failure detection is a suspicion level rather than a boolean. Say 'gossip converges in seconds, so membership is eventually consistent — decisions that need agreement go through consensus instead.'",
+  },
+  splitbrain: {
+    name: 'Split brain',
+    def: 'A network partition leaves two halves of a cluster unable to see each other, each concludes the other is dead, and each elects its own leader. Both then accept writes, and both are behaving correctly from where they sit — so the damage lands at reconciliation, when two divergent histories have to be merged. The standard defense is a majority quorum, which at most one side can ever hold.',
+    say: 'Split brain is a partition leaving two halves that each elect a leader and accept writes, which is why a majority quorum is the defense — only one side can ever hold a majority.',
+    reachFor:
+      'Any leader-election or failover design, and the "what if the network partitions?" question that CAP is really asking.',
+    trap: "Wrong: 'we detect the partition and shut the other side down.' The other side is unreachable — that is what a partition means. Say 'a node cannot tell a partition from a failure, so I require a majority quorum to act and let the minority side go read-only.'",
+  },
+  ephemeral: {
+    name: 'Ephemeral node',
+    def: "A coordination-service entry (ZooKeeper, etcd) whose lifetime is tied to the session that created it: when the client stops heartbeating, the service deletes it automatically. That turns liveness into a data structure — presence in the tree IS the fact that the process is alive — so locks and memberships clean themselves up when a holder dies instead of deadlocking. The gap is the session timeout, during which a dead holder still appears alive.",
+    say: "An ephemeral node disappears when its creator's session stops heartbeating, so a lock held by a crashed process releases itself instead of deadlocking forever.",
+    reachFor:
+      'ZooKeeper or etcd leader election, service registries, and distributed locks that have to survive their holder crashing.',
+    trap: "Wrong: 'the lock is released the moment the process dies.' It is released once the session timeout expires, typically seconds later. Say 'release is bounded by the session timeout, and a holder that paused and resumed still needs a fencing token.'",
+  },
+  heartbeat: {
+    name: 'Heartbeat',
+    def: 'A periodic "I am alive" signal, whose ABSENCE rather than whose presence is the signal that matters. Because a missing heartbeat is indistinguishable from a slow network, the timeout is a guess: short timeouts detect failures quickly and declare healthy nodes dead, long ones are stable and leave a dead node taking traffic. Every failure detector in a distributed system is this same trade-off wearing a different name.',
+    say: 'A heartbeat detects failure by its absence, so the timeout is a direct trade — short means fast detection and false positives, long means stability and a dead node still taking traffic.',
+    reachFor:
+      'Health checks, session timeouts, leader leases, consumer-group liveness — anywhere one thing has to notice that another thing stopped.',
+    trap: "Wrong: 'the heartbeat tells us the node is healthy.' It tells you a thread got scheduled and the network worked; a node can heartbeat happily while failing every real request. Say 'I health-check the dependency path, not just the process, or I keep routing to a node that is up and useless.'",
+  },
+  loadshedding: {
+    name: 'Load shedding',
+    def: 'Deliberately rejecting a fraction of incoming work — quickly, cheaply, and by chosen priority — once demand exceeds capacity. The alternative is not serving everyone: it is a queue that grows until every request times out and the whole system fails at once. Shedding converts a total outage into a partial and chosen degradation, which is why it is a design decision rather than a failure.',
+    say: 'Load shedding rejects excess work immediately and by priority, because the alternative to failing some requests fast is failing all of them slowly.',
+    reachFor:
+      'Sustained overload where a queue would grow without bound — a sale spike, a thundering herd, a downstream that just got slower.',
+    trap: "Wrong: 'we will queue the extra requests.' A queue absorbs a burst, not a sustained overload; past capacity it only adds latency before the same failure. Say 'above capacity I shed — cheapest requests first, paying customers last — and return a retry-after rather than letting them time out.'",
+  },
 }
 
 export type GlossaryKey = keyof typeof GLOSSARY
@@ -554,6 +864,11 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
       'nosql', 'blob', 'presigned', 'connpool', 'shard', 'hotpartition',
       'consistenthash', 'replica', 'replag', 'readyourwrites', 'cdc',
       'geohash', 'quadtree',
+      // spec 072 (coverage-map §B.3): the storage bundle.
+      'partitionkey', 'clusteringkey', 'vnode', 'hashslot', 'sstable', 'memtable',
+      'compaction', 'bloomfilter', 'compositeindex', 'coveringindex', 'partialindex',
+      'materializedview', 'rtree', 'docvalues', 'lastwritewins', 'hintedhandoff',
+      'scattergather', 'isolationlevel', 'serializable', 'writeskew',
     ],
   },
   {
@@ -562,6 +877,9 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
     keys: [
       'queue', 'worker', 'backlog', 'backpressure', 'visibility', 'dlq',
       'stream', 'eventsourcing', 'idempotent', 'atleastonce', 'exactlyonce', 'saga',
+      // spec 072 (coverage-map §B.3): the queues-and-streams bundle.
+      'offset', 'consumergroup', 'watermark', 'windowing', 'checkpoint',
+      'compensation', 'choreography', 'orchestration', 'durableexecution',
     ],
   },
   {
@@ -571,6 +889,9 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
       'errorbudget', 'timeout', 'retry', 'ratelimit', 'breaker', 'bulkhead',
       'herd', 'failover', 'bluegreen', 'canary', 'cap', 'consistency',
       'consensus', 'quorum', 'leader', 'distlock', 'lease',
+      // spec 072 (coverage-map §B.3): the resilience bundle.
+      'compareandset', 'aba', 'pessimistic', 'fencingtoken', 'gossip',
+      'splitbrain', 'ephemeral', 'heartbeat', 'loadshedding',
     ],
   },
 ]

@@ -429,6 +429,61 @@ export const NUMBERS: NumberEntry[] = [
     confusions:
       "Assumes a strongly-consistent cross-region write. With async replication the ack returns in ~70–80 ms — durable in one city, the other copies arriving moments later.",
   },
+
+  /* ---------- the transport floor (spec 066, Say-it networking deck) ---------- */
+  {
+    id: 'udp-vs-tcp-header',
+    value: 8,
+    unit: 'bytes (UDP header)',
+    derivation: [
+      'UDP carries four 2-byte fields — source port, destination port, length, checksum — and nothing else: 8 bytes.',
+      'TCP needs sequence + ack numbers, flags, a receive window, and options: 20 bytes minimum, up to 60.',
+      "The bigger tax isn't the header: TCP's 3-way handshake spends a full round trip before the first data byte; UDP just sends.",
+    ],
+    boundingPhysics: 'Protocol design, not physics — but every byte rides every packet, and the handshake rides every new connection.',
+    toyId: null,
+    confusions:
+      'The header gap is minor next to the behavioral gap: retransmission and ordering are where TCP latency actually comes from, not the 12 extra bytes.',
+  },
+  {
+    id: 'retransmit-rtt',
+    value: 1,
+    unit: 'round trip minimum per retransmit',
+    derivation: [
+      'A lost TCP packet is detected by duplicate ACKs or a timeout — the sender must first learn about the loss, and that news travels a round trip.',
+      'Recovery therefore costs ≥1 RTT: ~1 ms in-city, ~70 ms cross-country, ~150 ms cross-ocean.',
+      'Until the retransmit lands, ordering holds every byte behind it — one lost packet is a visible freeze, then a fast-forward.',
+    ],
+    boundingPhysics: 'Speed of light in fiber (~200,000 km/s) sets the RTT floor; no protocol tuning beats geography.',
+    toyId: 'light',
+    confusions: 'The 1-RTT floor is the best case — a retransmission timeout on a quiet connection can cost several RTTs.',
+  },
+  {
+    id: 'middlebox-idle-timeout',
+    value: 60,
+    unit: 's (typical idle timeout)',
+    derivation: [
+      'Proxies, load balancers, and NATs hold per-connection state, and reap idle connections to protect their own memory.',
+      'Defaults cluster at 30–90 s — AWS ALB ships with 60 s.',
+      'Any long-lived stream (SSE, WebSocket) must expect death near the minute mark: heartbeats delay it, reconnect-and-replay survives it.',
+    ],
+    boundingPhysics: 'Middlebox memory: every tracked connection is state, and idle reaping is how the box stays alive.',
+    toyId: null,
+    confusions: 'The clock measures idle time, not connection age — steady traffic (or a heartbeat) resets it.',
+  },
+  {
+    id: 'protobuf-vs-json-size',
+    value: 15,
+    unit: 'bytes (protobuf) vs 40 (JSON)',
+    derivation: [
+      'The same { "id": "123", "name": "John Doe" } in JSON repeats its schema on every message — braces, quotes, field names: ~40 bytes.',
+      'Protobuf compiles the schema out-of-band; the wire carries 1-byte field tags, varint lengths, and raw values: ~15 bytes.',
+      '~2.7× smaller and far cheaper to parse (no string scanning) — the case for gRPC on high-rate internal calls.',
+    ],
+    boundingPhysics: 'Serialization is CPU plus bytes-on-wire; a binary format with an out-of-band schema minimizes both.',
+    toyId: null,
+    confusions: "The win assumes both ends share the compiled schema — exactly what public and browser clients can't be counted on for.",
+  },
 ]
 
 export const numberById = (id: string): NumberEntry | undefined => NUMBERS.find((n) => n.id === id)

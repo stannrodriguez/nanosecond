@@ -223,3 +223,24 @@ architectural consequence ("forces resumable direct-to-storage uploads"), never 
 vibe. Rules (enforced in tests/schema.test.ts): 6 interrogations, unique URL-safe
 ids; exactly one crucial per set; the crucial question crystallizes ≥1 requirement;
 misses log a Scar (mode `interrogation`) with the trap's lesson.
+
+## 11. Say-it card template (specs 066/067)
+`src/content/sayit.tsx` — speak-only retrieval cards, each deck LOCAL to one
+briefing (no global drill bank). Fields: { id (stable — the Leitner scheduler
+keys on it; never reuse or rename), section (manual section id), cue (the
+front: a question an interviewer would realistically ask, in their voice, with
+a concrete system on the table — textbook prompts like "define X" don't ship
+and the schema test rejects them), model (the back's centerpiece: ONE
+speakable sentence — two short beats max, hard-bounded to a breath — first
+person where it's a decision), checks (EXACTLY 3 self-grade key points:
+mechanism / tradeoff-or-cost / decision rule), trap (the wrong sentence
+people say, and what to say instead), number ({ val, body, refs[] } — one
+quantity to leave with; refs resolve in numbers.ts, may be empty for prose
+numbers), terms (glossary keys) }.
+Format decisions (locked 2026-07-29): speak-only — no text input, the
+checklist is the record; no timers; no card taxonomy — the single admission
+test for a cue is "would an interviewer realistically say this?"; decks are
+5–8 cards, reached from a card at the bottom of their briefing, unlocked
+after the briefing has been opened once (law L2). Grades map to the drills'
+Leitner boxes: nailed promotes, partial holds, blanked demotes to box 1 and
+links back to the briefing.

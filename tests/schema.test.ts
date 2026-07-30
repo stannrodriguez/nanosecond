@@ -21,6 +21,7 @@ import { ACTS, ENCOUNTERS, EVENTS, HAPPENED, PATTERNS, runScore } from '../src/c
 import { INTERROGATIONS } from '../src/content/interrogations'
 import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 import { FORGE } from '../src/content/forge'
+import { SAYIT_CARDS } from '../src/content/sayit'
 
 describe('schema: numbers database', () => {
   it('every number has a 3-step, non-empty derivation', () => {
@@ -398,10 +399,87 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
     }
   })
 
+  it('termShelf, when present, resolves to a reference group (spec 068)', () => {
+    const groupIds = new Set(REFERENCE_GROUPS.map((g) => g.id))
+    for (const m of MANUAL) {
+      if (m.termShelf) expect(groupIds.has(m.termShelf), `${m.id} → ${m.termShelf}`).toBe(true)
+    }
+    // the networking pilot carries its glossary group on the page
+    expect(MANUAL.find((m) => m.id === 'networking')?.termShelf).toBe('networking')
+  })
+
   it('every section deep-links "where you\'ll feel this" into a real route', () => {
     for (const m of MANUAL) {
       expect(m.feltIn.to.startsWith('/'), `${m.id} feltIn.to`).toBe(true)
       expect(m.feltIn.cta.trim().length, `${m.id} feltIn.cta`).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('schema: say-it cards (docs/content-pipeline.md §11, spec 066)', () => {
+  const plain = (node: ReactNode) =>
+    renderToStaticMarkup(createElement(Fragment, null, node))
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  it('ids are unique and stable-looking; every section resolves to a briefing', () => {
+    const ids = SAYIT_CARDS.map((c) => c.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    const sectionIds = new Set(MANUAL.map((m) => m.id))
+    for (const c of SAYIT_CARDS) {
+      expect(/^sayit-[a-z0-9-]+$/.test(c.id), c.id).toBe(true)
+      expect(sectionIds.has(c.section), `${c.id} → section ${c.section}`).toBe(true)
+    }
+  })
+
+  it('decks are local and sized 5–8 cards per briefing', () => {
+    const bySection = new Map<string, number>()
+    for (const c of SAYIT_CARDS) bySection.set(c.section, (bySection.get(c.section) ?? 0) + 1)
+    for (const [section, n] of bySection) {
+      expect(n, `${section} deck size`).toBeGreaterThanOrEqual(5)
+      expect(n, `${section} deck size`).toBeLessThanOrEqual(8)
+    }
+  })
+
+  it('cues pass the admission test: interviewer-real, never textbook prompts', () => {
+    for (const c of SAYIT_CARDS) {
+      expect(/^(define|what is|what are|explain the term)\b/i.test(c.cue.trim()), `${c.id} cue reads like a textbook`).toBe(false)
+      expect(c.cue.trim().length, `${c.id} cue too thin to be a real question`).toBeGreaterThan(30)
+    }
+  })
+
+  it('the model is speakable: a breath, not a paragraph', () => {
+    for (const c of SAYIT_CARDS) {
+      const text = plain(c.model)
+      expect(text.length, `${c.id} model too thin`).toBeGreaterThan(80)
+      expect(text.length, `${c.id} model exceeds a breath`).toBeLessThan(340)
+      const sentences = text.match(/[.!?](\s|$)/g) ?? []
+      expect(sentences.length, `${c.id} model must stay ≤3 short beats`).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('exactly 3 checks (mechanism / cost / rule) and a non-empty trap', () => {
+    for (const c of SAYIT_CARDS) {
+      expect(c.checks, c.id).toHaveLength(3)
+      c.checks.forEach((k, i) => expect(k.trim().length, `${c.id} check ${i}`).toBeGreaterThan(20))
+      expect(c.trap.trim().length, `${c.id} trap`).toBeGreaterThan(30)
+    }
+  })
+
+  it('every card leaves a number, and its refs resolve in numbers.ts', () => {
+    const numberIds = new Set(NUMBERS.map((n) => n.id))
+    for (const c of SAYIT_CARDS) {
+      expect(c.number.val.trim().length, `${c.id} number.val`).toBeGreaterThan(0)
+      expect(c.number.body.trim().length, `${c.id} number.body`).toBeGreaterThan(20)
+      c.number.refs.forEach((id) => expect(numberIds.has(id), `${c.id} → ${id}`).toBe(true))
+    }
+  })
+
+  it('terms resolve in the glossary', () => {
+    for (const c of SAYIT_CARDS) {
+      expect(c.terms.length, `${c.id} needs ≥1 term`).toBeGreaterThan(0)
+      c.terms.forEach((k) => expect(GLOSSARY[k], `${c.id} → term ${k}`).toBeDefined())
     }
   })
 })

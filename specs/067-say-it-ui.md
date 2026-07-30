@@ -4,27 +4,27 @@ Third of three thin slices (065 glossary → 066 card content → 067 deck UI).
 This slice makes the deck playable. Locked format decisions apply: speak-only
 (no text input), no timers, decks local to their briefing.
 
-- [ ] Deck route `/manual/briefings/networking/say-it` (sub-content URL per
+- [x] Deck route `/manual/briefings/networking/say-it` (sub-content URL per
       ADR 0004; generic over `section` so future decks get routes for free)
-- [ ] Card front: progress dots, "INTERVIEWER" label, cue, "say your answer
+- [x] Card front: progress dots, "INTERVIEWER" label, cue, "say your answer
       out loud — full sentences, like you're in the room — then flip" hint,
       flip button
-- [ ] Card back: "A strong answer sounds like" + model sentence · "Did you
+- [x] Card back: "A strong answer sounds like" + model sentence · "Did you
       say…" + 3 toggleable checklist rows · trap row · number row · dotted
       <Term> links · grade bar (blanked / partial / nailed it)
-- [ ] End screen: tally by grade + note that blanked cards return daily,
+- [x] End screen: tally by grade + note that blanked cards return daily,
       with a link back to the briefing
-- [ ] Grades feed Leitner boxes (5, localStorage, same shape as
+- [x] Grades feed Leitner boxes (5, localStorage, same shape as
       `src/state/drillProgress.ts` — shared module or parallel store,
       whichever is smaller); session builder mixes due cards first, like
       drills; blanked demotes to box 1, partial holds, nailed promotes
-- [ ] Entry point: a card at the bottom of the networking briefing ("SAY IT —
+- [x] Entry point: a card at the bottom of the networking briefing ("SAY IT —
       6 questions an interviewer would ask"); deck locked until the briefing
       has been opened at least once (law L2, brief-before-test — reuse the
       manual's read-state), with a plain-language locked state
-- [ ] Keyboard: space/enter flips, 1/2/3 grades; visible focus throughout;
+- [x] Keyboard: space/enter flips, 1/2/3 grades; visible focus throughout;
       works at 380px; prefers-reduced-motion respected on any transitions
-- [ ] e2e: open briefing → entry card unlocks → play a card (flip, toggle a
+- [x] e2e: open briefing → entry card unlocks → play a card (flip, toggle a
       check, grade) → end screen; screenshots reviewed per autonomy rule 3;
       verify.sh green
 

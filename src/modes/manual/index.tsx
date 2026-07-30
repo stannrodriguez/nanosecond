@@ -16,8 +16,11 @@ import type { Shelf } from '../../content/manual/types'
 import { GLOSSARY, REFERENCE_GROUPS, type GlossaryEntry } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
+import { sayItCardsForSection } from '../../content/sayit'
 import { useProgress } from '../../state/progress'
+import { dueCount, useSayItProgress } from '../../state/sayitProgress'
 import { fmtTimeNs, fmtHuman } from '../../ui/fmt'
+import SayItDeck from './SayIt'
 
 // Each shelf owns a channel accent (spec: CORE CONCEPTS net, KEY TECHNOLOGIES
 // compute, COMMON PATTERNS storage).
@@ -236,6 +239,91 @@ function ReferenceSection({ focusTerm }: { focusTerm?: string }) {
   )
 }
 
+/* Spec 068: the briefing's own terms, on the page — a player studying a
+   section shouldn't have to leave for Reference. Collapsed rows read as a
+   phrasebook (term + its SAY IT sentence); expanding one reveals the def and
+   the rest of the speakable contract. */
+function TermsPanelRow({ termKey, color, open, onToggle }: { termKey: string; color: string; open: boolean; onToggle: () => void }) {
+  const entry = GLOSSARY[termKey]
+  if (!entry) return null
+  const aside = (label: string, body: string) => (
+    <div style={{ marginTop: 6, fontSize: 12.5, color: C.dim, lineHeight: 1.55 }}>
+      <span className="mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, color: C.faint }}>
+        {label}
+      </span>{' '}
+      {body}
+    </div>
+  )
+  return (
+    <div style={{ borderBottom: `1px solid #1B2C48` }}>
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: '4px 10px',
+          flexWrap: 'wrap',
+          width: '100%',
+          textAlign: 'left',
+          background: 'none',
+          border: 'none',
+          padding: '9px 4px',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span className="mono" style={{ fontSize: 12, fontWeight: 600, color, whiteSpace: 'nowrap' }}>
+          {entry.name}
+        </span>
+        {/* minWidth lets the sentence drop below a long term name at 380px
+            instead of squeezing into a sliver column */}
+        <span style={{ flex: '1 1 200px', minWidth: 200, fontSize: 13, color: open ? C.text : C.dim, lineHeight: 1.5 }}>
+          {entry.say ? `“${entry.say}”` : entry.def.split('. ')[0] + '.'}
+        </span>
+        <span className="mono" aria-hidden style={{ fontSize: 11, color: C.faint }}>
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 4px 12px', borderLeft: `2px solid ${color}55`, marginLeft: 2, paddingLeft: 12 }}>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{entry.def}</div>
+          {entry.reachFor && aside('REACH FOR', entry.reachFor)}
+          {entry.trap && aside('TRAP', entry.trap)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TermsPanel({ s }: { s: ManualSection }) {
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const group = REFERENCE_GROUPS.find((g) => g.id === s.termShelf)
+  if (!group) return null
+  const col = SHELF_COLOR[s.shelf]
+  return (
+    <section aria-label="The terms" style={{ marginTop: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <Eyebrow color={col}>THE TERMS</Eyebrow>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: C.dim, whiteSpace: 'nowrap' }}>
+          {group.keys.length} terms · say each out loud
+        </span>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        {group.keys.map((k) => (
+          <TermsPanelRow
+            key={k}
+            termKey={k}
+            color={col}
+            open={openKey === k}
+            onToggle={() => setOpenKey(openKey === k ? null : k)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function RelatedRow({ s }: { s: ManualSection }) {
   const toys = (s.related.toys ?? []).map((id) => toyById(id)).filter(Boolean)
   const secs = (s.related.sections ?? []).map((id) => sectionById(id)).filter(Boolean) as ManualSection[]
@@ -276,6 +364,40 @@ function RelatedRow({ s }: { s: ManualSection }) {
   )
 }
 
+/* Spec 067: the briefing's practice deck entry — a card at the foot of the
+   page. Visiting the briefing satisfies law L2 (brief before test), so from
+   here the deck is always open; the lock only guards cold deep links. */
+function SayItCard({ s }: { s: ManualSection }) {
+  const navigate = useNavigate()
+  const cards = useSayItProgress((st) => st.cards)
+  const deck = sayItCardsForSection(s.id)
+  if (deck.length === 0) return null
+  const due = dueCount(deck.map((c) => c.id), cards, Date.now())
+  return (
+    <LiftCard
+      accent={C.net}
+      ariaLabel={`SAY IT — ${deck.length} questions an interviewer would ask`}
+      onClick={() => navigate(`/manual/briefings/${s.id}/say-it`)}
+      style={{ width: '100%', borderRadius: 10, padding: '14px 16px', marginTop: 16 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1.2, color: C.net }}>
+          🗣 SAY IT
+        </span>
+        <span style={{ fontSize: 13, color: C.dim }}>
+          {deck.length} questions an interviewer would ask
+        </span>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: due > 0 ? C.net : C.faint, whiteSpace: 'nowrap' }}>
+          {due > 0 ? `${due} due · practice →` : 'all scheduled · again →'}
+        </span>
+      </div>
+      <div style={{ fontSize: 12.5, color: C.faint, marginTop: 5, lineHeight: 1.5 }}>
+        Answer out loud, flip, grade yourself. Blanked cards come back daily.
+      </div>
+    </LiftCard>
+  )
+}
+
 function SectionView({ s }: { s: ManualSection }) {
   const markSectionRead = useProgress((st) => st.markSectionRead)
   useEffect(() => {
@@ -290,6 +412,7 @@ function SectionView({ s }: { s: ManualSection }) {
       <div style={{ fontSize: 14, lineHeight: 1.6 }}>{s.body}</div>
       {s.viz}
       <FinePrint text={s.simplifies} />
+      {s.termShelf && <TermsPanel s={s} />}
       <RelatedRow s={s} />
       <div
         style={{
@@ -310,8 +433,40 @@ function SectionView({ s }: { s: ManualSection }) {
           {s.feltIn.cta} →
         </Link>
       </div>
+      <SayItCard s={s} />
     </article>
   )
+}
+
+/* Spec 067: the deck page at /manual/briefings/:sectionId/say-it. Law L2
+   gates it — a cold deep link (briefing never opened) shows the way in, not
+   the cards. */
+function SayItPage({ s }: { s: ManualSection }) {
+  const navigate = useNavigate()
+  const read = useProgress((st) => st.sectionsRead[s.id])
+  if (!read) {
+    return (
+      <div style={{ maxWidth: 640 }}>
+        <div style={{ marginBottom: 24 }}>
+          <GhostButton onClick={() => navigate(`/manual/briefings/${s.id}`)}>← the briefing</GhostButton>
+        </div>
+        <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '22px 24px' }}>
+          <Eyebrow color={C.net}>SAY IT · LOCKED</Eyebrow>
+          <p style={{ fontSize: 15, lineHeight: 1.6, margin: '10px 0 0' }}>
+            Read the briefing first — these cards test what it teaches, and the deck grades you against its sentences.
+          </p>
+          <Link
+            to={`/manual/briefings/${s.id}`}
+            className="mono"
+            style={{ display: 'inline-block', marginTop: 12, color: C.net, fontSize: 12.5, fontWeight: 600 }}
+          >
+            open {s.title.toLowerCase()} →
+          </Link>
+        </div>
+      </div>
+    )
+  }
+  return <SayItDeck s={s} />
 }
 
 // The library index: one organizing view — three shelf columns of pokeable
@@ -462,14 +617,24 @@ function Ladder() {
 }
 
 export default function Manual() {
-  const { tab, sectionId } = useParams()
+  const { tab, sectionId, sub } = useParams()
   const navigate = useNavigate()
   if (tab !== 'briefings' && tab !== 'ladder' && tab !== 'reference') return <Navigate to="/manual/briefings" replace />
   // Legacy section ids (spec 020) redirect to their re-shelved home (ADR 0004).
   if (sectionId && tab === 'briefings') {
     const resolved = resolveSectionId(sectionId)
     if (!resolved) return <Navigate to="/manual/briefings" replace />
-    if (resolved !== sectionId) return <Navigate to={`/manual/briefings/${resolved}`} replace />
+    if (resolved !== sectionId) return <Navigate to={`/manual/briefings/${resolved}${sub ? `/${sub}` : ''}`} replace />
+  }
+
+  // Spec 067: /manual/briefings/:sectionId/say-it — the briefing's practice
+  // deck. Unknown sub-paths (or sections without a deck) degrade to the
+  // briefing itself, never 404 (ADR 0004).
+  if (sectionId && tab === 'briefings' && sub) {
+    const s = sectionById(sectionId)
+    if (!s || sub !== 'say-it' || sayItCardsForSection(s.id).length === 0)
+      return <Navigate to={`/manual/briefings/${sectionId}`} replace />
+    return <SayItPage s={s} />
   }
   if (sectionId && tab === 'ladder') return <Navigate to="/manual/ladder" replace />
 

@@ -159,7 +159,33 @@ The explanation/visualization layer — the product's heart; hold it to the high
 Fields: { id, shelf ('concepts' | 'technologies' | 'patterns'), title, body (JSX,
 plain language, every jargon word a <Term>), viz (interactive or animated diagram
 component — REQUIRED, a section without one is not authorable), related { toys[],
-terms[], sections[] }, feltIn (one line: the mode/scenario where this concept bites) }.
+terms[], sections[] }, feltIn (one line: the mode/scenario where this concept bites),
+termShelf? (glossary group rendered on the page, spec 068) }.
+
+THE THREE REGISTERS (content philosophy, 2026-07-30 — every briefing serves all
+three, in this order):
+1. UNDERSTAND — depth first. A briefing may be MULTI-BLOCK: several viz-led
+   sections (model → deepest mechanism → worked example → hand-offs), each block's
+   prose running as long as the concept honestly requires. Deep beats catchy;
+   unanchored beats nothing — every block keeps an interactive in reach.
+2. GROUND — write each load-bearing claim TWICE: once precise (mechanism, exact
+   terms, a number with a derivation), once for intuition (felt consequence,
+   analogy, or the viz interaction that makes it visceral). Repetition across
+   registers is deliberate; don't compress the two into one sentence.
+3. RETRIEVE — the page ends with its recall layer: THE TERMS panel (speakable
+   sentences), a hand-off paragraph relating this concept to its neighbors, and
+   the SAY IT deck (§11). Succinctness and "most important notes" live here.
+Reference implementation: the networking briefing (spec 069+).
+
+SOURCE SUPERSET (2026-07-30): when the user supplies source material for a topic
+(e.g. a Hello Interview PDF), the fill-out spec MUST carry a **Source coverage
+appendix**: every topic, claim, callout, and number in the source maps to a
+destination — a block on this page, a neighboring briefing (via an edge), a
+glossary entry, a say-it card, or a numbers.ts entry — or carries an explicit
+one-line waiver saying why it's out. Superset is SITE-level, not page-level:
+depth may live on the neighbor the edge points to. The superset is of
+INFORMATION, never wording — everything ships rewritten in the repo's voice,
+and source PDFs are never committed to the repo.
 
 Quality bar:
 - The viz carries the explanation; the prose annotates the viz, never the reverse.

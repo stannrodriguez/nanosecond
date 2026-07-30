@@ -76,6 +76,9 @@ until verify.sh is green.**
      (glossary `say`), explicit relations to neighboring concepts (`related`,
      hand-off paragraphs), and scheduled exercises (say-it decks, drills,
      puzzles). Succinctness lives HERE, not in the teaching prose.
+- When the user supplies source material for a topic, shipped content must be an
+  information SUPERSET of it, mapped claim-by-claim in the spec's coverage
+  appendix (content-pipeline §7). Superset of information, never of wording.
 - Every displayed number is derivable: it must exist in `src/content/numbers.ts`
   with a `derivation`.
 - Every jargon word in player-facing copy is a `<Term>` with a glossary entry.

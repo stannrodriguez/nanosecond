@@ -177,6 +177,16 @@ three, in this order):
    the SAY IT deck (§11). Succinctness and "most important notes" live here.
 Reference implementation: the networking briefing (spec 069+).
 
+SOURCE SUPERSET (2026-07-30): when the user supplies source material for a topic
+(e.g. a Hello Interview PDF), the fill-out spec MUST carry a **Source coverage
+appendix**: every topic, claim, callout, and number in the source maps to a
+destination — a block on this page, a neighboring briefing (via an edge), a
+glossary entry, a say-it card, or a numbers.ts entry — or carries an explicit
+one-line waiver saying why it's out. Superset is SITE-level, not page-level:
+depth may live on the neighbor the edge points to. The superset is of
+INFORMATION, never wording — everything ships rewritten in the repo's voice,
+and source PDFs are never committed to the repo.
+
 Quality bar:
 - The viz carries the explanation; the prose annotates the viz, never the reverse.
   If the section still teaches with the viz deleted, the viz is decoration — redo it.

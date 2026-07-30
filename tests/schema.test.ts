@@ -43,6 +43,63 @@ describe('schema: numbers database', () => {
     const toyIds = new Set(TOYS.map((t) => t.id))
     for (const n of NUMBERS) if (n.toyId) expect(toyIds.has(n.toyId), `${n.id} → ${n.toyId}`).toBe(true)
   })
+
+  // coverage-map §B.4 bundles N1 + N2 (spec 071). The fill-out specs cite these ids,
+  // so losing one is a broken reference somewhere downstream, not a missing nicety.
+  const N1_CAPACITY_CEILINGS = [
+    'cache-memory-ceiling',
+    'db-storage-ceiling',
+    'db-connection-ceiling',
+    'app-connection-ceiling',
+    'broker-storage-ceiling',
+    'partition-count-ceiling',
+    'container-start-time',
+    'dc-bandwidth',
+    'az-rtt',
+    'cpu-scale-trigger',
+    'shard-storage-trigger',
+    'read-scale-threshold',
+    'write-scale-trigger',
+  ]
+  const N2_STORAGE_MECHANICS = [
+    'disk-page-size',
+    'btree-lookup-depth',
+    'lsm-write-crossover',
+    'memtable-flush-size',
+    'quadtree-split-threshold',
+    'index-table-threshold',
+    'pg-indexed-lookup-rate',
+    'pg-table-row-ceiling',
+    'pg-join-ceiling',
+    'ddb-item-max',
+    'ddb-rcu-bytes',
+    'ddb-wcu-bytes',
+    'ddb-partition-capacity',
+    'ddb-index-maxima',
+    'ddb-txn-items',
+    'cassandra-quorum',
+    'replication-factor',
+  ]
+
+  it('coverage-map bundles N1 and N2 are fully present', () => {
+    const ids = new Set(NUMBERS.map((n) => n.id))
+    for (const id of [...N1_CAPACITY_CEILINGS, ...N2_STORAGE_MECHANICS]) {
+      expect(ids.has(id), `missing numbers.ts entry: ${id}`).toBe(true)
+    }
+  })
+
+  // §B.4 derivation discipline: the entries whose source value arrived WITH its
+  // arithmetic must ship that arithmetic. A bare value here throws away the teaching.
+  it('the worked-arithmetic entries carry their arithmetic', () => {
+    const worked = ['shard-storage-trigger', 'write-scale-trigger', 'cassandra-quorum', 'btree-lookup-depth', 'broker-storage-ceiling']
+    for (const id of worked) {
+      const n = NUMBERS.find((e) => e.id === id)!
+      expect(n, id).toBeDefined()
+      // the middle step is the math step (mechanism → math → result)
+      expect(/[×÷=+]|\d\s*\/\s*\d/.test(n.derivation[1]), `${id} step 2 has no arithmetic`).toBe(true)
+      expect((n.derivation[1].match(/\d/g) ?? []).length, `${id} step 2 has too few numbers`).toBeGreaterThan(3)
+    }
+  })
 })
 
 describe('schema: honesty fine print', () => {

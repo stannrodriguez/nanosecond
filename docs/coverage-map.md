@@ -2204,8 +2204,8 @@ Sequencing principles, in priority order:
 | F12 | scaling reads + writes | `scaling-reads`, `scaling-writes` | pt04, pt05, cc09 | **XL.** ~10 blocks. New viz: the read progression with a threshold slider, the stampede refresh-probability curve, the hierarchical-aggregation fan-in/fan-out. ~14 cards. | P1, P4, F4, F5 |
 | F13 | workflows + async work | `multi-step`, `long-running-tasks` | pt03, pt07, kt03 | **XL.** ~11 blocks. New viz: the saga with compensations firing backward, the replay-recovery stepper, the eight-step async flow, the duration-tiered queue. ~14 cards. | P2a, P4, F9 |
 | F14 | large blobs + object storage | `large-blobs`, `blob-storage` | pt06 | **L.** ~9 blocks. New viz: the proxy-vs-direct comparison, the multipart resume demo, the state-synchronization race. ~12 cards. | P2b, P4 |
-| F15 | the assembled three | `proximity`, `cdn`, `load-balancer` | cc08, cc01, kt01, kt02, kt07, pt04, pt06 | **XL and highest-risk.** ~14 blocks across three pages, none with a dedicated source article. New viz: the 2-D-vs-two-1-D-indexes failure, geohash subdivision, the edge-hit/miss path, the L4-vs-L7 visibility demo. **Scope this spec last and most carefully** — it is the one most likely to sprawl. ~18 cards. | all prior |
-| F16 | reliability walkthrough | *(new briefing or backlog)* | cc01, pt03, pt07, kt03 | **L.** Discharges the outstanding 069 Appendix A commitment: timeouts, retries with backoff and jitter, thundering herd, idempotency keys, circuit breakers, cascading failures. **Requires an ADR** — see §D.3. | P2a, F13 |
+| F15 | the assembled three | `proximity`, `cdn`, `load-balancer` | cc08, cc01, kt01, kt02, kt07, pt04, pt06 | **XL and highest-risk.** ~14 blocks across three pages, none with a dedicated source article. New viz: the 2-D-vs-two-1-D-indexes failure, geohash subdivision, the edge-hit/miss path, the L4-vs-L7 visibility demo. **Scope this spec last and most carefully** — it is the one most likely to sprawl. Review decision 2026-07-30: author as THREE separate specs (one per briefing) when its turn arrives; the row stays one line only for sequencing. ~18 cards. | all prior |
+| F16 | reliability walkthrough | `handling-failure` (new 28th briefing, patterns shelf — ADR 0006) | cc01, pt03, pt07, kt03 | **L.** Discharges the outstanding 069 Appendix A commitment: timeouts, retries with backoff and jitter, thundering herd, idempotency keys, circuit breakers, cascading failures. ADR 0006 accepted — see §D.3(1). | P2a, F13 |
 
 ## D.2 Critical path and parallelism
 
@@ -2232,6 +2232,12 @@ dependencies.
 
 Three decisions are above this map's pay grade and should be settled before the
 queue is written into `specs/README.md`.
+
+> **All three questions were resolved in review, 2026-07-30.** (1) 28th briefing —
+> ADR 0006, `handling-failure` on the patterns shelf, definition of done now 28.
+> (2) The six-edge cap stands; revisit only if hand-off paragraphs read thin.
+> (3) Decks ship per-spec; `/playtest` owns the voice-consistency pass.
+> The original questions are preserved below for the record.
 
 1. **Does F16 get a 28th briefing, or does the reliability material distribute?**
    Appendix A promised these topics "a reliability walkthrough spec" without saying

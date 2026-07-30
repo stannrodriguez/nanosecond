@@ -29,7 +29,7 @@ this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080
 | 067 | say-it-ui (slice 3/3) | ✅ |
 | 069 | networking-briefing (three-registers reference impl) | ✅ |
 | 070 | forge | ✅ |
-| 071 | numbers-capacity-storage (coverage-map P1) | ☐ |
+| 071 | numbers-capacity-storage (coverage-map P1) | ✅ |
 | 072 | glossary-storage-queues-resilience (P2a) | ☐ |
 | 073 | glossary-caching-networking-traffic (P2b) | ☐ |
 | 074 | edge-graph (P3) | ☐ |

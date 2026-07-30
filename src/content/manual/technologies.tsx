@@ -2,15 +2,307 @@
 // one is buying you out of. Contract: docs/content-pipeline.md §7.
 
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { C } from '../../theme'
 import { Term as T } from '../../ui/Term'
 import { Slidey, Toggler, Stepper } from '../../ui/viz'
+import { InvertedIndexBuilder } from '../../ui/InvertedIndexBuilder'
+import { SegmentMerge } from '../../ui/SegmentMerge'
 import type { ManualSection } from './types'
 
 const line = (label: string, val: ReactNode, col: string) => (
   <p style={{ margin: '4px 0' }}>
     <b style={{ color: col }}>{label}</b> {val}
   </p>
+)
+
+// In-prose § link to a sibling briefing (spec 076 hand-off blocks).
+const Sec = ({ to, children }: { to: string; children: ReactNode }) => (
+  <Link to={`/manual/briefings/${to}`} style={{ color: C.net }}>
+    §&nbsp;{children}
+  </Link>
+)
+
+/* ---------- search-db (spec 076, coverage-map F1): six viz-led blocks ----------
+   Baseline: specs/076-indexing-search-briefings.md Appendix B.2. Block 1's parts
+   double as the section's legacy body/viz/simplifies fields. */
+
+const SRCH_WHY_BODY = (
+  <>
+    <p>
+      A B-tree finds values by a <i>prefix</i>, so <span className="mono">LIKE '%latency%'</span> has nothing to seek on
+      and becomes a full scan: every row read, every string tested, linear in the size of the table, with no ranking at
+      the end of it. The first move is not a new system, though. Relational engines ship a real full-text index —
+      stemming, ranking, the lot — and it covers far more than candidates expect. An indexed lookup there already costs
+      a fraction of a millisecond, so "search is slow" is rarely an argument for new infrastructure by itself.
+    </p>
+    <p>
+      What actually pushes you past the built-in is specific, and you should be able to name which one bit you: analysis
+      in several languages, typo tolerance and fuzzy matching, relevance you need to <i>tune</i> rather than accept,
+      faceting and aggregation across large result sets, or a search load heavy enough that it would compete with the
+      source of truth's own traffic. The built-in is right up to the moment search stops being a query and starts being
+      a feature. "We added a search box" is a query. "Results should rank, facet, forgive typos, and hold up under the
+      read load of the entire product" is a feature — and features get their own system.
+    </p>
+    <p>
+      The vocabulary comes with a warning attached. A <b>document</b> is a JSON record, an <b>index</b> is a collection
+      of them, a <b>mapping</b> declares the fields and their types, a <b>field</b> is one of them. The warning is that{' '}
+      <b>"index" is overloaded</b>: here it means the whole collection — closer to a table than to a lookup structure —
+      and the thing playing the role of an index in the ordinary sense is built <i>inside</i> it, per field. Two field
+      types carry most of the confusion: a <span className="mono">keyword</span> field is stored whole and matched
+      exactly, a hash lookup; a <span className="mono">text</span> field is run through the{' '}
+      <T k="analyzer">analysis pipeline</T> and matched by term. Choosing wrong is the classic first bug — an
+      exact-match filter on an analyzed field, or a search over a keyword field that only ever matches the entire
+      string.
+    </p>
+    <p style={{ color: C.dim }}>
+      And mapping every field you might one day query is not free. Every mapped field carries into cluster state and
+      memory, so a mapping that grew by accretion is one of the more common reasons a cluster is slow for no visible
+      reason.
+    </p>
+  </>
+)
+
+const SRCH_WHY_VIZ = (
+  <Toggler
+    options={[
+      { id: 'scan', label: "LIKE '%term%'", col: C.alert },
+      { id: 'builtin', label: 'built-in full-text', col: C.compute },
+      { id: 'engine', label: 'search engine', col: C.mem },
+    ]}
+    initial="scan"
+  >
+    {(id) =>
+      id === 'scan' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Mechanism:', 'read every row, test the substring. No prefix to seek on, so the index cannot help.', C.alert)}
+          {line('Cost:', '10M docs → 10M rows examined, every time, and the result comes back unranked.', C.alert)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>Stops working at the first real corpus. Not a strategy — a placeholder.</p>
+        </div>
+      ) : id === 'builtin' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Mechanism:', 'the same inverted index, inside the database you already run. Stemming and ranking included.', C.compute)}
+          {line('Cost:', 'one system, one backup, one source of truth — and search competes with your write traffic for the same machine.', C.compute)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            Stops at multi-language analysis, typo tolerance, tunable relevance, and heavy faceting. Start here and say
+            what would make you leave.
+          </p>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Mechanism:', 'a dedicated cluster of inverted indexes plus a columnar copy of each field, fed from your database.', C.mem)}
+          {line('Cost:', 'a second source of data that is always slightly behind, plus a cluster to operate and a reindex plan.', C.mem)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            Buys ranking you control, aggregation at scale, and read load that never touches the primary. Justify it in
+            one sentence before you draw the box.
+          </p>
+        </div>
+      )
+    }
+  </Toggler>
+)
+
+const SRCH_WHY_SIMPLIFIES =
+  'The built-in and the dedicated engine use the same underlying structure, so the boundary is about operations and scale rather than raw capability; the row counts are illustrative, and a relational engine with the right extension closes more of the gap than this toggle implies.'
+
+const SRCH_INVERTED_BODY = (
+  <>
+    <p>
+      There are exactly two ways to make a lookup fast: reorganize the data by the thing you look up, or leave the data
+      alone and build a second structure organized that way. A row store is organized by row, and reorganizing an entire
+      corpus by word is not on the table — so it is the second one. Build a map from every term to the sorted list of
+      documents containing it, its <b>postings list</b>. A query for two words is then two lookups and an intersection
+      of two sorted lists: linear in the number of matches, not in the size of the corpus. That is an{' '}
+      <T k="invertedindex">inverted index</T>, and it is the index at the back of a book, built by a machine that read
+      every page — which is also exactly why it costs what it costs. Somebody has to read every page, once, at write
+      time.
+    </p>
+    <p>
+      Nothing goes in raw. The <T k="analyzer">analysis pipeline</T> runs first: <b>tokenize</b> the text into terms,{' '}
+      <b>normalize</b> them (lowercase, strip punctuation and accents), <b>drop stop words</b> — "the", "of", "a", high
+      frequency and near-zero discriminating power — and <b>stem</b> what is left, so running, ran, and runs all become
+      one term. The detail that makes it work is that the <i>same</i> pipeline runs over the query. That is the entire
+      reason a search for "Running" finds a document that said "ran", and switching a stage off below breaks both sides
+      at once.
+    </p>
+    <p style={{ color: C.dim }}>
+      <T k="relevance">Relevance</T> is the default sort, and it is neither insertion order nor recency: it is a score
+      per document — how often the term appears in it, damped by how common that term is across the whole corpus,
+      normalized by document length so a long document cannot win on volume. A rare word carries the match; a common one
+      barely moves it. One sentence is usually all the depth an interview wants, and knowing the scoring is there at all
+      is what stops you accidentally building a second ranking on top of it.
+    </p>
+  </>
+)
+
+const SRCH_DOCVALUES_BODY = (
+  <>
+    <p>
+      The inverted index runs term → documents. That is exactly backwards for sorting, faceting, and aggregating, all of
+      which need document → value. So the engine stores each field a <i>second</i> time, column-wise on disk, as{' '}
+      <T k="docvalues">doc values</T>: one contiguous column per field, in document order.
+    </p>
+    <p>
+      Two layouts of one field, each pointed the direction it will be read from. It is also why the index on disk is
+      bigger than the data you handed it — every searchable, sortable field is stored twice, and that duplication is the
+      price of doing both jobs at once.
+    </p>
+    <p style={{ color: C.dim }}>
+      A per-field column in document order is precisely how an analytics engine is laid out, which is the real reason a
+      search engine can answer "average price per brand across these two million hits" without the query ever touching a
+      source document.
+    </p>
+  </>
+)
+
+const SRCH_DOCVALUES_VIZ = (
+  <Toggler
+    options={[
+      { id: 'inv', label: 'which docs contain "latency"?', col: C.mem },
+      { id: 'dv', label: 'sort these hits by price', col: C.compute },
+    ]}
+    initial="inv"
+  >
+    {(id) =>
+      id === 'inv' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Reads:', 'the inverted index — term → [doc 3, doc 91, …]. One lookup, then a merge.', C.mem)}
+          {line('From the other structure:', 'you would have to read every document’s field value and test it. That is the scan you came here to avoid.', C.alert)}
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Reads:', 'doc values — a price column in document order, so 2M hits sort by streaming one contiguous column.', C.compute)}
+          {line('From the other structure:', 'the inverted index maps price values to documents, so answering "what is doc 91’s price?" means searching the whole term list backwards.', C.alert)}
+        </div>
+      )
+    }
+  </Toggler>
+)
+
+const SRCH_SEGMENTS_BODY = (
+  <>
+    <p>
+      The index is a set of immutable <T k="segment">segments</T>. New documents buffer and land as a <i>new</i>{' '}
+      segment; nothing already written is ever modified. A delete removes nothing — it records a{' '}
+      <T k="tombstone">tombstone</T>, and the document keeps occupying space and keeps being read and filtered out. An
+      update is a soft delete plus an insert. Only a merge, combining small segments into larger ones, actually drops
+      the dead documents.
+    </p>
+    <p>
+      <b>The consequence that decides whether the whole system fits: an update costs strictly more than an insert.</b>{' '}
+      A catalogue of mostly-static documents, searched constantly, is the perfect workload. A set of documents whose
+      fields change every few minutes is the worst one — you pay insert cost plus tombstone cost plus merge pressure,
+      forever, for data a database would have updated in place.
+    </p>
+    <p>
+      It is a stack of finished, bound books, not a whiteboard. Correcting a line means printing a fresh page and
+      crossing out the old one, and the crossing-out stays there — costing you space and a sliver of read work on every
+      query — until somebody reprints the volume.
+    </p>
+    <p style={{ color: C.dim }}>
+      Immutability is a choice, not an accident, and it buys a great deal: readers never take a lock, because nothing
+      they are reading can change; the page cache can hold segment files indefinitely, because files never change;
+      compression is easy on write-once data; replication can ship whole files; a query gets a consistent
+      point-in-time view for free; and crash recovery is trivial, because a half-written segment is simply discarded.
+      Every one of those is a general lesson rather than a search-engine one — the same bargain drives the
+      log-structured storage engine over on <Sec to="indexing">Database indexing</Sec>.
+    </p>
+  </>
+)
+
+const SRCH_QUERY_BODY = (
+  <>
+    <p>
+      From the outside in: an index is split into <T k="shard">shards</T>, each shard is a self-contained index built
+      from segments, and each shard has <T k="replica">replicas</T> that are full copies. Replicas multiply read
+      throughput — every copy can serve a query — and do nothing at all for the latency of any single query. Nodes take
+      roles: coordinating (receives the request, merges the results), data (holds shards), master-eligible (cluster
+      state), plus ingest and machine-learning roles, and one node can hold several. The data itself is tiered by age —
+      hot, warm, cold, frozen — onto progressively cheaper storage.
+    </p>
+    <p>
+      A search runs in <b>two phases</b>, and this is the mechanism worth being able to draw. <b>Query:</b> the
+      coordinator fans out to one copy of every shard, and each returns only document ids and scores for its own top-k —
+      not documents. <b>Fetch:</b> the coordinator merges those lists, takes the global top-k, and asks only the shards
+      owning those specific documents for their content. The ideal case never touches a source document at all, because
+      everything the response needs is already sitting in doc values.
+    </p>
+    <p>
+      It is the difference between asking ten libraries to post you their twenty best books and asking all ten to post
+      you every book so you can pick twenty yourself.
+    </p>
+    <p>
+      Which is also why clause order is worth an order of magnitude. A filter matching 0.1% of documents, applied first,
+      leaves a thousand candidates for the expensive text scoring; applied last, that scoring runs across the whole
+      corpus. What lets the engine choose well is the <T k="queryplanner">planner</T> and the statistics it already
+      maintains — per-term document counts that say which clause is selective before anything runs.
+    </p>
+    <p style={{ color: C.dim }}>
+      One cliff is worth naming out loud, because users find it for you. Offset pagination means <i>every</i> shard must
+      return offset-plus-page-size documents so the coordinator can order them globally. Page 1,000 at ten per page
+      across five shards is 50,000 documents merged in order to show ten — which is why the default refuses to go deeper
+      than ten thousand. Raising the limit moves the cliff rather than removing it; the fix is a{' '}
+      <T k="cursor">cursor</T> that remembers the last sort value instead of counting from the start, and the API shape
+      of that choice lives on <Sec to="api-design">API design</Sec>.
+    </p>
+  </>
+)
+
+const SRCH_QUERY_VIZ = (
+  <Toggler
+    options={[
+      { id: 'bad', label: 'score first, filter after', col: C.alert },
+      { id: 'good', label: 'filter first, score after', col: C.mem },
+    ]}
+    initial="bad"
+  >
+    {(id) =>
+      id === 'bad' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Step 1:', 'score every document matching the text — 2,000,000 candidates, each one scored.', C.alert)}
+          {line('Step 2:', 'throw away everything outside the last 24 hours — 1,998,000 of them.', C.alert)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>The expensive operation ran on the whole corpus to produce a two-thousand-row answer.</p>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Step 1:', 'apply the date filter — a cheap term lookup, leaving 2,000 candidates.', C.mem)}
+          {line('Step 2:', 'score those 2,000. Same answer, a thousandth of the work.', C.mem)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            The planner knows the date clause is selective because it keeps document counts per term. Statistics are
+            what make the choice available.
+          </p>
+        </div>
+      )
+    }
+  </Toggler>
+)
+
+const SRCH_NOT_BODY = (
+  <>
+    <p>
+      The engine is almost never the source of truth, and saying so unprompted is worth more than any internals question
+      you might answer. It is a derived read model: the database holds the truth, a change stream (
+      <T k="cdc">change data capture</T>) carries every write across, and the index is built from that stream. Which
+      makes it eventually consistent <i>by construction</i> — the lag is a design parameter you should be able to name,
+      not a bug to apologize for.
+    </p>
+    <p>
+      Four things to have ready. Say <i>how</i> it is kept in sync, because "we will write to both" is the wrong answer
+      and the dual-write bug is what follows it. Say that mappings are effectively fixed once documents exist, so a real
+      mapping change means building a new index and swapping an alias across — the reindex question is coming. Say how
+      you sized the shard count, because it is fixed at creation and a target of tens of gigabytes per shard is what
+      sets it. And justify the whole system over the built-in from block one, in one sentence, before you draw the box.
+    </p>
+    <p style={{ color: C.dim }}>
+      From here: <Sec to="indexing">Database indexing</Sec> is the family this structure belongs to;{' '}
+      <Sec to="relational-db">Relational databases</Sec> is where the truth stays and where the cheaper built-in lives;{' '}
+      <Sec to="streams">Streams</Sec> is the change stream feeding this one;{' '}
+      <Sec to="data-modeling">Data modeling</Sec> is where "nest the related records or index them separately" turns out
+      to be the normalization question again; <Sec to="contention">Dealing with contention</Sec> is where the
+      version-field trick this engine uses for concurrent updates is one rung of a longer ladder; and{' '}
+      <Sec to="proximity">Proximity-based services</Sec> is where its geospatial field types become a real answer.
+    </p>
+  </>
 )
 
 export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
@@ -189,54 +481,46 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     id: 'search-db',
     shelf: 'technologies',
     title: 'Search-optimized databases',
-    thesis: 'Why can’t your primary database do "search for a word"?',
-    body: (
-      <>
-        <p>
-          A <T k="index">B-tree index</T> finds rows by a prefix of a value; it can't find every document <i>containing</i> a
-          word without scanning. Toggle below: a <span className="mono">LIKE '%term%'</span> query is a full scan, while a
-          search engine (Elasticsearch, Lucene) precomputes an <T k="invertedindex">inverted index</T> — word → list of
-          documents — so a query is a lookup and a merge.
-        </p>
-        <p style={{ color: C.dim }}>
-          You pay at write time (tokenizing and indexing every document) and in freshness: the search index is a separate
-          system, usually fed from the database's own <T k="cdc">change-data-capture</T> stream, so it is eventually
-          consistent. Search is a specialized read replica, not a replacement for your source of truth.
-        </p>
-        <p>
-          The inverted index runs term → documents, which is exactly backwards for sorting and faceting — those need
-          document → value. So the engine stores the same field a second time, column-wise, as{' '}
-          <T k="docvalues">doc values</T> on disk. Two layouts of one field, each for the direction of access it is good
-          at, which is how a search engine also does analytics without the heap exploding.
-        </p>
-      </>
-    ),
-    viz: (
-      <Toggler
-        options={[
-          { id: 'scan', label: "LIKE '%term%'", col: C.alert },
-          { id: 'inv', label: 'inverted index', col: C.mem },
-        ]}
-        initial="scan"
-      >
-        {(id) =>
-          id === 'scan' ? (
-            <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Full scan:', 'read every row, test the substring. Linear in table size, no ranking.', C.alert)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>10M docs → 10M reads. And "close matches" or typo tolerance are impossible.</p>
-            </div>
-          ) : (
-            <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Inverted index:', '"latency" → [doc 3, doc 91, …]. The lookup is O(matches), pre-ranked by relevance.', C.mem)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Built at write time; kept in sync via CDC. Fast reads, extra write + freshness cost.</p>
-            </div>
-          )
-        }
-      </Toggler>
-    ),
-    simplifies:
-      'Ignores that Postgres has real full-text and trigram indexes; the point is the inverted-index mechanism, not that you always need a separate cluster.',
-    related: { toys: [], terms: ['invertedindex', 'index', 'cdc', 'consistency'] },
+    thesis: 'What does a search engine do that an index on your database can’t?',
+    body: SRCH_WHY_BODY,
+    viz: SRCH_WHY_VIZ,
+    simplifies: SRCH_WHY_SIMPLIFIES,
+    blocks: [
+      { heading: 'THE TREE CANNOT DO "CONTAINS"', body: SRCH_WHY_BODY, viz: SRCH_WHY_VIZ, simplifies: SRCH_WHY_SIMPLIFIES },
+      {
+        heading: 'THE INVERTED INDEX, DERIVED',
+        body: SRCH_INVERTED_BODY,
+        viz: <InvertedIndexBuilder accent={C.storage} />,
+        simplifies:
+          'A real analyzer chain is longer and language-specific, and the stemmer here is a lookup table rather than a rule engine. Scoring uses a tuned formula rather than raw counts, and a real corpus is millions of documents with postings lists compressed on disk.',
+      },
+      {
+        heading: 'TWO LAYOUTS OF ONE FIELD',
+        body: SRCH_DOCVALUES_BODY,
+        viz: SRCH_DOCVALUES_VIZ,
+        simplifies:
+          'Doc values are not built for every field type, and can be turned off per field; the "stored twice" framing compresses several optional per-field structures into one idea.',
+      },
+      {
+        heading: 'NOTHING IS EVER EDITED',
+        body: SRCH_SEGMENTS_BODY,
+        viz: <SegmentMerge accent={C.storage} />,
+        simplifies:
+          'Real engines run a continuous tiered merge policy across many segments, and a refresh interval decides when new documents become visible at all; the counters here move in discrete steps for legibility.',
+      },
+      {
+        heading: 'THE QUERY IN TWO PHASES',
+        body: SRCH_QUERY_BODY,
+        viz: SRCH_QUERY_VIZ,
+        simplifies:
+          'Real planners weigh far more than clause order and the candidate counts are illustrative; the two-phase description also omits optimizations that skip the fetch phase entirely.',
+      },
+      { heading: 'WHAT IT IS NOT', body: SRCH_NOT_BODY },
+    ],
+    related: {
+      toys: [],
+      terms: ['invertedindex', 'analyzer', 'relevance', 'docvalues', 'segment', 'tombstone', 'queryplanner', 'cdc'],
+    },
     feltIn: { note: <>Estimation drills translate "10M docs" into the reads a scan would cost.</>, to: '/drills/session', cta: 'run some drills' },
   },
   {

@@ -567,3 +567,72 @@ test('forge at 380px: the parts bin, a locked workbench and a challenge all fit'
   await expect(page.getByText('Cache nodes · $200', { exact: true })).toBeVisible()
   await noOverflow()
 })
+
+test('manual: the indexing briefing is a six-block deep briefing (spec 076)', async ({ page }) => {
+  await page.goto('/#/manual/briefings/indexing')
+  // the six numbered blocks, in order
+  await expect(page.getByRole('heading', { name: /THE PAGE IS THE UNIT/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /THE TREE THAT DEFAULTS/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /WHAT EVERY INDEX COSTS/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /WHEN THE WRITE PATH WINS/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /THE SHAPE, NOT JUST THE COLUMN/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /WHERE SORTED ORDER RUNS OUT/ })).toBeVisible()
+  // BTreeWalk: the descent ends on the random heap fetch
+  await expect(page.getByText('read 1 / 4')).toBeVisible()
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next descent step' }).click()
+  await expect(page.getByText(/RANDOM read — the expensive half/)).toBeVisible()
+  // …and fan-out is what sets the depth
+  await page.getByRole('slider', { name: 'children per node' }).fill('16')
+  await expect(page.getByText(/depth 7 for 100M rows/)).toBeVisible()
+  // LsmPath: durability lands at the log, and the bloom filter changes the read
+  await page.getByRole('button', { name: /flush as an immutable SSTable/ }).click()
+  await expect(page.getByText('memtable (miss), then 1 of 7 SSTables')).toBeVisible()
+  await page.getByRole('checkbox', { name: 'bloom filters' }).uncheck()
+  await expect(page.getByText('memtable (miss), then all 7 SSTables')).toBeVisible()
+  // the hand-off block reaches the two pages this one breaks toward
+  await expect(page.getByRole('link', { name: /Search-optimized databases/ }).first()).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-indexing.png', fullPage: true })
+  // 380px floor
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/manual/briefings/indexing')
+  await expect(page.getByRole('heading', { name: /WHERE SORTED ORDER RUNS OUT/ })).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+  await page.screenshot({ path: 'e2e/shots/manual-indexing-380px.png', fullPage: true })
+})
+
+test('manual: the search briefing is a six-block deep briefing (spec 076)', async ({ page }) => {
+  await page.goto('/#/manual/briefings/search-db')
+  await expect(page.getByRole('heading', { name: /THE TREE CANNOT DO "CONTAINS"/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /THE INVERTED INDEX, DERIVED/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /TWO LAYOUTS OF ONE FIELD/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /NOTHING IS EVER EDITED/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /THE QUERY IN TWO PHASES/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /WHAT IT IS NOT/ })).toBeVisible()
+  // InvertedIndexBuilder: the pipeline runs on both sides, so dropping stemming
+  // loses the document that said "ran"
+  await expect(page.getByText('3 of 4 documents match')).toBeVisible()
+  await page.getByRole('button', { name: 'stem', exact: true }).click()
+  await expect(page.getByText('2 of 4 documents match')).toBeVisible()
+  await expect(page.getByText(/the document that said “ran” is invisible/)).toBeVisible()
+  // SegmentMerge: an update is a tombstone plus a copy; the merge reclaims it
+  await page.getByRole('button', { name: 'update 1 document' }).click()
+  await expect(page.getByText('3 segments per query')).toBeVisible()
+  await page.getByRole('button', { name: 'merge', exact: true }).click()
+  await expect(page.getByText('1 segment per query')).toBeVisible()
+  await expect(page.getByText('0% of the index is deleted documents')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-search.png', fullPage: true })
+  // 380px floor
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/manual/briefings/search-db')
+  await expect(page.getByRole('heading', { name: /WHAT IT IS NOT/ })).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+  await page.screenshot({ path: 'e2e/shots/manual-search-380px.png', fullPage: true })
+})

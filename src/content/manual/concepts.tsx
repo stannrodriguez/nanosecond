@@ -8,12 +8,21 @@ import { Term as T } from '../../ui/Term'
 import { Slidey, Toggler, Stepper, HashRing } from '../../ui/viz'
 import { LayerStack } from '../../ui/LayerStack'
 import { LossToggle } from '../../ui/LossToggle'
+import { BTreeWalk } from '../../ui/BTreeWalk'
+import { LsmPath } from '../../ui/LsmPath'
 import type { ManualSection } from './types'
 
 const mono = (children: ReactNode) => (
   <span className="mono" style={{ color: C.text }}>
     {children}
   </span>
+)
+
+// A labelled line inside a Toggler panel.
+const line = (label: string, val: ReactNode, col: string) => (
+  <p style={{ margin: '4px 0' }}>
+    <b style={{ color: col }}>{label}</b> {val}
+  </p>
 )
 
 // In-prose § link to a sibling briefing (networking block 4 hand-offs).
@@ -150,6 +159,344 @@ const NET_HANDOFF_BODY = (
     to every number on this page is <Sec to="cdn">CDN</Sec>. The stack you just learned is the map — each of those
     pages is one floor of this building, furnished.
   </p>
+)
+
+/* ---------- indexing (spec 076, coverage-map F1): six viz-led blocks ----------
+   Baseline: specs/076-indexing-search-briefings.md Appendix B.1. Block 1's parts
+   double as the section's legacy body/viz/simplifies fields. */
+
+const IDX_SCAN_BODY = (
+  <>
+    <p>
+      A table is a <T k="heapfile">heap file</T>: rows land wherever there was room, in no order whatsoever. And the
+      engine never reads a row — it reads the <b>page</b> the row is sitting on, 8&nbsp;KB of it, because the page is
+      the unit of I/O, of buffer caching, and often of locking. So a full scan is one sentence long: read every page,
+      test every row. Its cost is the table's size in pages, and a 200-byte row you actually wanted still arrives inside
+      a full 8&nbsp;KB transfer.
+    </p>
+    <p>
+      Picture the filing cabinet where every folder was dropped in wherever it fit. There is no drawer for the Ms. To
+      find one folder you open every drawer — and you always pull out the whole drawer, even when you want one sheet
+      from it.
+    </p>
+    <p>
+      One belief to break before going further: <b>solid-state storage did not make random access free.</b> Sequential
+      streaming still beats scattered random reads by roughly an order of magnitude on NVMe — it was a thousandfold on
+      spinning disk, so the gap narrowed hugely and then stopped narrowing. That surviving gap is the reason everything
+      below is a bet <i>against</i> sequential streaming rather than a bet against the disk being slow.
+    </p>
+  </>
+)
+
+const IDX_SCAN_VIZ = (
+  <>
+    <Slidey
+      label="table size"
+      min={3}
+      max={9}
+      step={1}
+      init={6}
+      accent={C.storage}
+      fmt={(v) => `${Math.pow(10, v).toLocaleString()} rows`}
+      compute={(v) => {
+        const rows = Math.pow(10, v)
+        const pages = Math.ceil((rows * 200) / 8192) // 200-byte rows in 8 KB pages
+        const seek = Math.ceil(Math.log(rows) / Math.log(340)) + 1 // B-tree fan-out ~340, plus the heap fetch
+        return {
+          headline: (
+            <>
+              full scan ≈ {pages.toLocaleString()} page reads · index ≈ {seek}
+            </>
+          ),
+          caption: `${rows.toLocaleString()} rows of 200 bytes fill ${pages.toLocaleString()} pages of 8 KB. The scan reads all of them; the tree reaches any one row in ${seek} reads, the last of which is the random fetch into the heap.`,
+          bars: [
+            { label: 'full scan', frac: v / 9, col: C.alert, tag: '≈ pages' },
+            { label: 'index seek', frac: seek / 9, col: C.mem, tag: `${seek}` },
+          ],
+        }
+      }}
+    />
+    <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
+      Drag down past about a thousand rows and the whole calculation inverts: 25 pages read in one streaming burst beat
+      a tree walk plus a random fetch, every time. Below that threshold an index is pure write cost with a lookup
+      attached — and the <T k="queryplanner">planner</T> will measure exactly that and ignore it, which is the correct
+      call and is regularly misread as the index being broken.
+    </p>
+  </>
+)
+
+const IDX_SCAN_SIMPLIFIES =
+  'Counts logical page reads, not cache hits — hot pages live in RAM, and the top of any tree effectively always does. Assumes 200-byte rows, ignores that a range scan or a sort changes the arithmetic entirely, and ignores that every index taxes every write.'
+
+const IDX_TREE_BODY = (
+  <>
+    <p>
+      A <T k="btree">B-tree</T> node is sized to exactly one page. With ~16-byte keys and 8-byte child pointers, one
+      8&nbsp;KB node holds on the order of <b>340 children</b> — fan-out in the hundreds, not two. Depth is a logarithm
+      in that fan-out: 340² ≈ 115,000 rows at depth 2, 340³ ≈ 39 million at depth 3, 340⁴ ≈ 13 <i>billion</i> at depth
+      4. A hundred-million-row table therefore sits at depth ~4, and the top two or three levels are almost always
+      already resident, so the honest cost of a point lookup is about one disk read.
+    </p>
+    <p>
+      The tree stays balanced by construction rather than by luck: nodes are held between half-full and full, splitting
+      when they overflow and merging when they empty, so every leaf is the same distance from the root. No query is
+      unlucky, and none ever will be.
+    </p>
+    <p style={{ color: C.dim }}>
+      Which is why "the table got ten times bigger and lookups got slower" is nearly always false. Depth barely moved —
+      each extra level multiplies the reachable rows by another 340. What actually degraded is the buffer-cache hit
+      rate, or maintenance: at around a hundred million rows a vacuum or index rebuild has to stream a hundred-odd
+      gigabytes, and it is the <i>maintenance window</i> that stops fitting overnight, never the lookup.
+    </p>
+    <p>
+      Five things this structure does well, and no other index family does all five: point lookups (one descent), range
+      queries (leaves are linked, so a range is a descent plus a walk), sorted retrieval (the index is already in order,
+      so an ORDER BY on that column costs nothing), prefix matching on strings (a prefix is just a range), and
+      predictable behaviour under a mixed read/write load. When in doubt, this is the answer — and saying <i>why</i> is
+      the half that scores.
+    </p>
+  </>
+)
+
+const IDX_COST_BODY = (
+  <>
+    <p>
+      Every index is a second copy of its columns plus a pointer per row, so a wide one can approach the size of the
+      data it indexes. The sharper cost is that it sits on the <b>write</b> path: every insert, update, and delete
+      maintains <i>every</i> index on that table. One logical row write becomes 1 + n physical writes, forever.
+    </p>
+    <p>
+      So an index is a bet that this column is read more often than the table is written. Six indexes means every write
+      does seven jobs, in exchange for six queries being fast. Take that bet deliberately, and only six times.
+    </p>
+    <p style={{ color: C.dim }}>
+      Two cases where the bet is simply wrong. A column written constantly and queried rarely — you have bought the
+      expensive half and left the cheap half on the shelf. And a table small enough that the scan wins anyway, where the
+      planner will correctly refuse to use what you built. Worth noticing what is <i>not</i> on that list: an indexed
+      lookup already costs a fraction of a millisecond, so "the database is slow" is almost never storage physics. It is
+      a missing index, or a scan you did not know you were doing.
+    </p>
+  </>
+)
+
+const IDX_COST_VIZ = (
+  <Slidey
+    label="indexes on this table"
+    min={0}
+    max={8}
+    step={1}
+    init={3}
+    accent={C.storage}
+    fmt={(v) => `${v}`}
+    compute={(n) => ({
+      headline: (
+        <>
+          1 row write = {1 + n} physical write{n === 0 ? '' : 's'}
+        </>
+      ),
+      caption:
+        n === 0
+          ? 'No indexes: writes are as cheap as they get, and every query that is not by primary key reads the whole table.'
+          : `Every write now maintains ${n} index${n === 1 ? '' : 'es'} as well as the row. ${n} query shape${n === 1 ? ' gets' : 's get'} a sub-millisecond lookup; everything else on this table pays for them on every insert, update, and delete.`,
+      bars: [
+        { label: 'write cost', frac: (1 + n) / 9, col: C.alert, tag: `${1 + n}×` },
+        { label: 'index space', frac: Math.min(1, n * 0.15), col: C.compute, tag: `${Math.round(n * 15)}%` },
+        { label: 'fast reads', frac: n / 8, col: C.mem, tag: `${n}` },
+      ],
+    })}
+  />
+)
+
+const IDX_LSM_BODY = (
+  <>
+    <p>
+      First, the correction this block exists for: an <T k="lsm">LSM-tree</T> is <b>not</b> another index type sitting
+      next to a B-tree on one column. It is the storage format of the <i>whole table</i>. Choosing it is choosing an
+      engine, not adding a structure — which is why the wide-column stores behave the way they do all the way down, and
+      why "we added an LSM index" is a sentence that gives you away.
+    </p>
+    <p>
+      The write path has four stages. The write is appended to the <T k="wal">write-ahead log</T> and fsynced —{' '}
+      <b>durability lands here, and nowhere else.</b> It is inserted into the in-memory <T k="memtable">memtable</T>, in
+      sorted order, at RAM speed. When that fills — commonly around 64&nbsp;MB — it is flushed to disk as one immutable{' '}
+      <T k="sstable">SSTable</T>, a single sequential write. And in the background, <T k="compaction">compaction</T>{' '}
+      merges SSTables, keeps the newest version of each key, and physically drops the tombstones.
+    </p>
+    <p>
+      A B-tree writes where the data belongs; an LSM writes where the disk is fastest and tidies up afterwards. That is
+      the whole trade — and above roughly 10,000 sustained writes a second it stops being a matter of taste, because
+      random page writes are what a B-tree cannot escape and sequential streaming is what an LSM converts them into.
+    </p>
+    <p>
+      The bill arrives on reads: one key's history is spread across files, so a read may have to consult the memtable{' '}
+      <i>plus every SSTable</i>. Three mitigations make that survivable. A <T k="bloomfilter">bloom filter</T> per file
+      rules keys OUT with certainty — never a false negative — so most files are skipped without a disk trip at all. A
+      sparse index holds one key per block, so a file that might have the key is entered at a byte offset rather than
+      scanned. And compaction strategy is the one real dial: leveled compaction rewrites aggressively, so reads check
+      fewer files and writes are amplified more; size-tiered rewrites less, so writes stay cheap and reads check more
+      files. They pull in opposite directions, and choosing between them <i>is</i> the workload question.
+    </p>
+    <p style={{ color: C.dim }}>
+      None of which makes writes free — it defers them. The same data is rewritten several times over its life, in
+      background I/O that competes with your live traffic. What you actually bought is that the payment happens off the
+      commit path, where nobody is waiting.
+    </p>
+  </>
+)
+
+const IDX_SHAPE_BODY = (
+  <>
+    <p>
+      You do not choose a column, you choose a <b>shape</b>. A <T k="compositeindex">composite index</T> sorts by its
+      columns in the order you declare — by the first, then by the second within it. Because that sort is nested, the
+      index can be entered only from a <b>leading prefix</b>: one on (tenant, created_at) serves a query filtering on
+      tenant, and one filtering on tenant while ordering by created_at, and nothing at all that starts from created_at.
+      Order it filter-column first, sort-column next, and a single traversal answers both halves of the query with no
+      sort step at all.
+    </p>
+    <p>
+      Two separate indexes are not a composite index, and the planner cannot glue them into one. That single fact
+      answers "why is my index not being used?" more often than everything else combined.
+    </p>
+    <p>
+      Three shapes are worth carrying around. <b>(filter, sort)</b> — the common one above. <b>(equality, range)</b> —
+      equality column first, always, because a range in the leading position destroys the ordering of everything behind
+      it. And <b>(tenant, time)</b> — the multi-tenant shape, where the leading column is doing partition-like work
+      inside one index. The usual heuristic, most selective column first, holds right up until the query sorts: then the
+      sort column's position matters more, because getting it wrong forces the engine to materialize and sort the whole
+      result set, which is precisely the cost you were avoiding.
+    </p>
+    <p style={{ color: C.dim }}>
+      Then two refinements, both narrower than they sound. A <T k="coveringindex">covering index</T> carries the columns
+      the query returns, so the engine answers from the index alone and skips the random heap fetch — the expensive step
+      from the descent above. It duplicates those columns on every write, and the honest modern assessment is that it is
+      a targeted win for one measured, hot, narrow query rather than a default. A{' '}
+      <T k="partialindex">partial index</T> covers only rows matching a condition, which is how a job table's handful of
+      pending rows gets an index small enough to live in memory while its millions of finished rows cost nothing to
+      maintain.
+    </p>
+  </>
+)
+
+const IDX_SHAPE_VIZ = (
+  <Toggler
+    options={[
+      { id: 'sort', label: 'filter + sort', col: C.storage },
+      { id: 'range', label: 'equality + range', col: C.compute },
+      { id: 'cover', label: 'returns two columns', col: C.mem },
+    ]}
+    initial="sort"
+  >
+    {(id) =>
+      id === 'sort' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('The query:', 'orders for one tenant, newest first, 20 of them.', C.storage)}
+          {line('Right shape:', '(tenant, created_at) — descend to the tenant, walk 20 leaves backwards, done. No sort step.', C.mem)}
+          {line('Wrong shape:', '(created_at, tenant) — cannot be entered by tenant at all, so the planner scans and then sorts.', C.alert)}
+        </div>
+      ) : id === 'range' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('The query:', "status = 'pending' AND created_at > yesterday.", C.compute)}
+          {line('Right shape:', '(status, created_at) — equality first pins one contiguous run, and the range is a walk inside it.', C.mem)}
+          {line('Wrong shape:', '(created_at, status) — the range comes first, so every matching row must be re-checked for status one at a time.', C.alert)}
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('The query:', 'SELECT id, status — nothing else — for one tenant.', C.mem)}
+          {line('Right shape:', '(tenant) INCLUDE (status) — the leaf already holds the answer, so the random heap fetch never happens.', C.mem)}
+          {line('The price:', 'status is now stored twice and rewritten on every update to it. Justify it with a measurement, not a hunch.', C.alert)}
+        </div>
+      )
+    }
+  </Toggler>
+)
+
+const IDX_LIMITS_BODY = (
+  <>
+    <p>
+      Everything above rests on one assumption: that the values can be put in order, one dimension at a time. Three
+      query shapes break it.
+    </p>
+    <p>
+      <b>Exact match only.</b> A hash index answers "equals this value" in a single step and does nothing else — no
+      ranges, no sorts, no prefixes. It is genuinely rare in practice, and not because it is bad: a B-tree at depth four
+      is close enough at equality and does four other jobs besides. Name it, say why you did not pick it, move on.
+    </p>
+    <p>
+      <b>Two dimensions at once.</b> Latitude and longitude are both ordered values, so indexing both looks obvious. It
+      does not work: the planner picks one of them and hand-filters a stripe of the planet. Sorted order is
+      one-dimensional and "near me" is not. Every real answer either flattens the plane into something orderable or
+      builds a tree around the data. A <T k="geohash">geohash</T> recursively halves the map and encodes the path as a
+      string, so nearby points share a prefix and an ordinary B-tree can index it — you then have to check the adjacent
+      cells too, because two points either side of a cell boundary can be metres apart and share no prefix at all. A{' '}
+      <T k="quadtree">quadtree</T> splits a node into four whenever it exceeds a threshold of about a hundred points, so
+      dense cities grow deep while empty ocean stays a single node. An <T k="rtree">R-tree</T> nests bounding rectangles
+      fitted to the data, which is what lets it index polygons and points together, at the cost of overlapping siblings
+      forcing one search down several branches.
+    </p>
+    <p>
+      <b>Somewhere in the middle of a string.</b> A B-tree indexes values from the left, so a query for documents{' '}
+      <i>containing</i> a word has no prefix to seek on and collapses into a scan. The fix is not a better tree. It is
+      to flip the mapping entirely — term → the list of documents holding it — which is an{' '}
+      <T k="invertedindex">inverted index</T>, a different structure with a different write path and a different bill.
+    </p>
+    <p style={{ color: C.dim }}>
+      Those two breakages are pages of their own: spatial indexes at full depth are{' '}
+      <Sec to="proximity">Proximity-based services</Sec>, and the inverted index is{' '}
+      <Sec to="search-db">Search-optimized databases</Sec>. The rest of the neighbourhood follows the same logic — the
+      log-structured engine above is the whole point of <Sec to="nosql-db">NoSQL databases</Sec>, an index is the first
+      and cheapest rung of <Sec to="scaling-reads">Scaling reads</Sec>, and whether yours gets used at all is decided by
+      a planner reading statistics over in <Sec to="relational-db">Relational databases</Sec>.
+    </p>
+  </>
+)
+
+const IDX_LIMITS_VIZ = (
+  <Toggler
+    options={[
+      { id: 'eq', label: 'id = 42', col: C.mem },
+      { id: 'range', label: 'range + ORDER BY', col: C.storage },
+      { id: 'near', label: 'within 5 km', col: C.compute },
+      { id: 'word', label: 'contains "latency"', col: C.alert },
+    ]}
+    initial="eq"
+  >
+    {(id) =>
+      id === 'eq' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Answered by:', 'a B-tree, in ~4 page reads. A hash index would do it in one — and nothing else.', C.mem)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            The tempting wrong answer is the hash index. It is faster at exactly this and useless at everything beside
+            it, which is why it is rare in production.
+          </p>
+        </div>
+      ) : id === 'range' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Answered by:', 'a B-tree, and this is where it is untouchable — one descent, then a walk along linked leaves, already in order.', C.storage)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            Sorted retrieval is free here and impossible in every other family. Put the sort column in the composite
+            index and the sort step disappears from the plan.
+          </p>
+        </div>
+      ) : id === 'near' ? (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Answered by:', 'a geohash on a B-tree, a quadtree, or an R-tree — depending on whether you index points or shapes.', C.compute)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            The tempting wrong answer is two indexes, one per coordinate. The planner takes one and filters a stripe of
+            the planet by hand. Depth lives on Proximity-based services.
+          </p>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          {line('Answered by:', 'an inverted index — term → documents — built by an analysis pipeline at write time.', C.alert)}
+          <p style={{ color: C.dim, margin: '4px 0' }}>
+            The tempting wrong answer is an index on the text column. There is no prefix to seek on, so it degrades to a
+            scan with no ranking at the end. Depth lives on Search-optimized databases.
+          </p>
+        </div>
+      )
+    }
+  </Toggler>
 )
 
 export const CONCEPTS_SECTIONS: ManualSection[] = [
@@ -329,72 +676,49 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     id: 'indexing',
     shelf: 'concepts',
     title: 'Database indexing',
-    thesis: 'Why is one query instant and another scans a billion rows?',
-    body: (
-      <>
-        <p>
-          Without an <T k="index">index</T>, finding a row means reading every row — a full scan, linear in table size.
-          An index is a sorted copy (a <T k="btree">B-tree</T>: wide and shallow, so any row is ~3–4 page reads away)
-          that turns "scan a billion rows" into "walk a tree". Drag the table size: the scan grows with the table; the
-          index barely moves.
-        </p>
-        <p style={{ color: C.dim }}>
-          The bill arrives on the write path. Every insert updates every index, and each is more <T k="durable">durable</T>{' '}
-          write amplification. Storage engines make the same trade at the root: a <T k="btree">B-tree</T> overwrites in place
-          (read-optimized), an <T k="lsm">LSM-tree</T> only appends and merges later (write-optimized) — both first append
-          intent to a <T k="wal">write-ahead log</T>.
-        </p>
-        <p>
-          The slider shows one index. In practice you also choose its SHAPE. A <T k="compositeindex">composite index</T>{' '}
-          sorts by several columns in order and can be entered from any leading prefix — put the filter column first and
-          the sort column next, and one traversal answers both halves of the query. A{' '}
-          <T k="coveringindex">covering index</T> also carries the columns you return, so the engine answers from the
-          index and skips the random heap fetch. A <T k="partialindex">partial index</T> covers only rows matching a
-          condition, which is how a job table's handful of pending rows gets an index small enough to stay in RAM. And
-          when the question is spatial, sorted order fails outright: an <T k="rtree">R-tree</T> groups objects into
-          fitted, overlapping rectangles, which is what lets it index polygons and not only points.
-        </p>
-        <p style={{ color: C.dim }}>
-          Zoom into the LSM half of that trade and the read count above is built from four stages: a write lands in the
-          in-memory <T k="memtable">memtable</T> — already durable, because the log was fsynced first — which flushes to
-          an immutable <T k="sstable">SSTable</T>, which <T k="compaction">compaction</T> later merges to keep the file
-          count, and therefore the read cost, from growing forever. A <T k="bloomfilter">bloom filter</T> per file is
-          what makes that read survivable: it rules keys OUT with certainty, so most files are skipped without a disk
-          trip at all.
-        </p>
-      </>
-    ),
-    viz: (
-      <Slidey
-        label="table size"
-        min={3}
-        max={9}
-        step={1}
-        init={6}
-        accent={C.storage}
-        fmt={(v) => `${Math.pow(10, v).toLocaleString()} rows`}
-        compute={(v) => {
-          const rows = Math.pow(10, v)
-          const scan = rows // one read per row, roughly
-          const seek = Math.ceil(Math.log(rows) / Math.log(200)) + 1 // B-tree fanout ~200
-          return {
-            headline: (
-              <>
-                full scan ≈ {scan.toLocaleString()} reads · index ≈ {seek} reads
-              </>
-            ),
-            caption: `A B-tree with ~200 keys per page reaches any of ${rows.toLocaleString()} rows in ${seek} page reads. The scan reads them all.`,
-            bars: [
-              { label: 'full scan', frac: v / 9, col: C.alert, tag: '≈ rows' },
-              { label: 'index seek', frac: seek / 9, col: C.mem, tag: `${seek}` },
-            ],
-          }
-        }}
-      />
-    ),
-    simplifies:
-      'Counts logical page reads, not cache hits (hot pages live in RAM); ignores that range scans and sorts change the calculus, and that each added index taxes every write.',
-    related: { toys: ['disk', 'lsmbtree'], terms: ['index', 'btree', 'lsm', 'wal', 'durable', 'gsi'] },
+    thesis: 'What does the engine actually do to find your row — and what does each shortcut cost?',
+    body: IDX_SCAN_BODY,
+    viz: IDX_SCAN_VIZ,
+    simplifies: IDX_SCAN_SIMPLIFIES,
+    blocks: [
+      { heading: 'THE PAGE IS THE UNIT', body: IDX_SCAN_BODY, viz: IDX_SCAN_VIZ, simplifies: IDX_SCAN_SIMPLIFIES },
+      {
+        heading: 'THE TREE THAT DEFAULTS',
+        body: IDX_TREE_BODY,
+        viz: <BTreeWalk accent={C.storage} />,
+        simplifies:
+          'Fan-out depends on key width, so a wide text key drops it sharply and can add a level; assumes no page compression, and ignores that the planner may measure and choose a scan anyway.',
+      },
+      {
+        heading: 'WHAT EVERY INDEX COSTS',
+        body: IDX_COST_BODY,
+        viz: IDX_COST_VIZ,
+        simplifies:
+          'Assumes every index is maintained on every write — true for inserts and deletes, but an update only touches the indexes whose columns it changed. Index size is taken as a flat ~15% of the table, which a wide or covering index blows past.',
+      },
+      {
+        heading: 'WHEN THE WRITE PATH WINS',
+        body: IDX_LSM_BODY,
+        viz: <LsmPath accent={C.storage} />,
+        simplifies:
+          'One memtable and a handful of SSTables, where a real engine runs several levels holding many files each; compaction runs continuously rather than as a discrete step, and the log is recycled rather than growing forever.',
+      },
+      {
+        heading: 'THE SHAPE, NOT JUST THE COLUMN',
+        body: IDX_SHAPE_BODY,
+        viz: IDX_SHAPE_VIZ,
+        simplifies:
+          'A real planner decides on statistics and may still pick a scan; these are the shapes to reason with, not a promise about any one engine. Row counts are illustrative.',
+      },
+      {
+        heading: 'WHERE SORTED ORDER RUNS OUT',
+        body: IDX_LIMITS_BODY,
+        viz: IDX_LIMITS_VIZ,
+        simplifies:
+          'Real engines blur these lines — a relational engine ships spatial and full-text index types in the box — so "which family" is a question about the shape of the access, not about which product you have to buy.',
+      },
+    ],
+    related: { toys: ['disk', 'lsmbtree'], terms: ['heapfile', 'index', 'btree', 'lsm', 'wal', 'durable', 'compositeindex', 'queryplanner'] },
     feltIn: { note: <>Race the same writes through a B-tree and an LSM, then pay the read bill.</>, to: '/lab/lsmbtree', cta: 'play LSM vs B-TREE' },
   },
   {

@@ -91,8 +91,57 @@ describe('schema: numbers database', () => {
 
   // §B.4 derivation discipline: the entries whose source value arrived WITH its
   // arithmetic must ship that arithmetic. A bare value here throws away the teaching.
+  const N3_CACHE_DELIVERY = [
+    'cache-vs-db-read',
+    'cache-speedup-ratio',
+    'cdn-edge-latency',
+    'origin-load-reduction',
+    'read-write-ratio',
+    'hash-ring-space',
+    'hash-slot-count',
+    'ring-move-fraction',
+    'shard-start-count',
+    'stampede-refresh-curve',
+    'hot-key-fanout',
+  ]
+  const N4_TRANSPORT_ASYNC = [
+    'longpoll-second-update',
+    'sse-connection-life',
+    'pubsub-added-latency',
+    'http-timeout-band',
+    'async-duration-threshold',
+    'heartbeat-interval',
+    'dlq-retry-threshold',
+    'serverless-exec-limit',
+    'queue-message-max',
+    'kafka-retention-default',
+    'blob-durability',
+    'blob-size-threshold',
+    'multipart-min-part',
+    'upload-time-derivation',
+    'es-deep-pagination-cliff',
+    'es-doc-threshold',
+    'zk-session-timeout',
+    'zk-read-write-ratio',
+    'burst-headroom',
+    'batching-improvement',
+  ]
+
+  it('coverage-map bundles N3 and N4 are fully present', () => {
+    const ids = new Set(NUMBERS.map((n) => n.id))
+    for (const id of [...N3_CACHE_DELIVERY, ...N4_TRANSPORT_ASYNC]) {
+      expect(ids.has(id), `missing numbers.ts entry: ${id}`).toBe(true)
+    }
+  })
+
   it('the worked-arithmetic entries carry their arithmetic', () => {
-    const worked = ['shard-storage-trigger', 'write-scale-trigger', 'cassandra-quorum', 'btree-lookup-depth', 'broker-storage-ceiling']
+    const worked = [
+      // spec 071 (N1/N2)
+      'shard-storage-trigger', 'write-scale-trigger', 'cassandra-quorum', 'btree-lookup-depth', 'broker-storage-ceiling',
+      // spec 075 (N3/N4) — the four §B.4 flags plus the async duration test
+      'upload-time-derivation', 'stampede-refresh-curve', 'burst-headroom', 'batching-improvement',
+      'async-duration-threshold',
+    ]
     for (const id of worked) {
       const n = NUMBERS.find((e) => e.id === id)!
       expect(n, id).toBeDefined()

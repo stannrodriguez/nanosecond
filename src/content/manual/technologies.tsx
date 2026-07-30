@@ -70,7 +70,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Treats replicas as adding fixed read capacity with zero lag cost; real replicas lag under load, and cross-shard joins/transactions are the wall this omits.',
-    related: { toys: ['replag'], terms: ['acid', 'join', 'wal', 'durable', 'replica', 'replag', 'failover', 'read', 'write'], sections: ['indexing', 'scaling-reads', 'cap'] },
+    related: { toys: ['replag'], terms: ['acid', 'join', 'wal', 'durable', 'replica', 'replag', 'failover', 'read', 'write'] },
     feltIn: { note: <>Push writes past a replica’s apply rate, then read your own comment.</>, to: '/lab/replag', cta: 'play REPLICATION LAG' },
   },
   {
@@ -128,7 +128,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Collapses dozens of real engines into three archetypes; modern databases blur the lines (document stores add transactions, SQL adds JSON).',
-    related: { toys: ['hotpartition'], terms: ['nosql', 'join', 'acid', 'denormalization', 'shard', 'gsi', 'consistency'], sections: ['data-modeling', 'sharding'] },
+    related: { toys: ['hotpartition'], terms: ['nosql', 'join', 'acid', 'denormalization', 'shard', 'gsi', 'consistency'] },
     feltIn: { note: <>Taste tests pit SQL against NoSQL under stated requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {
@@ -182,7 +182,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Uses list storage prices only; ignores request charges, retrieval tiers (Glacier), and that egress — not storage — is usually the line item that hurts.',
-    related: { toys: [], terms: ['blob', 'presigned', 'cdn', 'btree'], sections: ['large-blobs', 'cdn'] },
+    related: { toys: [], terms: ['blob', 'presigned', 'cdn', 'btree'] },
     feltIn: { note: <>Builder scenarios price storage and egress against a monthly budget.</>, to: '/builder', cta: 'open the Builder' },
   },
   {
@@ -236,7 +236,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Ignores that Postgres has real full-text and trigram indexes; the point is the inverted-index mechanism, not that you always need a separate cluster.',
-    related: { toys: [], terms: ['invertedindex', 'index', 'cdc', 'consistency'], sections: ['indexing', 'relational-db'] },
+    related: { toys: [], terms: ['invertedindex', 'index', 'cdc', 'consistency'] },
     feltIn: { note: <>Estimation drills translate "10M docs" into the reads a scan would cost.</>, to: '/drills/session', cta: 'run some drills' },
   },
   {
@@ -284,7 +284,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Shows a linear happy path; real gateways also do request/response transformation, canary routing, and observability, and must be made highly available themselves.',
-    related: { toys: [], terms: ['apigateway', 'request', 'tls', 'ratelimit', 'breaker', 'lb'], sections: ['load-balancer', 'api-design'] },
+    related: { toys: [], terms: ['apigateway', 'request', 'tls', 'ratelimit', 'breaker', 'lb'] },
     feltIn: { note: <>On-Call runs hand you rate limiters and breakers as relics.</>, to: '/on-call', cta: 'start an On-Call run' },
   },
   {
@@ -343,7 +343,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'An M/M/1 caricature (one server, random arrivals); real fleets have many servers and admission control, but the knee only sharpens with retries.',
-    related: { toys: ['queue', 'connpool'], terms: ['lb', 'appserver', 'util', 'p99', 'sla', 'backlog'], sections: ['api-gateway', 'scaling-reads'] },
+    related: { toys: ['queue', 'connpool'], terms: ['lb', 'appserver', 'util', 'p99', 'sla', 'backlog'] },
     feltIn: { note: <>Drag utilization and watch waiting — not throughput — explode.</>, to: '/lab/queue', cta: 'play THE QUEUE' },
   },
   {
@@ -382,7 +382,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'One queue, one worker; real systems tune visibility timeouts against processing time and run many competing consumers with ordering caveats.',
-    related: { toys: ['backpressure'], terms: ['queue', 'worker', 'visibility', 'atleastonce', 'idempotent', 'dlq', 'backlog', 'burst'], sections: ['long-running-tasks', 'streams'] },
+    related: { toys: ['backpressure'], terms: ['queue', 'worker', 'visibility', 'atleastonce', 'idempotent', 'dlq', 'backlog', 'burst'] },
     feltIn: { note: <>A fast producer, a slow consumer, and a buffer that has to choose.</>, to: '/lab/backpressure', cta: 'play BACKPRESSURE' },
   },
   {
@@ -441,7 +441,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Ignores retention limits, partition ordering (order holds only within a partition), and the operational weight of running Kafka.',
-    related: { toys: ['disk'], terms: ['stream', 'eventsourcing', 'cdc', 'backlog'], sections: ['queues', 'multi-step'] },
+    related: { toys: ['disk'], terms: ['stream', 'eventsourcing', 'cdc', 'backlog'] },
     feltIn: { note: <>Estimation drills size a broker at a million sequential appends/s.</>, to: '/drills/session', cta: 'run some drills' },
   },
   {
@@ -488,7 +488,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Abstracts the consensus store behind "lock"; a correct lock also needs clock-skew tolerance and the resource itself must honor fencing tokens.',
-    related: { toys: ['consensus'], terms: ['distlock', 'lease', 'consensus', 'quorum'], sections: ['contention', 'cap'] },
+    related: { toys: ['consensus'], terms: ['distlock', 'lease', 'consensus', 'quorum'] },
     feltIn: { note: <>Flaw puzzles hide missing fencing and double-processing bugs.</>, to: '/review/flaw', cta: 'find the flaw' },
   },
   {
@@ -540,7 +540,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Assumes even key distribution and per-node 100k ops/s; hot keys, big values, and network limits move the real numbers.',
-    related: { toys: ['stampede', 'dram'], terms: ['cache', 'consistenthash', 'stampede', 'hitrate'], sections: ['caching', 'consistent-hashing'] },
+    related: { toys: ['stampede', 'dram'], terms: ['cache', 'consistenthash', 'stampede', 'hitrate'] },
     feltIn: { note: <>The stampede toy shows what a cold cache does to the database.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
   },
   {
@@ -595,7 +595,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Ignores cache invalidation (the hard part), origin-shield tiers, and that dynamic/personalized responses can’t be edge-cached without care.',
-    related: { toys: ['light', 'pipe'], terms: ['cdn', 'tls', 'dns', 'write', 'hitrate'], sections: ['networking', 'blob-storage'] },
+    related: { toys: ['light', 'pipe'], terms: ['cdn', 'tls', 'dns', 'write', 'hitrate'] },
     feltIn: { note: <>Watch how far light gets before a cross-region round trip ends.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
   },
 ]

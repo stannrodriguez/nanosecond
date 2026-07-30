@@ -16,6 +16,7 @@ import type { Shelf } from '../../content/manual/types'
 import { GLOSSARY, REFERENCE_GROUPS, type GlossaryEntry } from '../../content/glossary'
 import { RUNGS } from '../../content/ladder'
 import { toyById } from '../../content/toys'
+import { EDGE_KIND_LABEL, edgesFor } from '../../content/edges'
 import { sayItCardsForSection } from '../../content/sayit'
 import { useProgress } from '../../state/progress'
 import { dueCount, useSayItProgress } from '../../state/sayitProgress'
@@ -326,7 +327,6 @@ function TermsPanel({ s }: { s: ManualSection }) {
 
 function RelatedRow({ s }: { s: ManualSection }) {
   const toys = (s.related.toys ?? []).map((id) => toyById(id)).filter(Boolean)
-  const secs = (s.related.sections ?? []).map((id) => sectionById(id)).filter(Boolean) as ManualSection[]
   return (
     <div
       className="mono"
@@ -348,11 +348,6 @@ function RelatedRow({ s }: { s: ManualSection }) {
           ▸ {t!.name.toLowerCase()}
         </Link>
       ))}
-      {secs.map((sec) => (
-        <Link key={sec.id} to={`/manual/briefings/${sec.id}`} style={{ color: C.dim }}>
-          § {sec.title.toLowerCase()}
-        </Link>
-      ))}
       <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {s.related.terms.map((k) => (
           <T key={k} k={k}>
@@ -360,6 +355,58 @@ function RelatedRow({ s }: { s: ManualSection }) {
           </T>
         ))}
       </span>
+    </div>
+  )
+}
+
+/* Spec 074: the hand-off block. Each row is a neighbor briefing plus the reason
+   THIS page has to send you there — the RETRIEVE register's "explicit relations
+   to neighboring concepts", rendered rather than left implicit in an id array. */
+function WhereThisTouches({ s }: { s: ManualSection }) {
+  const edges = edgesFor(s.id)
+    .map((e) => ({ ...e, sec: sectionById(e.other) }))
+    .filter((e) => e.sec)
+  if (edges.length === 0) return null
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        background: C.panel,
+        border: `1px solid ${C.line}`,
+        borderRadius: 10,
+        padding: '12px 14px',
+      }}
+    >
+      <Eyebrow color={C.net}>WHERE THIS TOUCHES</Eyebrow>
+      <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 10 }}>
+        {edges.map((e) => (
+          <li key={e.other}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <Link
+                to={`/manual/briefings/${e.other}`}
+                style={{ color: C.net, fontSize: 13.5, fontWeight: 600 }}
+              >
+                § {e.sec!.title}
+              </Link>
+              <span
+                className="mono"
+                style={{
+                  fontSize: 10.5,
+                  letterSpacing: 0.8,
+                  color: C.faint,
+                  border: `1px solid ${C.line}`,
+                  borderRadius: 4,
+                  padding: '1px 6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {EDGE_KIND_LABEL[e.kind]}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: C.dim, margin: '3px 0 0', lineHeight: 1.5 }}>{e.why}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -458,6 +505,7 @@ function SectionView({ s }: { s: ManualSection }) {
       )}
       {s.termShelf && <TermsPanel s={s} />}
       <RelatedRow s={s} />
+      <WhereThisTouches s={s} />
       <div
         style={{
           marginTop: 16,

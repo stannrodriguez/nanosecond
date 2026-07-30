@@ -182,7 +182,6 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     related: {
       toys: ['light', 'pipe'],
       terms: ['request', 'dns', 'tls', 'tcp', 'udp', 'handshake', 'headofline', 'cdn', 'lb', 'appserver', 'throughput'],
-      sections: ['cdn', 'load-balancer'],
     },
     termShelf: 'networking',
     feltIn: { note: <>Race a real operation against the speed of light in the Lab.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
@@ -255,7 +254,6 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     related: {
       toys: ['light'],
       terms: ['rest', 'pagination', 'idempotent', 'retry', 'request', 'grpc', 'protobuf'],
-      sections: ['data-modeling', 'api-gateway'],
     },
     feltIn: { note: <>Taste tests judge API choices against stated requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
@@ -324,7 +322,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Real systems mix both (a normalized source of truth with denormalized read projections kept in sync by CDC); the toggle pretends it is one-or-the-other.',
-    related: { toys: ['disk'], terms: ['normalization', 'denormalization', 'join', 'index', 'write', 'readpct', 'fanout', 'cdc'], sections: ['indexing', 'relational-db', 'nosql-db'] },
+    related: { toys: ['disk'], terms: ['normalization', 'denormalization', 'join', 'index', 'write', 'readpct', 'fanout', 'cdc'] },
     feltIn: { note: <>Builder scenarios force the read/write-mix decision under a budget.</>, to: '/builder', cta: 'open the Builder' },
   },
   {
@@ -396,7 +394,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Counts logical page reads, not cache hits (hot pages live in RAM); ignores that range scans and sorts change the calculus, and that each added index taxes every write.',
-    related: { toys: ['disk', 'lsmbtree'], terms: ['index', 'btree', 'lsm', 'wal', 'durable', 'gsi'], sections: ['relational-db', 'data-modeling'] },
+    related: { toys: ['disk', 'lsmbtree'], terms: ['index', 'btree', 'lsm', 'wal', 'durable', 'gsi'] },
     feltIn: { note: <>Race the same writes through a B-tree and an LSM, then pay the read bill.</>, to: '/lab/lsmbtree', cta: 'play LSM vs B-TREE' },
   },
   {
@@ -464,7 +462,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Assumes a fixed 100k reads/s and a uniform miss cost; real hit rates depend on key skew and value churn, and a miss can be far more expensive than a hit.',
-    related: { toys: ['stampede', 'dram'], terms: ['cache', 'hitrate', 'ttl', 'stampede', 'read', 'write', 'herd'], sections: ['distributed-caches', 'scaling-reads'] },
+    related: { toys: ['stampede', 'dram'], terms: ['cache', 'hitrate', 'ttl', 'stampede', 'read', 'write', 'herd'] },
     feltIn: { note: <>Expire a hot key and watch ten thousand misses dogpile the DB.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
   },
   {
@@ -543,7 +541,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Eight fixed equal partitions; real stores split hot partitions adaptively (too late for a per-second spike) and rebalance in the background.',
-    related: { toys: ['hotpartition'], terms: ['shard', 'hotpartition', 'gsi', 'fanout', 'write'], sections: ['consistent-hashing', 'scaling-writes'] },
+    related: { toys: ['hotpartition'], terms: ['shard', 'hotpartition', 'gsi', 'fanout', 'write'] },
     feltIn: { note: <>Watch "now" as a partition key melt one node while seven idle.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
@@ -576,7 +574,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     viz: <HashRing />,
     simplifies:
       'Uses one ring point per node (real deployments use dozens of virtual nodes to smooth load) and 12 evenly-hashed keys; skew and hot keys still need separate handling.',
-    related: { toys: ['hotpartition'], terms: ['consistenthash', 'shard', 'cache', 'hitrate'], sections: ['sharding', 'distributed-caches'] },
+    related: { toys: ['hotpartition'], terms: ['consistenthash', 'shard', 'cache', 'hitrate'] },
     feltIn: { note: <>The hot-partition toy shows what happens when keys don’t spread.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
@@ -638,7 +636,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Treats CAP as a clean binary; real systems tune consistency per request (read-your-writes, bounded staleness) and partitions are rarely total.',
-    related: { toys: ['consensus'], terms: ['cap', 'consistency', 'consensus', 'quorum', 'leader', 'failover'], sections: ['relational-db', 'distributed-locks'] },
+    related: { toys: ['consensus'], terms: ['cap', 'consistency', 'consensus', 'quorum', 'leader', 'failover'] },
     feltIn: { note: <>Count the round trips a single strongly-consistent write actually costs.</>, to: '/lab/consensus', cta: 'play CONSENSUS ROUND-TRIPS' },
   },
 ]

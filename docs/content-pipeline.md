@@ -159,7 +159,7 @@ The explanation/visualization layer — the product's heart; hold it to the high
 Fields: { id, shelf ('concepts' | 'technologies' | 'patterns'), title, body (JSX,
 plain language, every jargon word a <Term>), viz (interactive or animated diagram
 component — REQUIRED, a section without one is not authorable), related { toys[],
-terms[], sections[] }, feltIn (one line: the mode/scenario where this concept bites),
+terms[] }, feltIn (one line: the mode/scenario where this concept bites),
 termShelf? (glossary group rendered on the page, spec 068),
 blocks? (spec 069 — a DEEP briefing as ordered viz-led blocks) }.
 
@@ -186,6 +186,22 @@ three, in this order):
    sentences), a hand-off paragraph relating this concept to its neighbors, and
    the SAY IT deck (§11). Succinctness and "most important notes" live here.
 Reference implementation: the networking briefing (spec 069+).
+
+CONNECTION EDGES (spec 074). A section does NOT list its neighbors. Edges live in
+`src/content/edges.ts` as `{ a, b, kind, why, whyBack? }` and are derived per
+section at render time, appearing as the WHERE THIS TOUCHES block at the foot of
+the briefing. An edge is a CLAIM: each direction carries the reason a player
+standing on THAT page should make the trip, so `why` and `whyBack` are different
+sentences serving different readers. Omit `whyBack` only when the return trip is
+genuinely unjustifiable — filler in one direction is the failure this replaced.
+
+**Fill-out spec checklist:** a briefing spec ships its outbound edges, BOTH
+directions phrased, in the same change as its blocks and its say-it deck. An
+edge added later is a coverage hole in the meantime, because §B's routing
+assumes the hand-off exists. Contract (tests/schema.test.ts): endpoints resolve,
+every sentence ≥40 chars, no duplicate pairs in either orientation, no section
+past SIX outbound edges (§C.3 — beyond that the hand-off becomes a link dump),
+and no section without at least one edge.
 
 SOURCE SUPERSET (2026-07-30): when the user supplies source material for a topic
 (e.g. a Hello Interview PDF), the fill-out spec MUST carry a **Source coverage

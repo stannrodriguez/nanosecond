@@ -86,7 +86,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Omits the connection-management tier (a pub/sub layer routing events to the right sockets), which is where realtime systems actually get hard.',
-    related: { toys: [], terms: ['polling', 'sse', 'websocket', 'fanout', 'lasteventid', 'webrtc'], sections: ['scaling-writes', 'streams'] },
+    related: { toys: [], terms: ['polling', 'sse', 'websocket', 'fanout', 'lasteventid', 'webrtc'] },
     feltIn: { note: <>Taste tests weigh polling vs push under stated update rates.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {
@@ -135,7 +135,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Skips the status-polling / webhook mechanics the client needs to learn the result, and assumes the worker pool can eventually drain the queue.',
-    related: { toys: ['backpressure', 'queue'], terms: ['queue', 'worker', 'backpressure', 'atleastonce', 'idempotent', 'burst'], sections: ['queues', 'multi-step'] },
+    related: { toys: ['backpressure', 'queue'], terms: ['queue', 'worker', 'backpressure', 'atleastonce', 'idempotent', 'burst'] },
     feltIn: { note: <>Feel a bounded buffer choose to drop, block, or blow up.</>, to: '/lab/backpressure', cta: 'play BACKPRESSURE' },
   },
   {
@@ -204,7 +204,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Presents three pure strategies; production code blends them (a fast optimistic path with a pessimistic fallback) and must bound retry storms.',
-    related: { toys: ['hotpartition'], terms: ['optimistic', 'distlock', 'idempotent', 'consistency', 'readpct'], sections: ['distributed-locks', 'scaling-writes'] },
+    related: { toys: ['hotpartition'], terms: ['optimistic', 'distlock', 'idempotent', 'consistency', 'readpct'] },
     feltIn: { note: <>A hot key is contention at the storage layer — watch it saturate one node.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
@@ -261,7 +261,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Uses fixed 80%/90% absorption rates; real hit rates depend on content and personalization, and write-heavy reads (dashboards) don’t cache well.',
-    related: { toys: ['stampede', 'replag'], terms: ['cdn', 'cache', 'replica', 'hitrate', 'read'], sections: ['caching', 'relational-db'] },
+    related: { toys: ['stampede', 'replag'], terms: ['cdn', 'cache', 'replica', 'hitrate', 'read'] },
     feltIn: { note: <>Order-of-magnitude drills make the reads-per-second math stick.</>, to: '/drills/session', cta: 'run some drills' },
   },
   {
@@ -325,7 +325,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Assumes keys spread perfectly and every write is equal; real write cost varies with indexes and row size, and cross-shard transactions are the tax this omits.',
-    related: { toys: ['hotpartition', 'replag'], terms: ['write', 'shard', 'queue', 'hotpartition', 'backlog', 'burst', 'replica', 'durable'], sections: ['sharding', 'queues'] },
+    related: { toys: ['hotpartition', 'replag'], terms: ['write', 'shard', 'queue', 'hotpartition', 'backlog', 'burst', 'replica', 'durable'] },
     feltIn: { note: <>Watch a hot partition key pin one node at its write ceiling.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
@@ -369,7 +369,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Omits virus scanning, thumbnail/transcode pipelines (triggered async off the upload), and presigned-URL expiry/permission scoping details.',
-    related: { toys: ['pipe'], terms: ['presigned', 'blob', 'cdn', 'throughput'], sections: ['blob-storage', 'long-running-tasks'] },
+    related: { toys: ['pipe'], terms: ['presigned', 'blob', 'cdn', 'throughput'] },
     feltIn: { note: <>The Builder prices storage, egress, and transfer for a media workload.</>, to: '/builder', cta: 'open the Builder' },
   },
   {
@@ -428,7 +428,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Ignores orchestration-vs-choreography (a central coordinator vs events), and that designing correct compensations is the genuinely hard part.',
-    related: { toys: ['consensus'], terms: ['saga', '2pc', 'idempotent', 'dlq', 'consensus'], sections: ['distributed-locks', 'streams'] },
+    related: { toys: ['consensus'], terms: ['saga', '2pc', 'idempotent', 'dlq', 'consensus'] },
     feltIn: { note: <>Flaw puzzles hide missing compensations and non-idempotent steps.</>, to: '/review/flaw', cta: 'find the flaw' },
   },
   {
@@ -476,7 +476,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     ),
     simplifies:
       'Skips the border-neighbor query (a point near a cell edge needs adjacent cells) and the write cost of re-indexing constantly-moving objects.',
-    related: { toys: ['hotpartition'], terms: ['geohash', 'quadtree', 'btree', 'shard'], sections: ['indexing', 'sharding'] },
+    related: { toys: ['hotpartition'], terms: ['geohash', 'quadtree', 'btree', 'shard'] },
     feltIn: { note: <>Estimation drills size "riders per city cell" from a fleet story.</>, to: '/drills/session', cta: 'run some drills' },
   },
 ]

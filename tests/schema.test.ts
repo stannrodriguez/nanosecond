@@ -23,6 +23,7 @@ import { INTERROGATIONS } from '../src/content/interrogations'
 import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 import { FORGE } from '../src/content/forge'
 import { SAYIT_CARDS } from '../src/content/sayit'
+import { EDGES, edgesFor } from '../src/content/edges'
 
 describe('schema: numbers database', () => {
   it('every number has a 3-step, non-empty derivation', () => {
@@ -481,14 +482,12 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
     }
   })
 
-  it('related terms/toys/sections all resolve', () => {
+  it('related terms/toys all resolve', () => {
     const toyIds = new Set(TOYS.map((t) => t.id))
-    const sectionIds = new Set(MANUAL.map((m) => m.id))
     for (const m of MANUAL) {
       expect(m.related.terms.length, `${m.id} needs ≥1 term`).toBeGreaterThan(0)
       for (const k of m.related.terms) expect(GLOSSARY[k], `${m.id} → term ${k}`).toBeDefined()
       for (const t of m.related.toys ?? []) expect(toyIds.has(t), `${m.id} → toy ${t}`).toBe(true)
-      for (const s of m.related.sections ?? []) expect(sectionIds.has(s), `${m.id} → section ${s}`).toBe(true)
     }
   })
 
@@ -528,6 +527,59 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
       expect(m.feltIn.to.startsWith('/'), `${m.id} feltIn.to`).toBe(true)
       expect(m.feltIn.cta.trim().length, `${m.id} feltIn.cta`).toBeGreaterThan(0)
     }
+  })
+})
+
+// Spec 074 / coverage-map §C. An edge is a CLAIM, so these hold the graph to the
+// shape §C.0 argues for: every hand-off reachable, annotated, and reciprocal
+// unless a direction is genuinely unjustifiable.
+describe('schema: connection edges (spec 074, coverage-map §C)', () => {
+  const sectionIds = new Set(MANUAL.map((m) => m.id))
+
+  it('every endpoint resolves to a real section', () => {
+    for (const e of EDGES) {
+      expect(sectionIds.has(e.a), `edge ${e.a}→${e.b}: unknown section ${e.a}`).toBe(true)
+      expect(sectionIds.has(e.b), `edge ${e.a}→${e.b}: unknown section ${e.b}`).toBe(true)
+      expect(e.a, `self-edge on ${e.a}`).not.toBe(e.b)
+    }
+  })
+
+  it('every why-sentence is a sentence, not a label', () => {
+    for (const e of EDGES) {
+      expect(e.why.trim().length, `${e.a}→${e.b} why`).toBeGreaterThanOrEqual(40)
+      if (e.whyBack !== undefined) {
+        expect(e.whyBack.trim().length, `${e.b}→${e.a} whyBack`).toBeGreaterThanOrEqual(40)
+        expect(e.whyBack.trim(), `${e.a}↔${e.b} says the same thing both ways`).not.toBe(e.why.trim())
+      }
+    }
+  })
+
+  it('no duplicate pairs, in either orientation', () => {
+    const seen = new Set<string>()
+    for (const e of EDGES) {
+      const key = [e.a, e.b].sort().join('|')
+      expect(seen.has(key), `duplicate edge between ${e.a} and ${e.b}`).toBe(false)
+      seen.add(key)
+    }
+  })
+
+  it('no section exceeds the six-edge cap (§C.3 review decision)', () => {
+    for (const m of MANUAL) {
+      const n = edgesFor(m.id).length
+      expect(n, `${m.id} has ${n} outbound edges — past six the hand-off is a link dump`).toBeLessThanOrEqual(6)
+    }
+  })
+
+  it('no section is an island: every briefing has ≥1 outbound edge', () => {
+    for (const m of MANUAL) {
+      expect(edgesFor(m.id).length, `${m.id} has no outbound edge`).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('edgesFor resolves each direction to the sentence facing that page', () => {
+    const e = EDGES[0]
+    expect(edgesFor(e.a).find((x) => x.other === e.b)?.why).toBe(e.why)
+    if (e.whyBack) expect(edgesFor(e.b).find((x) => x.other === e.a)?.why).toBe(e.whyBack)
   })
 })
 

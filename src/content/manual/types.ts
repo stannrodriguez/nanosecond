@@ -41,10 +41,12 @@ export interface ManualSection {
    *  simplifies (which stay required — point them at block 1's content so
    *  single-block sections and their tests are untouched). */
   blocks?: SectionBlock[]
+  /** Spec 074: connections to other sections are NOT listed here. They live in
+   *  content/edges.ts as annotated, two-directional edges and are derived per
+   *  section at render time — an edge is a claim with a reason, not a bare id. */
   related: {
     toys?: string[] // ids into content/toys.ts
     terms: string[] // keys into content/glossary.ts (≥1)
-    sections?: string[] // ids into other sections
   }
   /** Spec 068: a glossary group id whose entries render ON the briefing page
    *  (name + say-sentence, expandable to def/reachFor/trap) — the player

@@ -291,6 +291,24 @@ test('manual: shelves open a section with its interactive viz', async ({ page })
   await page.screenshot({ path: 'e2e/shots/manual-delivery.png', fullPage: true })
 })
 
+test('manual: WHERE THIS TOUCHES carries an annotated, navigable edge (spec 074)', async ({ page }) => {
+  await page.goto('/#/manual/briefings/relational-db')
+  await expect(page.getByText('WHERE THIS TOUCHES')).toBeVisible()
+  // an edge is a claim: neighbor + kind badge + the sentence facing THIS page
+  await expect(page.getByText('composes with').first()).toBeVisible()
+  await expect(
+    page.getByText('Every read-throughput number the engine quotes assumes the right index exists', {
+      exact: false,
+    }),
+  ).toBeVisible()
+  // and the neighbor is reachable, landing on a page whose own edge points back
+  await page.getByRole('link', { name: /Database indexing/ }).click()
+  await expect(page.getByRole('heading', { name: 'Database indexing' })).toBeVisible()
+  await expect(
+    page.getByText('The planner is what decides whether your index gets used at all', { exact: false }),
+  ).toBeVisible()
+})
+
 test('library at 380px: shelves and the widest viz do not overflow', async ({ page }) => {
   await page.setViewportSize({ width: 380, height: 900 })
   const noOverflow = async () => {

@@ -6,26 +6,26 @@ This slice ships the content contract and the data — no UI. Format decisions
 the single admission test for a cue is "would an interviewer realistically
 say this?" — and decks are local to their briefing, not a global drill tab.
 
-- [ ] `docs/content-pipeline.md` gains §11 "Say-it card template": fields
+- [x] `docs/content-pipeline.md` gains §11 "Say-it card template": fields
       `id` (stable — scheduler keys on it), `section` (briefing id), `cue`
       (interviewer voice; textbook prompts like "define X" don't ship),
       `model` (one speakable sentence, two max, first person where it's a
       decision), `checks` (exactly 3: mechanism / tradeoff or cost / decision
       rule), `trap`, `number` (`{val, body}` display + optional `numbersRefs`
       into `numbers.ts`), `terms` (glossary keys)
-- [ ] `src/content/sayit.ts`: `SayItCard` type + the networking pilot deck —
+- [x] `src/content/sayit.ts`: `SayItCard` type + the networking pilot deck —
       the 6 cards from the appendix below, ported VERBATIM (copy is
       user-approved; don't rewrite)
-- [ ] `src/content/numbers.ts` gains 4 entries with derivations:
+- [x] `src/content/numbers.ts` gains 4 entries with derivations:
       `udp-vs-tcp-header`, `retransmit-rtt`, `middlebox-idle-timeout`,
       `protobuf-vs-json-size` (sources: RFC header sizes, speed-of-light RTT
       math already in the numbers db, typical proxy idle timeouts, protobuf
       wire format)
-- [ ] Schema test: every card has exactly 3 checks, a non-empty trap, `terms`
+- [x] Schema test: every card has exactly 3 checks, a non-empty trap, `terms`
       that resolve in the glossary, `numbersRefs` that resolve in
       `numbers.ts`, a `section` that resolves to a manual section id, and a
       `cue` that doesn't start with "define"/"what is"
-- [ ] No UI in this slice — no screenshot changes expected; verify.sh green
+- [x] No UI in this slice — no screenshot changes expected; verify.sh green
 
 ## Context (read this, not the whole repo)
 - **Read**: this spec's appendix (the deck); `docs/content-pipeline.md` §5

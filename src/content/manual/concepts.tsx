@@ -58,6 +58,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       terms: ['request', 'dns', 'tls', 'tcp', 'udp', 'handshake', 'headofline', 'cdn', 'lb', 'appserver', 'throughput'],
       sections: ['cdn', 'load-balancer'],
     },
+    termShelf: 'networking',
     feltIn: { note: <>Race a real operation against the speed of light in the Lab.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
   },
   {

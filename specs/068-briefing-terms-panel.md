@@ -8,22 +8,22 @@ adds a generic terms panel to the briefing template and adopts it on the
 networking briefing only. (The Say-it practice cards are 066/067, queued
 right after this — 067 already mounts them at the bottom of this same page.)
 
-- [ ] `ManualSection` gains optional `termShelf`: the id of a glossary group;
+- [x] `ManualSection` gains optional `termShelf`: the id of a glossary group;
       when set, the briefing page renders a **THE TERMS** panel (after the
       viz + body, before related/feltIn) listing that group's entries
-- [ ] Panel row per entry: term name + its `say` sentence always visible;
+- [x] Panel row per entry: term name + its `say` sentence always visible;
       expanding a row reveals `def`, `reachFor`, and `trap` (labeled in the
       same voice as Reference). Entries without speakable fields fall back to
       `def` only
-- [ ] Networking briefing sets `termShelf` to the Networking group — all 13
+- [x] Networking briefing sets `termShelf` to the Networking group — all 13
       entries (8 new + 5 re-homed strays) appear on the page
-- [ ] The mechanism is generic: any briefing can adopt it as its page gets
+- [x] The mechanism is generic: any briefing can adopt it as its page gets
       filled out, but ONLY networking adopts in this slice
-- [ ] Schema test: `termShelf`, when present, resolves to an existing
+- [x] Schema test: `termShelf`, when present, resolves to an existing
       glossary group id
-- [ ] Rows are keyboard-expandable with visible focus; panel works at 380px;
+- [x] Rows are keyboard-expandable with visible focus; panel works at 380px;
       prefers-reduced-motion respected on expand/collapse
-- [ ] e2e covers the panel (present on networking, absent elsewhere, one row
+- [x] e2e covers the panel (present on networking, absent elsewhere, one row
       expands); screenshots reviewed per autonomy rule 3; verify.sh green
 
 ## Context (read this, not the whole repo)

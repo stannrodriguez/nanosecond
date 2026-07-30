@@ -236,6 +236,88 @@ function ReferenceSection({ focusTerm }: { focusTerm?: string }) {
   )
 }
 
+/* Spec 068: the briefing's own terms, on the page — a player studying a
+   section shouldn't have to leave for Reference. Collapsed rows read as a
+   phrasebook (term + its SAY IT sentence); expanding one reveals the def and
+   the rest of the speakable contract. */
+function TermsPanelRow({ termKey, color, open, onToggle }: { termKey: string; color: string; open: boolean; onToggle: () => void }) {
+  const entry = GLOSSARY[termKey]
+  if (!entry) return null
+  const aside = (label: string, body: string) => (
+    <div style={{ marginTop: 6, fontSize: 12.5, color: C.dim, lineHeight: 1.55 }}>
+      <span className="mono" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, color: C.faint }}>
+        {label}
+      </span>{' '}
+      {body}
+    </div>
+  )
+  return (
+    <div style={{ borderBottom: `1px solid #1B2C48` }}>
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 10,
+          width: '100%',
+          textAlign: 'left',
+          background: 'none',
+          border: 'none',
+          padding: '9px 4px',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        <span className="mono" style={{ fontSize: 12, fontWeight: 600, color, whiteSpace: 'nowrap' }}>
+          {entry.name}
+        </span>
+        <span style={{ flex: 1, fontSize: 13, color: open ? C.text : C.dim, lineHeight: 1.5 }}>
+          {entry.say ? `“${entry.say}”` : entry.def.split('. ')[0] + '.'}
+        </span>
+        <span className="mono" aria-hidden style={{ fontSize: 11, color: C.faint }}>
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 4px 12px', borderLeft: `2px solid ${color}55`, marginLeft: 2, paddingLeft: 12 }}>
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{entry.def}</div>
+          {entry.reachFor && aside('REACH FOR', entry.reachFor)}
+          {entry.trap && aside('TRAP', entry.trap)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TermsPanel({ s }: { s: ManualSection }) {
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const group = REFERENCE_GROUPS.find((g) => g.id === s.termShelf)
+  if (!group) return null
+  const col = SHELF_COLOR[s.shelf]
+  return (
+    <section aria-label="The terms" style={{ marginTop: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <Eyebrow color={col}>THE TERMS</Eyebrow>
+        <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: C.dim, whiteSpace: 'nowrap' }}>
+          {group.keys.length} terms · say each out loud
+        </span>
+      </div>
+      <div style={{ marginTop: 6 }}>
+        {group.keys.map((k) => (
+          <TermsPanelRow
+            key={k}
+            termKey={k}
+            color={col}
+            open={openKey === k}
+            onToggle={() => setOpenKey(openKey === k ? null : k)}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function RelatedRow({ s }: { s: ManualSection }) {
   const toys = (s.related.toys ?? []).map((id) => toyById(id)).filter(Boolean)
   const secs = (s.related.sections ?? []).map((id) => sectionById(id)).filter(Boolean) as ManualSection[]
@@ -290,6 +372,7 @@ function SectionView({ s }: { s: ManualSection }) {
       <div style={{ fontSize: 14, lineHeight: 1.6 }}>{s.body}</div>
       {s.viz}
       <FinePrint text={s.simplifies} />
+      {s.termShelf && <TermsPanel s={s} />}
       <RelatedRow s={s} />
       <div
         style={{

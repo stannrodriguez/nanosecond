@@ -175,6 +175,34 @@ test('on-call: map renders and first encounter opens', async ({ page }) => {
   await page.screenshot({ path: 'e2e/shots/oncall-encounter.png', fullPage: true })
 })
 
+test('manual: the networking briefing carries its terms on the page (spec 068)', async ({ page }) => {
+  await page.goto('/#/manual/briefings/networking')
+  const panel = page.getByRole('region', { name: 'The terms' })
+  await expect(panel.getByText('THE TERMS')).toBeVisible()
+  // collapsed rows read as a phrasebook: term + SAY IT sentence, no click needed
+  await expect(panel.getByText(/UDP trades delivery guarantees for latency/)).toBeVisible()
+  // expanding a row reveals the def and the rest of the speakable contract
+  const row = panel.getByRole('button', { name: /TCP/ }).first()
+  await row.click()
+  await expect(row).toHaveAttribute('aria-expanded', 'true')
+  await expect(panel.getByText('REACH FOR')).toBeVisible()
+  await expect(panel.getByText('TRAP')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-terms.png', fullPage: true })
+  // the panel is opt-in per briefing: absent where no termShelf is declared
+  await page.goto('/#/manual/briefings/api-design')
+  await expect(page.getByRole('region', { name: 'The terms' })).toHaveCount(0)
+  // and it holds the 380px accessibility floor
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/manual/briefings/networking')
+  await expect(page.getByRole('region', { name: 'The terms' })).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+  await page.screenshot({ path: 'e2e/shots/manual-terms-380px.png', fullPage: true })
+})
+
 test('manual: shelves open a section with its interactive viz', async ({ page }) => {
   await page.goto('/#/manual')
   await page.getByRole('button', { name: /Managing long-running tasks/ }).click()

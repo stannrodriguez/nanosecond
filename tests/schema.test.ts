@@ -398,6 +398,15 @@ describe('schema: concept library (docs/content-pipeline.md §7)', () => {
     }
   })
 
+  it('termShelf, when present, resolves to a reference group (spec 068)', () => {
+    const groupIds = new Set(REFERENCE_GROUPS.map((g) => g.id))
+    for (const m of MANUAL) {
+      if (m.termShelf) expect(groupIds.has(m.termShelf), `${m.id} → ${m.termShelf}`).toBe(true)
+    }
+    // the networking pilot carries its glossary group on the page
+    expect(MANUAL.find((m) => m.id === 'networking')?.termShelf).toBe('networking')
+  })
+
   it('every section deep-links "where you\'ll feel this" into a real route', () => {
     for (const m of MANUAL) {
       expect(m.feltIn.to.startsWith('/'), `${m.id} feltIn.to`).toBe(true)

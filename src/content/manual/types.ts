@@ -31,6 +31,10 @@ export interface ManualSection {
     terms: string[] // keys into content/glossary.ts (≥1)
     sections?: string[] // ids into other sections
   }
+  /** Spec 068: a glossary group id whose entries render ON the briefing page
+   *  (name + say-sentence, expandable to def/reachFor/trap) — the player
+   *  studies a topic where it lives instead of leaving for Reference. */
+  termShelf?: string
   /** "where you'll feel this": a working deep link into another mode */
   feltIn: { note: ReactNode; to: string; cta: string }
 }

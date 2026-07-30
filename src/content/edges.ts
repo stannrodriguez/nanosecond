@@ -168,6 +168,53 @@ export const EDGES: Edge[] = [
     whyBack: 'The partition key is a shard key wearing a different name; every hot-spot lesson transfers directly.',
   },
 
+  /* ---------- indexing + search (spec 076, coverage-map §C.2) ----------
+     §C.3 predicts both of these sections land at the six-edge cap; they do. */
+  {
+    a: 'indexing',
+    b: 'nosql-db',
+    kind: 'composes-with',
+    why: 'The log-structured engine is not a per-column index but the whole table’s storage format, which is why the wide-column stores behave the way they do all the way down.',
+    whyBack: 'Their secondary-index limitations follow directly from that storage format, so the constraint stops looking arbitrary and starts looking inevitable.',
+  },
+  {
+    a: 'indexing',
+    b: 'scaling-reads',
+    kind: 'composes-with',
+    why: 'Indexes have a ceiling, and the progression past it — replicas first, then caches — is what comes next once the right index already exists.',
+    whyBack: 'The first and cheapest rung of the read ladder is an index, and most read problems end there rather than at anything you have to operate.',
+  },
+  {
+    a: 'search-db',
+    b: 'streams',
+    kind: 'needs',
+    why: 'The index is almost always fed by a change stream rather than written to directly, which is exactly what makes it eventually consistent.',
+    whyBack: 'Keeping a derived index current is the canonical worked example of what a change stream is actually for.',
+  },
+  {
+    a: 'search-db',
+    b: 'data-modeling',
+    kind: 'trades-against',
+    why: 'Nesting related records or separating them into their own index is the same normalization decision, with the same read-cost-versus-write-cost trade.',
+    whyBack: 'The flattened shape a search index wants is the clearest case of modeling for the query rather than for the entity.',
+  },
+  {
+    a: 'search-db',
+    b: 'contention',
+    kind: 'composes-with',
+    // one-way (§C.2): the return trip is not justifiable — the contention ladder
+    // is about a single source of truth, which this system explicitly is not.
+    why: 'Concurrent document updates are resolved with a version field — the same optimistic compare-and-set move, in a store with no transactions to fall back on.',
+  },
+  {
+    a: 'search-db',
+    b: 'proximity',
+    kind: 'composes-with',
+    // one-way (§C.2): proximity already reaches indexing and sharding, and has
+    // no reason to send a player back here for a field type.
+    why: 'Its geospatial field types are a production-grade answer to proximity search, with a distinct index structure sitting behind each of them.',
+  },
+
   /* ---------- technologies ---------- */
   {
     a: 'blob-storage',

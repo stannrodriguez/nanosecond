@@ -857,6 +857,57 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
       'Explaining how a search engine also does analytics, or why a field has to be explicitly enabled before you can aggregate on it.',
     trap: "Wrong: 'the inverted index handles the sorting too.' It maps terms to documents, which is precisely backwards for sorting. Say 'matching reads the inverted index and sorting or aggregating reads doc values — a column-oriented copy of the same field.'",
   },
+  // Spec 076 (coverage-map F1): the six terms the indexing and search briefings
+  // introduce. Storage & Data is an opted-in speakable group, so all three
+  // fields are mandatory here.
+  heapfile: {
+    name: 'Heap file',
+    def: 'The default physical layout of a table: rows written wherever there is free room, in no order at all. Because nothing is sorted, finding a row without an index means reading the whole file — and the engine never reads a row, it reads the fixed-size page the row sits on, so the cost of a scan is measured in pages rather than in rows. Every index exists to avoid touching this file more than once.',
+    say: 'A heap file stores rows in no order and is read a whole page at a time, so without an index every lookup is a scan measured in pages.',
+    reachFor:
+      'Explaining WHY an unindexed query is slow before proposing the fix — and explaining why selecting one column still costs a full page read.',
+    trap: "Wrong: 'the database reads the row.' It reads the 8 KB page the row happens to be on, whether you wanted one field or forty. Say 'the page is the unit of I/O, so a 200-byte row still costs a full page transfer.'",
+  },
+  segment: {
+    name: 'Segment',
+    def: 'One immutable file making up part of a search index. New documents accumulate in memory and are written out as a NEW segment; nothing already written is ever modified. Queries therefore run against every segment and merge the results, which is why segment count is a performance number — and why merges, which combine small segments into larger ones, run continuously in the background.',
+    say: 'A search index is a set of immutable segments, so writes create new files rather than editing old ones and every query runs across all of them.',
+    reachFor:
+      'Explaining why a search index behaves nothing like a table under updates, and why more small segments means slower queries.',
+    trap: "Wrong: 'the document gets updated in the index.' Segments are immutable — an update is a tombstone plus a fresh copy in a new segment. Say 'nothing is edited in place; updates cost a delete marker plus an insert, and merges clean up later.'",
+  },
+  tombstone: {
+    name: 'Tombstone',
+    def: 'A marker written to record that something was deleted, in a store that cannot remove data in place. The record itself stays on disk, still read and then filtered out, until a background merge or compaction physically drops it. This is why deletes in log-structured and segment-based stores are writes rather than removals, and why disk usage can rise immediately after a mass delete.',
+    say: 'A tombstone is a delete recorded as a write, so the data keeps taking up space and read work until a merge or compaction physically drops it.',
+    reachFor:
+      'Any "we deleted a million rows and nothing got smaller" question, and explaining why an update costs more than an insert in a segment-based store.',
+    trap: "Wrong: 'deleting frees the space.' The delete is itself a write, and the space returns only when compaction runs. Say 'deletes are tombstones — the space comes back at merge time, which is why a deletion-heavy workload can temporarily grow.'",
+  },
+  analyzer: {
+    name: 'Analyzer (analysis pipeline)',
+    def: 'The pipeline that turns raw text into the terms a search index actually stores: tokenize it into words, normalize them (lowercase, strip punctuation and accents), drop stop words, and stem what is left so running, ran, and runs all become one term. The same pipeline runs over the query, which is exactly why a search for "Running" matches a document that said "ran". Change the analyzer and you have to rebuild the index, because the stored terms change with it.',
+    say: 'An analyzer tokenizes, normalizes, drops stop words, and stems text into the terms actually stored, and it runs over the query too, which is why word forms and casing stop mattering.',
+    reachFor:
+      'Any "why does this search not match?" question, and explaining why the field type you chose decided whether text was analyzed at all.',
+    trap: "Wrong: 'it indexes the words in the document.' It indexes ANALYZED terms, which are usually not the words you typed. Say 'documents and queries go through the same analyzer, so matching happens on stems rather than on literal strings.'",
+  },
+  relevance: {
+    name: 'Relevance score',
+    def: 'The number a search engine sorts by when you do not ask for another order. It rises with how often a term appears in a document, falls with how common that term is across the whole corpus, and is normalized by document length so a long document does not win by volume. The practical consequence is that rare words carry a match and common words barely move it.',
+    say: 'Relevance scores a hit by term frequency in the document, damped by how common that term is across the corpus and normalized by length, so rare words carry the match.',
+    reachFor:
+      'Explaining what "sorted by relevance" actually computes, and pushing back on the instinct to build a custom ranking before understanding the default.',
+    trap: "Wrong: 'results come back in the order they were indexed.' The default order is a computed score, not insertion order. Say 'the default sort is a relevance score, so I would say what I want ranked by before assuming recency.'",
+  },
+  queryplanner: {
+    name: 'Query planner',
+    def: 'The component that decides HOW a query runs: which index to use, in what order to apply the clauses, whether to scan instead. It chooses on statistics it maintains — row counts, value distributions, per-term document counts — not on your intentions, which is why an index you added can sit unused and be right to sit unused. Clause order alone can change the work by orders of magnitude, and the planner is what gets it right.',
+    say: 'The planner picks the access path and the clause order from statistics it maintains, which is why adding an index only offers it an option rather than forcing one.',
+    reachFor:
+      '"Why is my index not being used?", and any question about why applying the selective filter first matters so much.',
+    trap: "Wrong: 'the index makes the query fast.' The planner decides whether to use it, and on a small or unselective table it will correctly choose a scan. Say 'the index is an option the planner may take, and it decides on statistics — so I would check the plan before adding another one.'",
+  },
   lastwritewins: {
     name: 'Last write wins (LWW)',
     def: 'A conflict-resolution rule for concurrent writes to the same key on different replicas: stamp each write with a timestamp and keep the highest one. It needs no coordination and always converges, which is why AP systems default to it. It also silently DISCARDS the other write, so a concurrent increment or a merge is simply lost — and "last" means by clock, which can be skewed between nodes.',
@@ -1249,6 +1300,8 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
       'compaction', 'bloomfilter', 'compositeindex', 'coveringindex', 'partialindex',
       'materializedview', 'rtree', 'docvalues', 'lastwritewins', 'hintedhandoff',
       'scattergather', 'isolationlevel', 'serializable', 'writeskew',
+      // spec 076 (coverage-map F1): the indexing + search briefings' vocabulary.
+      'heapfile', 'segment', 'tombstone', 'analyzer', 'relevance', 'queryplanner',
     ],
   },
   {

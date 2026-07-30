@@ -1,7 +1,8 @@
 # Concept Library coverage map — source material → 27 briefings
 
-**Status:** proposal, for review. Nothing here is authored yet; no specs have been
-written and `specs/README.md` is untouched.
+**Status:** accepted and in flight. The P-series prerequisites (§D.0) landed as
+specs 071–075, and the fill-out queue (§D.1) is being authored one row at a time —
+F1 landed as spec 076. The §D.1 table is the live record of what is done.
 
 ## What this document is
 
@@ -2105,7 +2106,9 @@ marked one-way.
 | Annotated with a why-sentence | ~0 | all |
 
 **Edges dropped to respect the cap:** `indexing → data-modeling` (weaker than the
-four new ones and already reachable in reverse); `nosql-db → distributed-locks`
+four new ones and already reachable in reverse) — *revised when F1 landed: the edge
+was already shipped and annotated by spec 074, and keeping it puts `indexing` at
+exactly six rather than five, so it stays*; `nosql-db → distributed-locks`
 (gossip is interesting but not a decision the player makes); `api-gateway → contention`
 (rate-limiting mechanics are better reached through `distributed-caches`).
 
@@ -2190,7 +2193,7 @@ Sequencing principles, in priority order:
 
 | # | Spec | Briefings | Primary sources | Scope | Prereqs |
 |---|---|---|---|---|---|
-| F1 | indexing + search | `indexing`, `search-db` | cc08, kt02 | **XL.** ~9 blocks across two pages. New viz: B-tree traversal, LSM write path, inverted-index builder, segment-merge animation. The LSM block is the deepest single explanation in the map. ~14 cards. | P1, P2a |
+| F1 ✅ | indexing + search — **landed as spec 076** | `indexing`, `search-db` | cc08, kt02 | **XL.** ~9 blocks across two pages. New viz: B-tree traversal, LSM write path, inverted-index builder, segment-merge animation. The LSM block is the deepest single explanation in the map. ~14 cards. | P1, P2a |
 | F2 | relational deep dive | `relational-db` | kt07 | **L.** ~5 blocks. New viz: the four-step write path with a commit-latency probe; specialized-index selector. Carries the connection-pooling and practical-limits material. ~8 cards. | P1, P2a |
 | F3 | contention escalation | `contention` | pt02, kt07 | **XL.** ~10 blocks — the five-rung escalation, each rung existing because the previous one has a named limit. New viz: the race-condition timeline, the guard-the-right-thing counter-vs-row demo, the write-skew two-transaction viz. The single richest article in the set. ~8 cards. | P2a, F2 |
 | F4 | caching + distributed caches | `caching`, `distributed-caches` | cc04, kt01, pt04 | **L.** ~9 blocks. New viz: the four-places map, cache-aside vs write-through stepper, hot-key load distribution. Carries the durability and async-replication callouts. ~13 cards. | P2b, P4 |

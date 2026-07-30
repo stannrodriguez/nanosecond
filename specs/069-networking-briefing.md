@@ -4,9 +4,12 @@ The networking page becomes the model-first deep briefing the content
 philosophy calls for (CLAUDE.md quality bar · content-pipeline §7 "three
 registers"): four viz-led blocks — the layer model as the focal point, then
 transport at full depth, then the existing request-path stepper demoted to the
-worked example, then hand-offs. The user approved every sentence in Appendix B
-(design review 2026-07-30) — **port the prose VERBATIM; do not rewrite it.**
-Appendix A is the source-coverage map required by the SOURCE SUPERSET rule.
+worked example, then hand-offs. Appendix B is the user-approved content
+BASELINE (design review 2026-07-30): every claim, number, and precise/intuitive
+register pairing in it must ship, but wording and organization are yours to
+rework — write in the repo's voice, and never drift toward the source PDF's
+phrasing. Appendix A is the source-coverage map the SOURCE SUPERSET rule
+requires.
 
 - [ ] `ManualSection` gains optional `blocks[]`: `{ heading, body (JSX), viz?
       (JSX), simplifies? }`. When present, the briefing page renders blocks in
@@ -15,9 +18,10 @@ Appendix A is the source-coverage map required by the SOURCE SUPERSET rule.
       required by the type — point them at block 1's content so the other 26
       sections and existing schema tests are untouched). Document in
       content-pipeline §7.
-- [ ] Networking briefing rebuilt as the 4 blocks in Appendix B, with the new
-      thesis. THE TERMS, WHERE YOU'LL FEEL THIS, and SAY IT render below,
-      unchanged.
+- [ ] Networking briefing rebuilt as the 4 blocks of Appendix B (content
+      baseline — no claim dropped; rephrasing and reorganizing within/across
+      blocks is fine), with the new thesis. THE TERMS, WHERE YOU'LL FEEL
+      THIS, and SAY IT render below, unchanged.
 - [ ] New viz `LayerStack` (block 1): 7 floors drawn top-down L7→L1; L7/L4/L3
       bright and clickable (detail: GIVES sentence + HIDES / LIVES HERE / THE
       FORK rows per Appendix B), L5–6 and L1–2 dim, dashed, and non-interactive
@@ -108,7 +112,7 @@ Network Link Conditioner homework (outside the product — the Lab IS our
 version of this) · the source's video/quiz/quick-reference upsells (the terms
 panel + say-it deck are our quick reference).
 
-## Appendix B — approved page content (port verbatim)
+## Appendix B — approved content baseline (keep every claim; rephrase and reorganize freely)
 
 **Thesis:** What is each layer promising your code — and what does keeping
 that promise cost?

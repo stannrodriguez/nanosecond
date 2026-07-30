@@ -89,9 +89,10 @@ until verify.sh is green.**
 
 ## Definition of done (v1)
 Specs 000–080 done, verify green, and a human can: play 18 lab toys (12 v1 + the
-6-toy ADR 0005 deep tier), browse 27
+6-toy ADR 0005 deep tier), browse 28
 Concept Library sections (core concepts, key technologies, common patterns — each
-with an interactive visualization), answer 60 drills with spaced repetition, clear
+with an interactive visualization; the 28th, handling failure, added by ADR
+0006), answer 60 drills with spaced repetition, clear
 6 builder scenarios, solve
 12 flaw puzzles + 6 taste tests + 6 interrogations, win an On-Call run, see the
 Forge gate components behind toys, and export a pre-interview briefing from the

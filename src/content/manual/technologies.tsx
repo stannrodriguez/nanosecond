@@ -259,6 +259,14 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
           <T k="timeout">timeout</T> on every call. It is not a <T k="lb">load balancer</T>: the LB spreads load across
           identical boxes; the gateway makes policy decisions about the request itself.
         </p>
+        <p>
+          "Authenticate" in that scrub is three separate questions. WHO is calling is an <T k="apikey">API key</T> when the
+          caller is an application — quota attaches to the key, so one noisy integration is throttled alone — and a{' '}
+          <T k="jwt">JWT</T> when the caller is a user, signed so every downstream service verifies it locally instead of
+          querying a session store. WHAT they may do is <T k="rbac">RBAC</T>: permissions on roles, roles on users, so the
+          gateway gates the endpoint. Whether they own this particular record is not a gateway question at all — that
+          check belongs to the service holding the row.
+        </p>
       </>
     ),
     viz: (
@@ -552,6 +560,13 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
           reaches your stack, and slashes <b>egress</b> — the ~$0.09/GB internet-bound tax that quietly dominates bandwidth
           bills. It only helps cacheable responses; personalized and <T k="write">write</T> traffic still travels to you.{' '}
           <T k="dns">DNS</T> is what steers a user to the nearest edge.
+        </p>
+        <p>
+          What actually answers at that point of presence is an <T k="edgecache">edge cache</T>, and its win is geometric
+          rather than clever: distance IS the latency, so a hit tens of kilometers away is single-digit milliseconds while
+          the same request to your origin crosses a continent. It also absorbs the request completely — traffic served at
+          the edge never touches your infrastructure, which is why this is usually the cheapest capacity you can buy, and
+          why the design question is how much of a personalized page can be split into a cacheable shell.
         </p>
       </>
     ),

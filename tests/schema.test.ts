@@ -311,14 +311,32 @@ describe('schema: glossary coverage (law L6)', () => {
     }
   })
 
-  it('the Networking group carries the speakable contract (spec 065)', () => {
-    const g = REFERENCE_GROUPS.find((x) => x.id === 'networking')
-    expect(g, 'the Networking reference group must exist').toBeDefined()
+  // Groups that have opted into the full speakable contract. A group joins this
+  // list when its bundle lands (networking: spec 065; storage/queues/resilience:
+  // spec 072) and never leaves — every key in an opted-in group carries all three
+  // fields, so the Reference screen renders a speakable block for the whole shelf.
+  const SPEAKABLE_GROUPS = ['networking', 'storage', 'queues', 'resilience']
+
+  it.each(SPEAKABLE_GROUPS)('the %s group carries the speakable contract', (groupId) => {
+    const g = REFERENCE_GROUPS.find((x) => x.id === groupId)
+    expect(g, `the ${groupId} reference group must exist`).toBeDefined()
     for (const k of g!.keys) {
       const e = GLOSSARY[k]
       expect(e.say?.trim().length, `${k}.say`).toBeGreaterThan(0)
       expect(e.reachFor?.trim().length, `${k}.reachFor`).toBeGreaterThan(0)
       expect(e.trap?.trim().length, `${k}.trap`).toBeGreaterThan(0)
+    }
+  })
+
+  // §1: the trap quotes the wrong sentence and replaces it with a mechanism —
+  // swapping one slogan for another is the failure mode this catches.
+  it('every `trap` quotes a wrong line and supplies the replacement', () => {
+    for (const [k, e] of Object.entries(GLOSSARY)) {
+      if (!e.trap) continue
+      expect(e.trap.startsWith('Wrong:'), `${k}.trap must open with the quoted wrong line`).toBe(true)
+      // "Say '…'" or a short lead-in first ("Say how fast instead: '…'") — either
+      // way the replacement must arrive as a quoted sentence, not another slogan.
+      expect(/\bSay\b[^'"]{0,40}['"]/.test(e.trap), `${k}.trap must supply the replacement sentence`).toBe(true)
     }
   })
 

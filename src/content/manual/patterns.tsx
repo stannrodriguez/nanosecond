@@ -140,15 +140,25 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
       <>
         <p>
           Contention is many writers racing for one thing: the last concert seat, a counter, an account balance. You have
-          three moves, toggled below. Pessimistic locking makes writers wait in line; optimistic concurrency lets them race
-          and rejects the loser via a version check (compare-and-set); serializing through a single owner (a queue or one
-          partition) sidesteps the race entirely.
+          three moves, toggled below. <T k="pessimistic">Pessimistic locking</T> makes writers wait in line; optimistic
+          concurrency lets them race and rejects the loser via a version check —{' '}
+          <T k="compareandset">compare-and-set</T>, the single atomic move underneath every conditional write, ETag, and
+          version column; serializing through a single owner (a queue or one partition) sidesteps the race entirely.
         </p>
         <p style={{ color: C.dim }}>
           Which wins depends on contention: under low contention <T k="optimistic">optimistic</T> is fastest (retries are
           rare); under high contention it thrashes on retries and a lock or a serialized owner wins. Every choice needs an{' '}
           <T k="idempotent">idempotent</T> retry path, and a <T k="distlock">distributed lock</T> when the contenders span
           machines.
+        </p>
+        <p>
+          Two ways the version check quietly fails. If the compared value can return to an earlier state while you were
+          deciding — the <T k="aba">ABA problem</T> — your compare-and-set succeeds over changes you never saw, which is
+          why you compare a monotonically increasing version rather than the value itself. And if the writers touch{' '}
+          <i>different</i> rows after reading the same ones, nothing conflicts row-by-row at all while the invariant
+          across them breaks: <T k="writeskew">write skew</T>, invisible to every tool on this toggle, because there is
+          no shared row to lock or version. That one needs <T k="serializable">serializable</T> isolation or a lock on
+          the predicate.
         </p>
       </>
     ),
@@ -267,6 +277,13 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           permanent <T k="backlog">backlog</T> means your steady rate exceeds drain capacity — the queue is only delaying the
           funeral.
         </p>
+        <p>
+          Which leaves the move nobody volunteers: <T k="loadshedding">load shedding</T>. Once arrivals exceed what you
+          can drain, the alternative to failing some requests fast is failing all of them slowly, because the queue grows
+          until everything times out at once. Shedding turns a total outage into a chosen one — reject cheaply, by
+          priority, with a retry-after — and saying which traffic you would drop first is a design decision, not an
+          admission of defeat.
+        </p>
       </>
     ),
     viz: (
@@ -357,9 +374,19 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         </p>
         <p style={{ color: C.dim }}>
           Sagas trade atomicity for availability: there's a window where the flight is booked but the hotel isn't, resolved
-          by compensation (cancel the flight) rather than rollback. Because steps retry, each must be <T k="idempotent">idempotent</T>,
-          and failures that can't compensate land in a <T k="dlq">dead-letter queue</T> for a human. 2PC wins only when
-          steps are few, fast, and truly must be atomic.
+          by a <T k="compensation">compensating transaction</T> (cancel the flight) rather than a rollback — the booking
+          really happened and someone may have seen it, so the undo is itself a visible business event. Because steps
+          retry, each must be <T k="idempotent">idempotent</T>, and failures that can't compensate land in a{' '}
+          <T k="dlq">dead-letter queue</T> for a human. 2PC wins only when steps are few, fast, and truly must be atomic.
+        </p>
+        <p>
+          Who drives the sequence is a second decision. With <T k="choreography">choreography</T> each service reacts to
+          the others' events and no coordinator exists — decoupled, and the workflow is written down nowhere, so nobody
+          can answer where an order got stuck. With <T k="orchestration">orchestration</T> one coordinator holds the
+          definition and every instance's position is a query. The usual objection is that the coordinator becomes a
+          single point of failure, which is exactly what <T k="durableexecution">durable execution</T> engines remove:
+          they record each step's result and resume a crashed workflow by replaying that history to the first unfinished
+          step — replay, not retry, so a completed charge never runs twice.
         </p>
       </>
     ),

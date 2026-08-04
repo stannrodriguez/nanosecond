@@ -22,6 +22,8 @@ import { useProgress } from '../../state/progress'
 import { dueCount, useSayItProgress } from '../../state/sayitProgress'
 import { fmtTimeNs, fmtHuman } from '../../ui/fmt'
 import SayItDeck from './SayIt'
+import ProductPage from './Product'
+import { PRODUCTS, productById } from '../../content/products'
 
 // Each shelf owns a channel accent (spec: CORE CONCEPTS net, KEY TECHNOLOGIES
 // compute, COMMON PATTERNS storage).
@@ -609,9 +611,65 @@ function ConceptLibrary({ focusTerm }: { focusTerm?: string }) {
           )
         })}
       </div>
+      <NamedTechStrip />
       <LadderCard onClick={() => navigate('/manual/ladder')} />
       <ReferenceSection focusTerm={focusTerm} />
     </div>
+  )
+}
+
+/* ADR 0007 (spec 089): the Named Technologies strip — a lens, not a fourth
+   shelf. Nine product chips between the shelves and the Ladder; each page
+   collects what the library already teaches about one product. Gold accent,
+   deliberately none of the three shelf channels. */
+function TechChip({ name, tagline, onClick }: { name: string; tagline: string; onClick: () => void }) {
+  const [h, bind] = useHover()
+  return (
+    <button
+      onClick={onClick}
+      {...bind}
+      style={{
+        textAlign: 'left',
+        background: h ? C.panelUp : C.panel,
+        border: `1px solid ${h ? C.gold + '66' : C.line}`,
+        borderRadius: 10,
+        padding: '10px 12px',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        transition: 'border-color .15s, background .15s',
+      }}
+    >
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: h ? C.text : '#B9C6DE' }}>{name}</div>
+      <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 3, lineHeight: 1.4 }}>
+        {tagline}
+      </div>
+    </button>
+  )
+}
+
+function NamedTechStrip() {
+  const navigate = useNavigate()
+  return (
+    <section aria-label="Named technologies" style={{ marginTop: 40 }}>
+      <div className="mono" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: C.gold }}>
+        NAMED TECHNOLOGIES
+      </div>
+      <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 3 }}>
+        the products interviewers name — each page collects what the library teaches about one
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+          gap: 8,
+          marginTop: 12,
+        }}
+      >
+        {PRODUCTS.map((p) => (
+          <TechChip key={p.id} name={p.name} tagline={p.tagline} onClick={() => navigate(`/manual/tech/${p.id}`)} />
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -711,7 +769,8 @@ function Ladder() {
 export default function Manual() {
   const { tab, sectionId, sub } = useParams()
   const navigate = useNavigate()
-  if (tab !== 'briefings' && tab !== 'ladder' && tab !== 'reference') return <Navigate to="/manual/briefings" replace />
+  if (tab !== 'briefings' && tab !== 'ladder' && tab !== 'reference' && tab !== 'tech')
+    return <Navigate to="/manual/briefings" replace />
   // Legacy section ids (spec 020) redirect to their re-shelved home (ADR 0004).
   if (sectionId && tab === 'briefings') {
     const resolved = resolveSectionId(sectionId)
@@ -729,6 +788,15 @@ export default function Manual() {
     return <SayItPage s={s} />
   }
   if (sectionId && tab === 'ladder') return <Navigate to="/manual/ladder" replace />
+
+  // ADR 0007: /manual/tech/:productId — the Named Technologies lens. A bare
+  // /manual/tech or an unknown product id degrades to the library index
+  // (ADR 0004: deep links degrade, never 404).
+  if (tab === 'tech') {
+    const p = sectionId ? productById(sectionId) : undefined
+    if (!p) return <Navigate to="/manual/briefings" replace />
+    return <ProductPage p={p} />
+  }
 
   // The Reference section lives on the library index; /manual/reference/<term>
   // deep-links to one row (unknown term ids degrade to the index — ADR 0004).

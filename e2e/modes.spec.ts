@@ -636,3 +636,36 @@ test('manual: the search briefing is a six-block deep briefing (spec 076)', asyn
   expect(overflow).toBe(false)
   await page.screenshot({ path: 'e2e/shots/manual-search-380px.png', fullPage: true })
 })
+
+test('manual: the named-technology lens consolidates a product (spec 089)', async ({ page }) => {
+  // the strip sits on the library index between the shelves and the Ladder
+  await page.goto('/#/manual')
+  const strip = page.getByRole('region', { name: 'Named technologies' })
+  await expect(strip.getByText('NAMED TECHNOLOGIES')).toBeVisible()
+  await strip.getByRole('button', { name: /^Redis/ }).click()
+  await expect(page).toHaveURL(/#\/manual\/tech\/redis$/)
+  // authored identity + the derived sections
+  await expect(page.getByText('NAMED TECHNOLOGY')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Redis' })).toBeVisible()
+  await expect(page.getByText('WHERE IT LIVES IN THE LIBRARY')).toBeVisible()
+  await expect(page.getByText('its briefing', { exact: true })).toBeVisible()
+  await expect(page.getByText('IN THE LAB')).toBeVisible()
+  await expect(page.getByText('THE NUMBERS')).toBeVisible()
+  await expect(page.getByText('IN THE REFERENCE')).toBeVisible()
+  // a derived reference row expands to its speakable contract
+  await page.getByRole('button', { name: /Hash slot/ }).click()
+  await expect(page.getByText(/16,?384/).first()).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+  await page.screenshot({ path: 'e2e/shots/manual-tech-redis.png', fullPage: true })
+  // 380px floor
+  await page.setViewportSize({ width: 380, height: 900 })
+  await page.goto('/#/manual/tech/redis')
+  await expect(page.getByText('WHERE IT LIVES IN THE LIBRARY')).toBeVisible()
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+  // unknown product ids degrade to the library index (ADR 0004)
+  await page.goto('/#/manual/tech/not-a-product')
+  await expect(page).toHaveURL(/#\/manual\/briefings$/)
+})

@@ -36,5 +36,6 @@ this queue. (2026-07-06: playtester promoted the ADR 0005 arc ahead of 060–080
 | 075 | numbers-cache-transport-async (P4) | ✅ |
 | 076 | indexing-search-briefings (coverage-map F1) | ✅ |
 | — | F2–F16 fill-out queue: see docs/coverage-map.md §D.1 — specs authored as their turn arrives | — |
+| 089 | product-lens (ADR 0007, user-directed) | ✅ |
 | 080 | polish | ☐ |
 | 090 | backlog (v2 — do NOT build) | — |

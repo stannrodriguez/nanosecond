@@ -24,6 +24,7 @@ import { MANUAL, SHELVES, sectionsForShelf } from '../src/content/manual'
 import { FORGE } from '../src/content/forge'
 import { SAYIT_CARDS } from '../src/content/sayit'
 import { EDGES, edgesFor } from '../src/content/edges'
+import { PRODUCTS, numbersFor, termsFor, toysFor } from '../src/content/products'
 
 describe('schema: numbers database', () => {
   it('every number has a 3-step, non-empty derivation', () => {
@@ -887,5 +888,73 @@ describe('schema: the Forge (product-spec §3.8)', () => {
     // the front door and the app tier are never gated — you cannot build without them
     expect(COMPONENTS.find((c) => c.id === 'lb')!.forge).toBeNull()
     expect(COMPONENTS.find((c) => c.id === 'app')!.forge).toBeNull()
+  })
+})
+
+/* ---------------- the Named Technologies lens (ADR 0007, spec 089) ---------------- */
+
+describe('schema: named-technology lens', () => {
+  const sectionIds = new Set(MANUAL.map((m) => m.id))
+  const render = (node: ReactNode) =>
+    renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Fragment, null, node)))
+
+  it('nine products, unique ids, matching the kt01–kt09 source list', () => {
+    expect(PRODUCTS).toHaveLength(9)
+    expect(new Set(PRODUCTS.map((p) => p.id)).size).toBe(9)
+    const names = new Set(PRODUCTS.map((p) => p.name))
+    for (const n of [
+      'Redis', 'Elasticsearch', 'Kafka', 'API Gateway', 'Cassandra',
+      'DynamoDB', 'PostgreSQL', 'Flink', 'ZooKeeper',
+    ])
+      expect(names.has(n), n).toBe(true)
+  })
+
+  it('home and where-it-lives sections resolve, home first, reasons phrased', () => {
+    for (const p of PRODUCTS) {
+      expect(sectionIds.has(p.home), `${p.id} home → ${p.home}`).toBe(true)
+      expect(p.liveIn.length, p.id).toBeGreaterThanOrEqual(4)
+      expect(p.liveIn[0].section, `${p.id} liveIn[0] must be its home`).toBe(p.home)
+      const seen = new Set<string>()
+      for (const l of p.liveIn) {
+        expect(sectionIds.has(l.section), `${p.id} → ${l.section}`).toBe(true)
+        expect(seen.has(l.section), `${p.id} repeats ${l.section}`).toBe(false)
+        seen.add(l.section)
+        // a link is a claim (edges.ts discipline): the reason is a sentence, not a tag
+        expect(l.how.trim().length, `${p.id} → ${l.section} reason too thin`).toBeGreaterThan(25)
+      }
+    }
+  })
+
+  it('the identity block is authored and the say line is one-breath speakable', () => {
+    for (const p of PRODUCTS) {
+      expect(p.tagline.trim().length, p.id).toBeGreaterThan(10)
+      expect(p.tagline.length, `${p.id} tagline is a sentence, not a line`).toBeLessThan(60)
+      expect(p.say.trim().length, p.id).toBeGreaterThan(60)
+      expect(p.say.length, `${p.id} say is not one breath`).toBeLessThan(280)
+      const text = render(p.what).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      expect(text.length, `${p.id} what too thin`).toBeGreaterThan(300)
+      // the lens authors an identity block, not a briefing (ADR 0007)
+      expect(text.length, `${p.id} what is a briefing, not an identity block`).toBeLessThan(1200)
+      // every jargon word a <Term>: at least one dotted term per identity block
+      expect(render(p.what).includes('<button'), `${p.id} what dots no <Term>`).toBe(true)
+    }
+  })
+
+  it('every product surfaces at least one glossary mention (alias-rot guard)', () => {
+    for (const p of PRODUCTS) expect(termsFor(p).length, p.id).toBeGreaterThanOrEqual(1)
+  })
+
+  it('the storage-and-broker products surface their numbers', () => {
+    for (const id of ['redis', 'kafka', 'postgresql', 'dynamodb', 'cassandra', 'elasticsearch', 'zookeeper']) {
+      const p = PRODUCTS.find((x) => x.id === id)!
+      expect(numbersFor(p).length, id).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('the Lab MEET IT panels reach the big five', () => {
+    for (const id of ['redis', 'kafka', 'postgresql', 'dynamodb', 'cassandra']) {
+      const p = PRODUCTS.find((x) => x.id === id)!
+      expect(toysFor(p).length, id).toBeGreaterThanOrEqual(1)
+    }
   })
 })

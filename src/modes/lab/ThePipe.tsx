@@ -26,9 +26,10 @@ export function ThePipe({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        A 1 Gbps link, one TCP stream. The sender may only have one <b>window</b> of unacknowledged bytes in flight — then it
-        must stop and wait for ACKs, which travel at the speed of light like everything else. So a single stream's ceiling
-        isn't the link. It's <span className="mono">window ÷ RTT</span>. Drag both and watch the fat pipe run empty.
+        One 1 Gbps link, carrying a single TCP stream. The sender can only keep one <b>window</b> of unacknowledged bytes on the
+        wire at a time before pausing for ACKs, and ACKs travel at the speed of light like everything else. That means a single
+        stream is capped not by link speed, but by <span className="mono">window ÷ RTT</span>. Slide both controls and watch how
+        easily a fat pipe runs mostly empty.
       </p>
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', margin: '14px 0' }}>
         <div style={{ flex: '1 1 240px' }}>
@@ -70,17 +71,18 @@ export function ThePipe({ onComplete }: { onComplete: () => void }) {
             <span style={{ color: C.faint }}> of {Math.round(linkMBs)} MB/s</span>
           </span>
           <span style={{ color: C.dim }}>
-            to fill this link you'd need <b style={{ color: C.compute }}>{bdpKB >= 1024 ? `${(bdpKB / 1024).toFixed(1)} MB` : `${Math.round(bdpKB)} KB`}</b> in flight
+            needed in flight to fill the link: <b style={{ color: C.compute }}>{bdpKB >= 1024 ? `${(bdpKB / 1024).toFixed(1)} MB` : `${Math.round(bdpKB)} KB`}</b>
             <span style={{ color: C.faint }}> (bandwidth × RTT)</span>
           </span>
         </div>
       </div>
 
       <Punchline color={C.net}>
-        Bandwidth is not throughput. A 1 Gbps cross-country link needs <b>~8.75 MB</b> continuously in flight (1 Gbps × 70 ms)
-        before one stream can fill it — and default windows are a fraction of that, so the pipe runs mostly <i>empty</i> while
-        everyone blames "the network". This is why big transfers use parallel streams, why browsers open multiple connections,
-        why CDNs win by shrinking RTT instead of buying bandwidth, and why "just get a fatter pipe" so often changes nothing.
+        Bandwidth is not throughput. Keeping a 1 Gbps cross-country link busy takes <b>~8.75 MB</b> in flight at all times (1
+        Gbps × 70 ms). Default TCP windows are a fraction of that, so a single stream leaves the pipe mostly <i>empty</i> while
+        everyone blames "the network." That is why large transfers open parallel streams, why browsers juggle multiple
+        connections, why CDNs pay off by cutting RTT rather than adding bandwidth, and why upgrading to a fatter pipe often
+        leaves single-stream speed untouched.
       </Punchline>
     </div>
   )

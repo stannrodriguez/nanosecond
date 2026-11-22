@@ -34,9 +34,10 @@ export function ReplicationLag({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        The primary commits writes and streams them to a replica, which can apply about {fmtNum(APPLY_CAP)}/s. Below that rate
-        the copy trails by milliseconds. Push past it and the un-applied backlog — the <b>lag</b> — grows without bound: the
-        replica is falling into the past in real time. Then try the one experiment users always run for you.
+        The primary commits writes and streams them to a replica that can apply roughly {fmtNum(APPLY_CAP)}/s. Stay under that
+        ceiling and the copy trails by only milliseconds. Push past it and the unapplied backlog, the <b>lag</b>, starts climbing
+        with no limit, pulling the replica deeper into the past every second. Push the slider past the limit, then run the check
+        every user runs by instinct.
       </p>
       <div style={{ margin: '14px 0' }}>
         <div className="mono" style={{ fontSize: 12.5, color: C.dim, marginBottom: 4 }}>
@@ -68,24 +69,24 @@ export function ReplicationLag({ onComplete }: { onComplete: () => void }) {
             onClick={readYourWrite}
             style={{ padding: '10px 18px', borderRadius: 8, background: C.net, color: C.bg, border: 'none', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}
           >
-            Post a comment → refresh the page (reads hit the replica)
+            Post a comment → refresh the page (read hits the replica)
           </button>
           {readMsg && (
             <div className="mono" style={{ marginTop: 10, fontSize: 13, color: readMsg.found ? C.ok : C.alert }}>
               {readMsg.found
-                ? '✓ your comment is there — the stream kept up (lag under your refresh reflex)'
-                : `✗ YOUR COMMENT VANISHED — it exists on the primary, but this replica is ${(readMsg.lagMs / 1000).toFixed(1)}s in the past`}
+                ? '✓ Comment found. The stream kept up before your refresh landed.'
+                : `✗ Comment missing! It is safe on the primary, but this replica is still ${(readMsg.lagMs / 1000).toFixed(1)}s in the past.`}
             </div>
           )}
         </div>
       </div>
 
       <Punchline color={C.storage}>
-        Lag is a queue, so it obeys queue math: harmless at 60% utilization, unbounded past 100%. That's the fine print on
-        "just add replicas" — every replica read is a read of <i>the recent past</i>, and the one staleness users always catch
-        is their own missing write. Real fix: route a user's reads to the primary for a few seconds after they write
-        (read-your-own-writes routing) — not "make everything strongly consistent," which would throw away the replica's whole
-        point.
+        Replication lag is a queue, so it obeys queue math: barely noticeable at 60% utilization, runaway past 100%. That is the
+        fine print on "just add replicas." Every read from a replica looks at <i>the recent past</i>, and the staleness users
+        spot immediately is their own missing write. The practical fix is read-your-own-writes routing: send a user's reads to
+        the primary for a few seconds right after they write, rather than forcing strong consistency everywhere and giving up the
+        read scaling you added replicas for.
       </Punchline>
     </div>
   )

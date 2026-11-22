@@ -44,10 +44,10 @@ export function FalseSharing({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Two cores, two <i>different</i> counters — pure parallel work, no shared data. Except the counters sit in the same
-        64-byte <T k="cacheline">cache line</T>, and cores trade a whole line at a time. Each write yanks the line away from the
-        other core (<T k="coherence">coherence</T> ping-pong), so adding cores makes it <b>slower</b>. Pad them onto separate lines
-        and watch parallelism come back.
+        Two cores, two <i>separate</i> counters, zero shared data on paper. The catch is layout: both counters sit inside the
+        same 64-byte <T k="cacheline">cache line</T>, and CPU cores only move memory one whole line at a time. Every write pulls
+        ownership of that line away from the other core (<T k="coherence">coherence</T> ping-pong), so adding more cores actually
+        makes throughput <b>worse</b>. Pad the counters onto separate cache lines and watch real parallelism return.
       </p>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
@@ -104,10 +104,11 @@ export function FalseSharing({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.compute}>
-        Nothing was actually shared — two cores, two separate variables — yet more cores bought <i>less</i> work, because
-        "different variables" is not the same as "different <b>cache lines</b>." Cores swap memory 64 bytes at a time, so two
-        hot counters in one line serialize through the coherence protocol. One line of padding (or per-core state) restores the
-        parallelism the multicore turn promised. This is the ghost behind countless "why doesn't this scale?" mysteries.
+        Your code never shared a variable, yet adding cores delivered <i>less</i> throughput. Hardware does not track variables;
+        it tracks 64-byte <b>cache lines</b>. Put two hot counters side by side in the same line and the coherence protocol
+        forces those cores to take turns. Adding padding between them, or keeping per-core state on its own line, gives back the
+        scaling that extra cores were supposed to buy. When a multithreaded program gets slower as you throw threads at it, false
+        sharing is often the culprit.
       </Punchline>
     </div>
   )

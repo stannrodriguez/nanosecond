@@ -44,10 +44,10 @@ export function HotPartition({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        A partitioned store (DynamoDB, Cassandra) is a hash function in front of {NPART} independent nodes, each good for ~
-        {fmtNum(CAP_PER_PART)} writes/s. This table's partition key is <span className="mono">time_bucket</span> — the current
-        hour. Every writer, right now, computes the <i>same key</i>. Watch which node does all the work — and watch the pain
-        move when the hour rolls over.
+        A partitioned store like DynamoDB or Cassandra puts a hash function in front of {NPART} independent nodes, each rated for
+        ~{fmtNum(CAP_PER_PART)} writes/s. Here, the table's partition key is <span className="mono">time_bucket</span>, the
+        current hour. Every active writer hashes to the <i>exact same node</i>. Watch one partition take the entire beating while
+        seven sit idle, then see the hotspot jump when the hour rolls over.
       </p>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', margin: '14px 0' }}>
         <div style={{ flex: '1 1 260px' }}>
@@ -69,7 +69,7 @@ export function HotPartition({ onComplete }: { onComplete: () => void }) {
           <span style={{ color: s.throttled > 0 ? C.alert : C.dim }}>
             throttled: <b>{fmtNum(s.throttled)}/s</b>
           </span>
-          <span style={{ color: C.faint }}>cluster capacity: {fmtNum(NPART * CAP_PER_PART)}/s — on paper</span>
+          <span style={{ color: C.faint }}>cluster capacity: {fmtNum(NPART * CAP_PER_PART)}/s (on paper)</span>
         </div>
         {loads.map((load, i) => (
           <Bar
@@ -77,7 +77,7 @@ export function HotPartition({ onComplete }: { onComplete: () => void }) {
             label={
               <span className="mono" style={{ fontSize: 11.5 }}>
                 partition {String.fromCharCode(65 + i)}
-                {!salted && i === hot ? ' — “hour ' + s.hour + '” lives here' : ''}
+                {!salted && i === hot ? ' (hour ' + s.hour + ' lands here)' : ''}
               </span>
             }
             u={load / CAP_PER_PART}
@@ -88,11 +88,11 @@ export function HotPartition({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.storage}>
-        The cluster advertises {fmtNum(NPART * CAP_PER_PART)} writes/s and delivers ~{fmtNum(CAP_PER_PART)}, because capacity is
-        per <i>partition</i> and your key sends everyone to one of them — a number straight from DynamoDB's manual (~1k write
-        units per partition). Any key derived from "now", "today", or a viral ID builds this trap. The fix costs one line:{' '}
-        <b>salt the key</b> (<span className="mono">bucket#0..7</span>) and fan-in on read — flip the toggle and watch{' '}
-        {NPART}× headroom appear from the same hardware.
+        On paper the cluster gives you {fmtNum(NPART * CAP_PER_PART)} writes/s, yet in practice it caps out near{' '}
+        {fmtNum(CAP_PER_PART)}. Throughput belongs to each <i>partition</i>, and a hot key funnels the whole fleet onto one box
+        (straight from DynamoDB's manual: ~1k write units per partition). Any key built from "now", "today", or a viral ID
+        springs the same trap. The fix is one line: <b>salt the key</b> (<span className="mono">bucket#0..7</span>) and fan in
+        across shards on read. Flip the toggle and watch {NPART}× the headroom appear on the exact same hardware.
       </Punchline>
     </div>
   )

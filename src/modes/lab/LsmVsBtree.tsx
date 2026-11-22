@@ -47,9 +47,9 @@ export function LsmVsBtree({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Two engines receive the identical stream of {fmtNum(TOTAL_WRITES)} row updates. The <b>B-tree</b> puts each row where
-        it belongs — a random page read-modify-write every time. The <b>LSM</b> refuses: it appends to a memory buffer and
-        flushes sorted files, sequential-only. Race them, then send one read and see who pays the bill you deferred.
+        Both engines get the same stream of {fmtNum(TOTAL_WRITES)} row updates. The <b>B-tree</b> files each row in place,
+        doing a random page read-modify-write every time. The <b>LSM</b> declines to hunt: it appends to a memory buffer and
+        flushes sorted files sequentially. Run the race, then send a single read to see who picks up the tab.
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '14px 0' }}>
         <Button variant={running ? 'secondary' : 'primary'} size="lg" onClick={() => (s.done ? (reset(), setRunning(true)) : setRunning(!running))}>
@@ -63,8 +63,8 @@ export function LsmVsBtree({ onComplete }: { onComplete: () => void }) {
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         {(
           [
-            { name: 'B-tree (update in place)', v: s.btree, col: C.storage, note: `${fmtNum(BTREE_WPS)} writes/s — every write hunts its page on disk` },
-            { name: `LSM (append + flush) · ${s.files} files on disk`, v: s.lsm, col: C.mem, note: `${fmtNum(LSM_WPS)} writes/s — the disk only ever streams` },
+            { name: 'B-tree (in-place updates)', v: s.btree, col: C.storage, note: `${fmtNum(BTREE_WPS)} writes/s. Every write hunts down its page on disk.` },
+            { name: `LSM (append and flush) · ${s.files} files on disk`, v: s.lsm, col: C.mem, note: `${fmtNum(LSM_WPS)} writes/s. The disk only writes sequentially.` },
           ] as const
         ).map((e) => (
           <div key={e.name} style={{ marginBottom: 14 }}>
@@ -87,15 +87,15 @@ export function LsmVsBtree({ onComplete }: { onComplete: () => void }) {
             disabled={s.lsm < FLUSH_EVERY}
             style={{ padding: '9px 18px', borderRadius: 8, background: s.lsm < FLUSH_EVERY ? C.line : C.compute, color: s.lsm < FLUSH_EVERY ? C.faint : C.bg, border: 'none', fontWeight: 700, fontSize: 13, cursor: s.lsm < FLUSH_EVERY ? 'default' : 'pointer' }}
           >
-            Now read one row (cold)
+            Read one row (cold)
           </button>
           {readResult && (
             <div className="mono" style={{ marginTop: 10, fontSize: 13, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <span style={{ color: C.storage }}>
-                B-tree: <b>{readResult.btreeMs} ms</b> — 3 page hops, done
+                B-tree: <b>{readResult.btreeMs} ms</b> (3 page hops, found it)
               </span>
               <span style={{ color: readResult.lsmMs > readResult.btreeMs ? C.alert : C.mem }}>
-                LSM: <b>{readResult.lsmMs} ms</b> — newest-first through {Math.max(1, s.files)} files
+                LSM: <b>{readResult.lsmMs} ms</b> (checked {Math.max(1, s.files)} {Math.max(1, s.files) === 1 ? 'file' : 'files'}, newest first)
               </span>
             </div>
           )}
@@ -103,11 +103,11 @@ export function LsmVsBtree({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.storage}>
-        Neither engine is "faster" — they moved the same cost to different moments. The B-tree pays at write time (random I/O
-        per update, the disk toy's 120/s ceiling); the LSM pays at read time (every un-merged file is another place your row
-        might hide) plus a background compaction tax. Cassandra, RocksDB, LevelDB chose the LSM side because their workloads
-        write relentlessly; Postgres and MySQL chose B-trees because most apps read. Say the trade, not the brand:{' '}
-        <b>write amplification vs read amplification</b>.
+        Neither engine is simply faster. They just move the same work to opposite ends of the timeline. A B-tree pays up front
+        at write time, running into random I/O and the disk's 120/s ceiling. An LSM defers the cost to reads (every unmerged
+        file is another place a row can hide) and pays an ongoing background compaction tax to tidy up. Cassandra, RocksDB, and
+        LevelDB pick LSMs for relentless write streams; Postgres and MySQL pick B-trees because most applications read far more
+        than they write. Name the trade, not the brand: <b>write amplification vs read amplification</b>.
       </Punchline>
     </div>
   )

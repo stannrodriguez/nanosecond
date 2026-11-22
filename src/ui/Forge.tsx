@@ -76,8 +76,8 @@ export function PartsBin() {
         </span>
       </div>
       <p style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.55, margin: '6px 0 0', maxWidth: 620 }}>
-        You may not build with a part you haven't understood. Each locked part opens in the Lab toy that teaches its
-        mechanism — play it, answer one question about it, and it's yours everywhere.
+        No black boxes on this workbench. Every locked part opens in the Lab toy that teaches how it works: run the sim, answer
+        one quick question, and the part unlocks everywhere.
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {COMPONENTS.map((c) => {
@@ -106,7 +106,7 @@ export function PartsBin() {
             background: open || !c.forge ? col + '11' : 'transparent',
           }
           return f && !open ? (
-            <Link key={c.id} to={`/lab/${f.toyId}`} className="mono" style={style} title={`Locked — forge it in ${f.toyId}`}>
+            <Link key={c.id} to={`/lab/${f.toyId}`} className="mono" style={style} title={`Locked: forge ${f.part} in the Lab`}>
               {body}
             </Link>
           ) : (

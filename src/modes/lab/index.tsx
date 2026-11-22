@@ -138,10 +138,10 @@ function LabIndex() {
       </div>
 
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '20px 0 0', maxWidth: 620 }}>
-        One tap of "Post" launches a single <T k="request">request</T>; ~200 ms later your comment is durable on disks in
-        three cities. The stations below trace that journey in order — across fiber, through a <T k="queue">queue</T>, onto a
-        CPU, past a <T k="cache">cache</T>, down to a disk, out to the <T k="replica">replicas</T> — and each toy isolates one
-        mechanism on the path as a live simulation. Drag its one variable until the behavior clicks.
+        Tap "Post" and a single <T k="request">request</T> sets off; ~200 ms later, your comment sits safely on disks in
+        three cities. The stations below follow that trip in order: across fiber, through a <T k="queue">queue</T>, onto a
+        CPU, past a <T k="cache">cache</T>, down to a disk, and out to the <T k="replica">replicas</T>. Each toy isolates one
+        mechanism along the path as a live simulation. Push its control around until the behavior clicks.
       </p>
 
       <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column' }}>
@@ -307,7 +307,7 @@ function ToyDetail({ toy }: { toy: ToyEntry }) {
             marginTop: 14,
           }}
         >
-          ✓ INTERNALIZED — {toy.sub}
+          ✓ INTERNALIZED · {toy.sub}
         </div>
       )}
 

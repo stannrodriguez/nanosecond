@@ -127,11 +127,11 @@ function DrillSession() {
         </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>DRILLS</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: dueCount ? C.compute : C.dim, whiteSpace: 'nowrap' }}>
-          drill {sessionPts.length + 1} · {dueCount > 0 ? `${dueCount} due for review` : 'nothing overdue'}
+          drill {sessionPts.length + 1} · {dueCount > 0 ? `${dueCount} due for review` : 'all caught up'}
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
-        Scored by order of magnitude — the way an interviewer scores you.
+        Scored by order of magnitude, the same way a systems design interviewer checks your math.
       </p>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 24, marginTop: 32, maxWidth: 640 }}>
@@ -161,7 +161,7 @@ function DrillSession() {
         />
         <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: C.faint, marginTop: 6, gap: 8 }}>
           <span style={{ whiteSpace: 'nowrap' }}>{fmtNum(Math.pow(10, d.loExp))}</span>
-          <span style={{ whiteSpace: 'nowrap' }}>log scale — each step ×10</span>
+          <span style={{ whiteSpace: 'nowrap' }}>log scale, each step ×10</span>
           <span style={{ whiteSpace: 'nowrap' }}>{fmtNum(Math.pow(10, d.hiExp))}</span>
         </div>
 
@@ -188,7 +188,7 @@ function DrillSession() {
                   setRevealed(false)
                 }}
               >
-                try again
+                next drill
               </GhostButton>
             </div>
           </div>
@@ -197,7 +197,7 @@ function DrillSession() {
 
       <div>
         <QuietLink onClick={() => navigate('/drills/calibration')}>
-          CALIBRATION — accuracy by category, your blind spots →
+          CALIBRATION: accuracy by category and blind spots →
         </QuietLink>
       </div>
     </div>
@@ -214,8 +214,8 @@ function Stats() {
   })
   const buckets = [
     { label: 'dead on (≤0.3 orders)', test: (e: number) => e <= 0.3, col: C.ok },
-    { label: 'ballpark (0.3–0.6)', test: (e: number) => e > 0.3 && e <= 0.6, col: C.mem },
-    { label: 'same universe (0.6–1)', test: (e: number) => e > 0.6 && e <= 1, col: C.compute },
+    { label: 'ballpark (0.3 to 0.6)', test: (e: number) => e > 0.3 && e <= 0.6, col: C.mem },
+    { label: 'same universe (0.6 to 1)', test: (e: number) => e > 0.6 && e <= 1, col: C.compute },
     { label: 'lost in space (>1 order)', test: (e: number) => e > 1, col: C.alert },
   ].map((b) => ({ ...b, n: history.filter((r) => b.test(r.err)).length }))
   const maxBucket = Math.max(1, ...buckets.map((b) => b.n))
@@ -225,7 +225,7 @@ function Stats() {
   if (history.length === 0)
     return (
       <div style={{ background: C.panel, border: `1px dashed ${C.line}`, borderRadius: 10, padding: 24, color: C.dim, fontSize: 14 }}>
-        No answers yet — run a few drills and your calibration profile appears here.
+        No answers yet. Run a few drills and your calibration profile will show up here.
       </div>
     )
 
@@ -233,7 +233,7 @@ function Stats() {
     <div style={{ display: 'grid', gap: 14 }}>
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 10 }}>
-          ACCURACY BY CATEGORY — your blind spots, ranked
+          ACCURACY BY CATEGORY: your blind spots, ranked
         </div>
         {byCat
           .sort((a, b) => (a.avg ?? 101) - (b.avg ?? 101))
@@ -254,7 +254,7 @@ function Stats() {
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.compute, marginBottom: 10 }}>
-          LOG-ERROR HISTOGRAM — how far off, when you're off
+          LOG-ERROR HISTOGRAM: how far off your misses land
         </div>
         {buckets.map((b) => (
           <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -269,7 +269,7 @@ function Stats() {
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.mem, marginBottom: 10 }}>
-          LEITNER BOXES — {unseen} of {DRILLS.length} drills still unseen
+          LEITNER BOXES: {unseen} of {DRILLS.length} drills still unseen
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {boxDist.map(({ box, n }) => (
@@ -282,8 +282,7 @@ function Stats() {
           ))}
         </div>
         <div style={{ fontSize: 12.5, color: C.dim, marginTop: 10 }}>
-          Right answers climb toward box 5 (two-week repeats). A bad miss drops a card straight back to box 1. Box 1–2 residents
-          are your pre-interview cram list.
+          Strong estimates climb toward box 5 (two-week repeats). A big miss drops a drill straight back to box 1. Cards sitting in boxes 1 and 2 are your pre-interview review list.
         </div>
       </div>
     </div>
@@ -298,7 +297,7 @@ export default function Drills() {
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-          <GhostButton onClick={() => navigate('/drills/session')}>← the drills</GhostButton>
+          <GhostButton onClick={() => navigate('/drills/session')}>← back to drills</GhostButton>
           <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>CALIBRATION</h1>
         </div>
         <Stats />

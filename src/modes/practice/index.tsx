@@ -12,8 +12,8 @@ const CARDS = [
     n: '1',
     name: 'DRILLS',
     color: C.net,
-    what: 'Estimate a number, get scored by order of magnitude.',
-    when: 'Daily, 2 minutes. The warm-up — proves the Lab numbers stuck.',
+    what: 'Estimate real system numbers and get scored by order of magnitude.',
+    when: '2 minutes a day. A quick warm-up to make sure the Lab numbers stuck.',
     stat: 'drill 1 · nothing overdue',
   },
   {
@@ -21,8 +21,8 @@ const CARDS = [
     n: '2',
     name: 'BUILDER',
     color: C.compute,
-    what: 'Turn a story into numbers, then into a system on a workbench.',
-    when: 'When a scenario interests you, ~20 minutes. The main event.',
+    what: 'Turn a product story into real numbers, then build the system on a workbench.',
+    when: 'Pick a scenario that catches your eye, ~20 minutes. The main event.',
     stat: '3 scenarios',
   },
   {
@@ -30,8 +30,8 @@ const CARDS = [
     n: '3',
     name: 'REVIEW',
     color: C.storage,
-    what: "Someone else's design has one flaw. Find it against the clock.",
-    when: 'After a few builds — critiquing is the interview skill.',
+    what: "Someone else's design hides a single flaw. Find it before the clock runs out.",
+    when: 'Try this after a few builds. Critiquing a design is its own interview skill.',
     stat: 'puzzle 1/12',
   },
   {
@@ -39,8 +39,8 @@ const CARDS = [
     n: '4',
     name: 'ON-CALL',
     color: C.alert,
-    what: 'Run a system through launch day, traffic spikes, and 3am pages.',
-    when: 'The boss level — everything above, under pressure.',
+    what: 'Keep a system upright through launch day, traffic spikes, and 3am pages.',
+    when: 'The boss level: everything above, now under live pressure.',
     stat: 'act 1/3',
   },
 ] as const
@@ -76,11 +76,11 @@ function JournalRow() {
       </span>
       <span />
       <span style={{ fontSize: 13.5, color: C.text, lineHeight: 1.5, gridColumn: '2 / 4' }}>
-        Every miss anywhere lands here with its lesson.
+        Every miss lands here with its lesson attached.
       </span>
       <span />
       <span style={{ fontSize: 12.5, color: C.dim, lineHeight: 1.5, gridColumn: '2 / 4' }}>
-        Misses are the curriculum — review it before an interview.
+        Your misses are the real curriculum. Read through them before an interview.
       </span>
     </LiftCard>
   )
@@ -92,8 +92,8 @@ export default function Practice() {
     <div>
       <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>PRACTICE</h1>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620, textWrap: 'pretty' }}>
-        The Lab builds intuition; this is where you prove it. Four ways to practice, roughly in order of difficulty — start at
-        the top.
+        The Lab builds your intuition. This is where you test it. Four modes, ordered roughly from warm-up to high
+        pressure, so start at the top.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 36, maxWidth: 680 }}>

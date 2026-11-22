@@ -40,24 +40,24 @@ const Sec = ({ to, children }: { to: string; children: ReactNode }) => (
 const NET_STACK_BODY = (
   <>
     <p>
-      Every protocol you will ever name in an interview answers the same question:{' '}
-      <b>what should this layer promise the one above it?</b> <T k="ip">IP</T> promises: hand me a packet and an
-      address, and I will probably get it there — anywhere on earth. <T k="tcp">TCP</T> promises: hand me bytes, and
-      the far side will receive every one of them, in order. HTTP promises: ask a named server for a thing, and you
-      get a labeled answer back. Each promise is a contract — the layer above builds on it without knowing how it is kept, and the
-      layer below keeps it without knowing why it is wanted. That contract structure, not any particular protocol, is
-      the deep fact about networks. It is the reason you can ship a web app without once thinking about fiber, radio,
-      or routing tables: three contracts down, someone is turning your bytes into light.
+      Every network protocol you will ever name in an interview is answering the same question:{' '}
+      <b>what does this layer promise the one sitting on top of it?</b> <T k="ip">IP</T> promises best-effort delivery:
+      hand it a packet and an address, and it will probably get there, anywhere on earth. <T k="tcp">TCP</T> promises
+      a clean stream: hand it bytes, and the other end will receive every single one of them, in order. HTTP promises
+      a conversation with meaning: ask a named server for a resource, and get a labeled answer back. Each layer builds
+      on the promise below without knowing how it works, while the layer below keeps its promise without caring why you
+      made the call. That stack of contracts is why you can ship a web app without once thinking about fiber, radio, or
+      routing tables. Three floors down, someone else is turning your bytes into light.
     </p>
     <p>
-      The OSI model names seven such layers; for system design, three do all the work. <b>L3</b> gets packets to a
-      machine, <b>L4</b> turns packets into a conversation, <b>L7</b> gives the conversation meaning. And the action
-      clusters where it does for a reason: L3 and L4 are kept by the operating system's kernel — decades old,
-      ferociously optimized, near-impossible to change — which is why the internet has run on TCP and{' '}
-      <T k="udp">UDP</T> for fifty years, and why <T k="quic">QUIC</T>, the first serious newcomer, had to smuggle
-      itself inside UDP to get deployed. L7 lives in your own process, where anyone can invent a protocol this
-      afternoon — which is why that floor is crowded: HTTP, <T k="grpc">gRPC</T>, <T k="websocket">WebSockets</T>, and
-      whatever your company built internally.
+      The OSI model lists seven layers, though in system design three of them do nearly all the real work. <b>L3</b>{' '}
+      gets packets to a machine, <b>L4</b> turns packets into a conversation, and <b>L7</b> gives that conversation
+      meaning. The action clusters this way because of where the code lives. L3 and L4 run inside the operating system's
+      kernel, which is decades old, heavily tuned, and very slow to change. That is why the internet has leaned on TCP
+      and <T k="udp">UDP</T> for fifty years, and why <T k="quic">QUIC</T>, the first serious newcomer, had to tuck
+      itself inside UDP just to make it across existing routers. L7 runs in your own process, where anyone can invent a
+      protocol before lunch, so that floor stays crowded with HTTP, <T k="grpc">gRPC</T>,{' '}
+      <T k="websocket">WebSockets</T>, and whatever internal wire format your company built.
     </p>
   </>
 )
@@ -66,11 +66,11 @@ const NET_STACK_VIZ = (
   <>
     <LayerStack accent={C.net} />
     <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
-      Used as a filing system, the stack organizes half of networking vocabulary by itself. Regions, round trips, and
-      the speed of light: L3 facts. TCP vs UDP, <T k="handshake">handshakes</T>, head-of-line blocking: L4. REST vs
-      gRPC, <T k="polling">polling</T> vs push, everything you can {mono('curl')}: L7. When an interviewer says “L4{' '}
-      <T k="lb">load balancer</T>,” they are telling you which promises it can see — addresses and connections, never
-      the request inside.
+      Treat this stack like a filing cabinet and it sorts half of networking vocabulary on sight. Regions, round trips,
+      and the speed of light live at L3. TCP vs UDP, <T k="handshake">handshakes</T>, and head-of-line blocking live at
+      L4. REST vs gRPC, <T k="polling">polling</T> vs push, and anything you can {mono('curl')} live at L7. When an
+      interviewer mentions an "L4 <T k="lb">load balancer</T>," they are telling you exactly which promises it can see:
+      addresses and connections, never the request riding inside.
     </p>
   </>
 )
@@ -78,25 +78,24 @@ const NET_STACK_VIZ = (
 const NET_TRANSPORT_BODY = (
   <>
     <p>
-      L4 is where networking's foundational trade gets made, so it earns this page's full attention.{' '}
-      <b>TCP's promise is completeness.</b> It numbers every byte, the receiver acknowledges what arrived, and anything
-      unacknowledged is sent again. Ordering is absolute: if byte 4,001 is missing, bytes 4,002 through 4,000,000 sit
-      in a buffer and reach your application only once the gap is filled. That refusal to reorder is{' '}
-      <T k="headofline">head-of-line blocking</T>, and it is the honest price of a guaranteed stream —{' '}
-      <b>the stream is never wrong, but it can be arbitrarily late.</b> Repairing one lost packet costs at least one{' '}
-      <T k="rtt">round trip</T>, because the sender has to learn about the loss before it can resend — and a round trip
-      is geography: ~1&nbsp;ms across a city, ~70&nbsp;ms across a country, ~150&nbsp;ms across an ocean.
+      L4 is where networking's core tradeoff happens, so it deserves a closer look. <b>TCP's promise is completeness.</b>{' '}
+      It numbers every byte, the receiver acknowledges what showed up, and anything unacknowledged gets sent again.
+      Ordering is strict. If byte 4,001 disappears in transit, bytes 4,002 through 4,000,000 sit waiting in a buffer and
+      reach your application only after that single gap is filled. Refusing to deliver newer bytes ahead of a missing
+      one is <T k="headofline">head-of-line blocking</T>, and it is the honest price of a guaranteed stream:{' '}
+      <b>the stream is never wrong, yet it can arrive arbitrarily late.</b> Recovering one lost packet costs at least
+      one <T k="rtt">round trip</T>, because the sender has to hear about the loss before it can resend. And a round
+      trip is pure geography: ~1&nbsp;ms across a city, ~70&nbsp;ms across a country, and ~150&nbsp;ms across an ocean.
     </p>
     <p>
-      <b>UDP's promise is speed, kept by promising nothing else.</b> A datagram is an addressed envelope: it may
-      arrive, arrive twice, or arrive after the one sent behind it — and the instant it does arrive, your application
-      has it. No handshake before the first byte, no acknowledgments, no buffer holding fresh data hostage to old
-      losses. This is not a lesser TCP; it is the correct product for a different customer. A video call that receives
-      a 400-ms-old audio packet has received garbage — the conversation has moved on — and one crackled syllable beats
-      a call that freezes, then fast-forwards. <b>The decision rule: reach for UDP exactly when a late packet is worse
-      than a lost one</b> — live audio and video, game state, high-volume telemetry — and check the escape hatch
-      first, because browsers can't speak raw UDP: on the web, this choice arrives dressed as{' '}
-      <T k="webrtc">WebRTC</T>.
+      <b>UDP's promise is speed, kept by promising nothing else.</b> A datagram is an addressed envelope. It might
+      arrive, arrive twice, or show up after the packet sent behind it, and the instant it lands, your application gets
+      it. There is no handshake before byte one, no acknowledgments, and no buffer holding fresh data hostage to old
+      losses. UDP is not a bargain-bin TCP; it is the right tool for a different job. On a video call, an audio packet
+      that shows up 400&nbsp;ms late is already stale because the conversation moved on, and one crackled syllable beats
+      a call that freezes and then fast-forwards to catch up. <b>Reach for UDP whenever a late packet hurts more than a
+      lost one</b>, such as live audio and video, game state, or high-volume telemetry. Just check the browser wrinkle
+      first: browsers cannot speak raw UDP, so on the web this choice arrives as <T k="webrtc">WebRTC</T>.
     </p>
   </>
 )
@@ -105,28 +104,28 @@ const NET_TRANSPORT_VIZ = (
   <>
     <LossToggle accent={C.net} />
     <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
-      One pattern worth internalizing, because it explains modern protocol history: TCP's head-of-line blocking is per{' '}
+      One piece of protocol history makes this concrete. TCP's head-of-line blocking applies to the whole{' '}
       <i>connection</i>, so when HTTP/2 multiplexed many requests onto one TCP connection, a single lost packet could
-      stall all of them at once. QUIC exists precisely to fix that — independent streams that don't block each other,
-      with TLS folded into the first round trip — and HTTP/3 is HTTP over QUIC. You will rarely need QUIC in an
-      interview answer, but saying <i>why it exists</i> is a one-sentence proof that you understand the layer under
-      you.
+      stall every request sharing it. QUIC was built to solve that by giving streams independence so they do not block
+      one another, while folding TLS into the first round trip. HTTP/3 is simply HTTP running over QUIC. You will rarely
+      need QUIC in an interview architecture, yet explaining <i>why it exists</i> proves in one sentence that you
+      understand the layer underneath.
     </p>
   </>
 )
 
 const NET_STACK_SIMPLIFIES =
-  "Real deployments run TCP/IP's four layers wearing OSI's seven names — layers 5–6 exist mostly in textbooks, because HTTP absorbed their jobs."
+  "Real networks run TCP/IP's four layers while borrowing OSI's seven names. Layers 5 and 6 live mostly in textbooks because HTTP absorbed their jobs."
 
 const NET_TAP_BODY = (
   <>
     <p>
-      Now watch the contracts cooperate. A tap resolves a name — <T k="dns">DNS</T>, which is L7 asking L3's question —
-      then opens a conversation: TCP's <T k="handshake">handshake</T> costs one round trip, and <T k="tls">TLS</T> one
-      to two more. Only then does the <T k="request">request</T> itself go out — HTTP, finally speaking. On a
-      70&nbsp;ms cross-country path, a cold connection spends
-      140–210&nbsp;ms in handshakes before your API sees byte one — pure L4 tax, which is why connections are pooled
-      and reused, and why a <T k="cdn">CDN</T> terminates TLS near the user even for traffic it can't cache.
+      Now watch those layers work together on a single tap. First, <T k="dns">DNS</T> resolves a name into an address
+      (L7 asking L3's question). Next, L4 opens a conversation: TCP's <T k="handshake">handshake</T> spends one round
+      trip, and <T k="tls">TLS</T> spends one to two more. Only after all of that does your HTTP{' '}
+      <T k="request">request</T> actually leave the phone. On a 70&nbsp;ms cross-country path, a cold connection burns
+      140 to 210&nbsp;ms on handshakes before your API sees byte one. That pure L4 tax is why services pool and reuse
+      connections, and why a <T k="cdn">CDN</T> terminates TLS near the user even for traffic it cannot cache.
       {/* RTT numbers here and in the stepper captions: numbers.ts `fiber-rtt-floor` (≥56 ms transatlantic) */}
     </p>
   </>
@@ -139,25 +138,25 @@ const NET_TAP_VIZ = (
     accent={C.net}
     nodes={['phone', 'DNS', 'TLS', 'CDN edge', 'LB', 'app', 'DB']}
     steps={[
-      { active: [0], cap: <>A tap. Nothing has left the phone yet — but a cold connection is about to pay tolls on three floors of the stack.</> },
-      { active: [0, 1], edge: [0, 1], cap: <>{mono('DNS')} — L7 asking L3's question — turns the name into an address. Cached almost everywhere; a cold lookup is real milliseconds.</> },
-      { active: [0, 2], edge: [0, 2], cap: <>L4's toll: the TCP handshake (SYN → SYN-ACK → ACK) spends one round trip, {mono('TLS')} one to two more. ~100–200 ms for a distant user, before the first byte.</> },
-      { active: [3], edge: [0, 3], cap: <>A {mono('CDN')} edge — L7, terminating TLS near the user — may answer cacheable content here, never crossing the ocean to your origin.</> },
-      { active: [3, 4], edge: [3, 4], cap: <>Whatever is dynamic passes the {mono('LB')} — L4 or L7, depending on which promises it needs to see — onto interchangeable app servers.</> },
-      { active: [5, 6], edge: [5, 6], cap: <>The app — your own L7 — runs the logic and asks the database: the slowest stop, protected by everything upstream.</> },
-      { active: [0, 6], edge: [6, 0], cap: <>The reply streams back — and unless the connection is kept alive, it is torn down with FIN/ACK. Keep-alive exists so the next request skips every toll.</> },
+      { active: [0], cap: <>A tap. Nothing has left the phone yet, though a cold connection is about to pay tolls on three floors of the stack.</> },
+      { active: [0, 1], edge: [0, 1], cap: <>{mono('DNS')} (L7 asking L3's question) turns the hostname into an address. It is cached almost everywhere, though a cold lookup still costs real milliseconds.</> },
+      { active: [0, 2], edge: [0, 2], cap: <>L4 collects its toll: the TCP handshake (SYN → SYN-ACK → ACK) takes one round trip, and {mono('TLS')} takes one to two more. That is ~100 to 200 ms for a distant user before byte one moves.</> },
+      { active: [3], edge: [0, 3], cap: <>A {mono('CDN')} edge at L7 terminates TLS close to the user and can answer cacheable requests right here, sparing a trip across the ocean to your origin.</> },
+      { active: [3, 4], edge: [3, 4], cap: <>Dynamic traffic passes through the {mono('LB')}, running at L4 or L7 depending on what it needs to inspect, onto interchangeable app servers.</> },
+      { active: [5, 6], edge: [5, 6], cap: <>Your app at L7 runs the business logic and queries the database, the slowest stop in the chain, shielded by everything upstream.</> },
+      { active: [0, 6], edge: [6, 0], cap: <>The reply streams back. Unless the connection stays open, both sides tear it down with FIN/ACK. Keep-alive exists so the next request skips those handshakes altogether.</> },
     ]}
   />
 )
 
 const NET_HANDOFF_BODY = (
   <p style={{ color: C.dim }}>
-    The rest of the stack's decisions live on their own pages: shaping L7 APIs — REST's resources, gRPC's contracts —
-    is <Sec to="api-design">API design</Sec>; pushing instead of pulling (polling, SSE, WebSockets) is{' '}
-    <Sec to="realtime-updates">Pushing realtime updates</Sec>; how a balancer that can only see L4 differs from one
-    that reads L7 — and why WebSockets care — is <Sec to="load-balancer">Load balancer</Sec>; and what geography does
-    to every number on this page is <Sec to="cdn">CDN</Sec>. The stack you just learned is the map — each of those
-    pages is one floor of this building, furnished.
+    Each layer's deeper choices live on their own pages. Shaping L7 APIs (REST's resources, gRPC's contracts) is in{' '}
+    <Sec to="api-design">API design</Sec>. Pushing updates instead of polling (polling, SSE, WebSockets) lives in{' '}
+    <Sec to="realtime-updates">Pushing realtime updates</Sec>. How an L4 balancer differs from an L7 one, and why
+    WebSockets care, is in <Sec to="load-balancer">Load balancer</Sec>. Finally, what geography does to every latency
+    number on this page is in <Sec to="cdn">CDN</Sec>. Think of the stack you just walked as the floor plan, and each
+    of those pages as one furnished room.
   </p>
 )
 
@@ -168,22 +167,22 @@ const NET_HANDOFF_BODY = (
 const IDX_SCAN_BODY = (
   <>
     <p>
-      A table is a <T k="heapfile">heap file</T>: rows land wherever there was room, in no order whatsoever. And the
-      engine never reads a row — it reads the <b>page</b> the row is sitting on, 8&nbsp;KB of it, because the page is
-      the unit of I/O, of buffer caching, and often of locking. So a full scan is one sentence long: read every page,
-      test every row. Its cost is the table's size in pages, and a 200-byte row you actually wanted still arrives inside
-      a full 8&nbsp;KB transfer.
+      On disk, a table starts life as a <T k="heapfile">heap file</T>: rows land wherever there is room, in no order at
+      all. The storage engine never fetches a single row by itself. It reads the whole <b>page</b> that holds the row,
+      8&nbsp;KB at a time, because the page is the unit of disk I/O, buffer caching, and often locking. A full table
+      scan does exactly what it sounds like: read every page, check every row. The cost scales with the table's size in
+      pages, so the 200-byte row you wanted still arrives wrapped inside an 8&nbsp;KB read.
     </p>
     <p>
-      Picture the filing cabinet where every folder was dropped in wherever it fit. There is no drawer for the Ms. To
-      find one folder you open every drawer — and you always pull out the whole drawer, even when you want one sheet
-      from it.
+      Picture a filing cabinet where folders were tossed into whichever drawer had space. There is no drawer labeled M.
+      To find one folder you open every drawer, and you have to pull out the whole drawer even when you only want one
+      sheet of paper inside it.
     </p>
     <p>
-      One belief to break before going further: <b>solid-state storage did not make random access free.</b> Sequential
-      streaming still beats scattered random reads by roughly an order of magnitude on NVMe — it was a thousandfold on
-      spinning disk, so the gap narrowed hugely and then stopped narrowing. That surviving gap is the reason everything
-      below is a bet <i>against</i> sequential streaming rather than a bet against the disk being slow.
+      One assumption worth retiring early: <b>solid-state drives did not make random access free.</b> Sequential
+      streaming still beats scattered random reads by roughly an order of magnitude on NVMe. That gap used to be a
+      thousandfold on spinning disk, so it shrank dramatically and then leveled off. The gap that remains is why every
+      structure below is a bet <i>against</i> streaming sequentially, not simply a bet against slow hardware.
     </p>
   </>
 )
@@ -208,7 +207,7 @@ const IDX_SCAN_VIZ = (
               full scan ≈ {pages.toLocaleString()} page reads · index ≈ {seek}
             </>
           ),
-          caption: `${rows.toLocaleString()} rows of 200 bytes fill ${pages.toLocaleString()} pages of 8 KB. The scan reads all of them; the tree reaches any one row in ${seek} reads, the last of which is the random fetch into the heap.`,
+          caption: `${rows.toLocaleString()} rows at 200 bytes each fill ${pages.toLocaleString()} pages of 8 KB. A full scan reads all of them; the tree reaches any single row in ${seek} reads, ending with one random fetch into the heap.`,
           bars: [
             { label: 'full scan', frac: v / 9, col: C.alert, tag: '≈ pages' },
             { label: 'index seek', frac: seek / 9, col: C.mem, tag: `${seek}` },
@@ -217,43 +216,43 @@ const IDX_SCAN_VIZ = (
       }}
     />
     <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
-      Drag down past about a thousand rows and the whole calculation inverts: 25 pages read in one streaming burst beat
-      a tree walk plus a random fetch, every time. Below that threshold an index is pure write cost with a lookup
-      attached — and the <T k="queryplanner">planner</T> will measure exactly that and ignore it, which is the correct
-      call and is regularly misread as the index being broken.
+      Drag the slider down past roughly a thousand rows and the math flips. Reading 25 pages in one clean sequential
+      burst beats walking a tree and making a random heap jump every time. Below that size an index is pure write
+      overhead with a lookup tacked on. The <T k="queryplanner">planner</T> measures this and skips the index on
+      purpose, which is the smart move even though engineers often mistake it for a broken index.
     </p>
   </>
 )
 
 const IDX_SCAN_SIMPLIFIES =
-  'Counts logical page reads, not cache hits — hot pages live in RAM, and the top of any tree effectively always does. Assumes 200-byte rows, ignores that a range scan or a sort changes the arithmetic entirely, and ignores that every index taxes every write.'
+  'Counts logical page reads rather than cache hits; hot pages stay in RAM, and the top levels of a tree almost always do. Assumes 200-byte rows, leaves out how range scans or sorts change the math, and ignores the write tax each index adds.'
 
 const IDX_TREE_BODY = (
   <>
     <p>
-      A <T k="btree">B-tree</T> node is sized to exactly one page. With ~16-byte keys and 8-byte child pointers, one
-      8&nbsp;KB node holds on the order of <b>340 children</b> — fan-out in the hundreds, not two. Depth is a logarithm
-      in that fan-out: 340² ≈ 115,000 rows at depth 2, 340³ ≈ 39 million at depth 3, 340⁴ ≈ 13 <i>billion</i> at depth
-      4. A hundred-million-row table therefore sits at depth ~4, and the top two or three levels are almost always
-      already resident, so the honest cost of a point lookup is about one disk read.
+      A <T k="btree">B-tree</T> sizes each node to match a single page. With ~16-byte keys and 8-byte child pointers,
+      one 8&nbsp;KB node holds around <b>340 children</b>, giving you fan-out in the hundreds rather than two. Tree
+      depth grows as a logarithm in that fan-out: 340² ≈ 115,000 rows at depth 2, 340³ ≈ 39 million at depth 3, and
+      340⁴ ≈ 13 <i>billion</i> at depth 4. A hundred-million-row table sits at depth ~4, and since the top two or three
+      levels stay hot in memory, a real point lookup usually costs about one disk read.
     </p>
     <p>
-      The tree stays balanced by construction rather than by luck: nodes are held between half-full and full, splitting
-      when they overflow and merging when they empty, so every leaf is the same distance from the root. No query is
-      unlucky, and none ever will be.
+      The tree stays balanced by rule rather than luck. Nodes stay between half-full and full, splitting when they
+      overflow and merging when they empty, so every leaf stays the same number of hops from the root. No key gets stuck
+      down an unlucky deep branch.
     </p>
     <p style={{ color: C.dim }}>
-      Which is why "the table got ten times bigger and lookups got slower" is nearly always false. Depth barely moved —
-      each extra level multiplies the reachable rows by another 340. What actually degraded is the buffer-cache hit
-      rate, or maintenance: at around a hundred million rows a vacuum or index rebuild has to stream a hundred-odd
-      gigabytes, and it is the <i>maintenance window</i> that stops fitting overnight, never the lookup.
+      That is why "our table grew tenfold and lookups slowed down" is almost never about tree height. Depth barely
+      budges when each extra level multiplies reach by another 340. What actually degrades is your buffer-cache hit
+      rate, or background maintenance: around a hundred million rows, a vacuum or index rebuild has to stream a hundred
+      gigabytes or more, so the <i>maintenance window</i> stops fitting overnight long before point lookups slow down.
     </p>
     <p>
-      Five things this structure does well, and no other index family does all five: point lookups (one descent), range
-      queries (leaves are linked, so a range is a descent plus a walk), sorted retrieval (the index is already in order,
-      so an ORDER BY on that column costs nothing), prefix matching on strings (a prefix is just a range), and
-      predictable behaviour under a mixed read/write load. When in doubt, this is the answer — and saying <i>why</i> is
-      the half that scores.
+      A B-tree handles five jobs well, and no other index family covers all five: point lookups (one quick descent),
+      range queries (leaves link sideways, so a range is one descent plus a scan along the leaves), sorted retrieval
+      (keys are already in order, making ORDER BY on that column free), string prefix matching (a prefix is just a
+      range), and steady behavior under mixed reads and writes. When in doubt, start here, and be ready to explain{' '}
+      <i>why</i> it fits.
     </p>
   </>
 )
@@ -261,20 +260,22 @@ const IDX_TREE_BODY = (
 const IDX_COST_BODY = (
   <>
     <p>
-      Every index is a second copy of its columns plus a pointer per row, so a wide one can approach the size of the
-      data it indexes. The sharper cost is that it sits on the <b>write</b> path: every insert, update, and delete
-      maintains <i>every</i> index on that table. One logical row write becomes 1 + n physical writes, forever.
+      Every index stores a second copy of its columns plus a pointer to each row, so a wide index can grow nearly as
+      large as the table itself. The sharper bill lands on the <b>write</b> path: every insert, update, and delete has
+      to maintain <i>every</i> index attached to that table. One logical row write turns into 1 + n physical writes for
+      as long as those indexes exist.
     </p>
     <p>
-      So an index is a bet that this column is read more often than the table is written. Six indexes means every write
-      does seven jobs, in exchange for six queries being fast. Take that bet deliberately, and only six times.
+      Every index is a wager that this column gets read far more often than the table gets written. Six indexes mean
+      every write does seven pieces of work so that six query shapes stay fast. Make that wager on purpose, and stop
+      adding indexes once the read payoff stops covering the write bill.
     </p>
     <p style={{ color: C.dim }}>
-      Two cases where the bet is simply wrong. A column written constantly and queried rarely — you have bought the
-      expensive half and left the cheap half on the shelf. And a table small enough that the scan wins anyway, where the
-      planner will correctly refuse to use what you built. Worth noticing what is <i>not</i> on that list: an indexed
-      lookup already costs a fraction of a millisecond, so "the database is slow" is almost never storage physics. It is
-      a missing index, or a scan you did not know you were doing.
+      Two cases make that bet a clear loss: a column that is written constantly and rarely queried (all cost, almost no
+      payoff), and a table small enough that a sequential scan already wins, where the planner rightly ignores the index
+      you built. Notice what is <i>not</i> on that list: an indexed lookup already finishes in a fraction of a
+      millisecond, so when someone says "the database is slow," it is rarely disk physics. Usually it is a missing
+      index, or an accidental full scan hiding behind a query.
     </p>
   </>
 )
@@ -296,8 +297,8 @@ const IDX_COST_VIZ = (
       ),
       caption:
         n === 0
-          ? 'No indexes: writes are as cheap as they get, and every query that is not by primary key reads the whole table.'
-          : `Every write now maintains ${n} index${n === 1 ? '' : 'es'} as well as the row. ${n} query shape${n === 1 ? ' gets' : 's get'} a sub-millisecond lookup; everything else on this table pays for them on every insert, update, and delete.`,
+          ? 'No extra indexes: writes are as cheap as they get, while any query outside the primary key scans the whole table.'
+          : `Every write updates ${n} index${n === 1 ? '' : 'es'} alongside the row. ${n} query shape${n === 1 ? ' gets' : 's get'} a sub-millisecond lookup; every insert, update, and delete on this table pays the upkeep.`,
       bars: [
         { label: 'write cost', frac: (1 + n) / 9, col: C.alert, tag: `${1 + n}×` },
         { label: 'index space', frac: Math.min(1, n * 0.15), col: C.compute, tag: `${Math.round(n * 15)}%` },
@@ -310,36 +311,38 @@ const IDX_COST_VIZ = (
 const IDX_LSM_BODY = (
   <>
     <p>
-      First, the correction this block exists for: an <T k="lsm">LSM-tree</T> is <b>not</b> another index type sitting
-      next to a B-tree on one column. It is the storage format of the <i>whole table</i>. Choosing it is choosing an
-      engine, not adding a structure — which is why the wide-column stores behave the way they do all the way down, and
-      why "we added an LSM index" is a sentence that gives you away.
+      Start by clearing up a common mix-up: an <T k="lsm">LSM-tree</T> is <b>not</b> an index type you bolt onto one
+      column next to a B-tree. It is the storage engine for the <i>entire table</i>. Choosing it means choosing how the
+      database lays out bytes on disk, which is why wide-column stores behave the way they do from top to bottom, and
+      why saying "we added an LSM index" immediately sounds off in an interview.
     </p>
     <p>
-      The write path has four stages. The write is appended to the <T k="wal">write-ahead log</T> and fsynced —{' '}
-      <b>durability lands here, and nowhere else.</b> It is inserted into the in-memory <T k="memtable">memtable</T>, in
-      sorted order, at RAM speed. When that fills — commonly around 64&nbsp;MB — it is flushed to disk as one immutable{' '}
-      <T k="sstable">SSTable</T>, a single sequential write. And in the background, <T k="compaction">compaction</T>{' '}
-      merges SSTables, keeps the newest version of each key, and physically drops the tombstones.
+      Its write path moves through four steps. First, the write appends to the <T k="wal">write-ahead log</T> and
+      fsyncs: <b>durability happens right here, and nowhere else.</b> Second, it goes into an in-memory{' '}
+      <T k="memtable">memtable</T>, kept sorted at RAM speed. Third, once that memtable fills (commonly around
+      64&nbsp;MB), it flushes to disk as an immutable <T k="sstable">SSTable</T> in one clean sequential write. Fourth,
+      background <T k="compaction">compaction</T> merges those SSTables together, keeps the newest version of each key,
+      and physically clears out deleted tombstones.
     </p>
     <p>
-      A B-tree writes where the data belongs; an LSM writes where the disk is fastest and tidies up afterwards. That is
-      the whole trade — and above roughly 10,000 sustained writes a second it stops being a matter of taste, because
-      random page writes are what a B-tree cannot escape and sequential streaming is what an LSM converts them into.
+      A B-tree writes data where it belongs in place; an LSM writes wherever the disk is fastest and organizes things
+      later. Above roughly 10,000 sustained writes per second, that difference stops being academic. A B-tree cannot
+      avoid scattered random page writes, while an LSM turns them into sequential streams.
     </p>
     <p>
-      The bill arrives on reads: one key's history is spread across files, so a read may have to consult the memtable{' '}
-      <i>plus every SSTable</i>. Three mitigations make that survivable. A <T k="bloomfilter">bloom filter</T> per file
-      rules keys OUT with certainty — never a false negative — so most files are skipped without a disk trip at all. A
-      sparse index holds one key per block, so a file that might have the key is entered at a byte offset rather than
-      scanned. And compaction strategy is the one real dial: leveled compaction rewrites aggressively, so reads check
-      fewer files and writes are amplified more; size-tiered rewrites less, so writes stay cheap and reads check more
-      files. They pull in opposite directions, and choosing between them <i>is</i> the workload question.
+      Reads are where you pay the bill. Because one key's history can span multiple files, a lookup may have to check
+      the memtable <i>plus every SSTable</i>. Three tools keep reads practical. A{' '}
+      <T k="bloomfilter">bloom filter</T> on each file rules missing keys out with certainty (never a false negative),
+      so most files are skipped without touching disk. A sparse index keeps one key per block, letting the engine jump
+      straight to a byte offset instead of scanning a whole file. Finally, compaction strategy is the main tuning knob:
+      leveled compaction rewrites files aggressively so reads inspect fewer files at the cost of higher write
+      amplification, while size-tiered compaction rewrites less so writes stay cheap and reads check more files. They
+      pull in opposite directions, and picking between them depends directly on your workload.
     </p>
     <p style={{ color: C.dim }}>
-      None of which makes writes free — it defers them. The same data is rewritten several times over its life, in
-      background I/O that competes with your live traffic. What you actually bought is that the payment happens off the
-      commit path, where nobody is waiting.
+      None of this makes writes free; it moves them in time. The same bytes get rewritten several times over their life
+      in background I/O that still shares disk bandwidth with live queries. What you gain is that the work happens off
+      the commit path, while no client is waiting on a reply.
     </p>
   </>
 )
@@ -347,33 +350,33 @@ const IDX_LSM_BODY = (
 const IDX_SHAPE_BODY = (
   <>
     <p>
-      You do not choose a column, you choose a <b>shape</b>. A <T k="compositeindex">composite index</T> sorts by its
-      columns in the order you declare — by the first, then by the second within it. Because that sort is nested, the
-      index can be entered only from a <b>leading prefix</b>: one on (tenant, created_at) serves a query filtering on
-      tenant, and one filtering on tenant while ordering by created_at, and nothing at all that starts from created_at.
-      Order it filter-column first, sort-column next, and a single traversal answers both halves of the query with no
-      sort step at all.
+      Good indexing is about choosing a <b>shape</b>, not just picking a column. A{' '}
+      <T k="compositeindex">composite index</T> sorts rows by its columns in the exact order you list them: by the first
+      column, then by the second inside each group of the first. Because the sort is nested, queries can only enter from
+      a <b>leading prefix</b>. An index on (tenant, created_at) serves queries filtering on tenant, or filtering on
+      tenant while sorting by created_at, and cannot help a query starting from created_at alone. Put the filter column
+      first and the sort column second, and one traversal handles both halves with zero extra sorting.
     </p>
     <p>
-      Two separate indexes are not a composite index, and the planner cannot glue them into one. That single fact
-      answers "why is my index not being used?" more often than everything else combined.
+      Two separate single-column indexes are not the same as one composite index, and the planner cannot glue them into
+      one ordered walk. That single detail answers "why isn't the database using my index?" more often than everything
+      else combined.
     </p>
     <p>
-      Three shapes are worth carrying around. <b>(filter, sort)</b> — the common one above. <b>(equality, range)</b> —
-      equality column first, always, because a range in the leading position destroys the ordering of everything behind
-      it. And <b>(tenant, time)</b> — the multi-tenant shape, where the leading column is doing partition-like work
-      inside one index. The usual heuristic, most selective column first, holds right up until the query sorts: then the
-      sort column's position matters more, because getting it wrong forces the engine to materialize and sort the whole
-      result set, which is precisely the cost you were avoiding.
+      Three shapes cover most day-to-day queries. <b>(filter, sort)</b> is the pattern above. <b>(equality, range)</b>{' '}
+      always puts the equality column first, because a range in the leading slot breaks the sort order of every column
+      behind it. And <b>(tenant, time)</b> is the classic multi-tenant shape, where the leading column neatly isolates
+      each tenant's slice inside one index. The familiar rule of thumb ("most selective column first") works right up
+      until your query has a sort; once sorting enters the picture, column order matters more, because getting it wrong
+      forces the engine to pull and sort the entire result set in memory.
     </p>
     <p style={{ color: C.dim }}>
-      Then two refinements, both narrower than they sound. A <T k="coveringindex">covering index</T> carries the columns
-      the query returns, so the engine answers from the index alone and skips the random heap fetch — the expensive step
-      from the descent above. It duplicates those columns on every write, and the honest modern assessment is that it is
-      a targeted win for one measured, hot, narrow query rather than a default. A{' '}
-      <T k="partialindex">partial index</T> covers only rows matching a condition, which is how a job table's handful of
-      pending rows gets an index small enough to live in memory while its millions of finished rows cost nothing to
-      maintain.
+      Two sharper tools sit on top of those shapes, both more specialized than they sound. A{' '}
+      <T k="coveringindex">covering index</T> includes the columns the query returns so the engine answers straight from
+      the leaf and skips the random heap fetch (the expensive final hop from the descent above). Because it copies those
+      extra columns on every write, treat it as a surgical win for one measured, hot, narrow query rather than a
+      default. A <T k="partialindex">partial index</T> indexes only rows matching a condition, letting a job queue keep
+      its handful of pending rows in a tiny in-memory index while millions of completed rows cost nothing to maintain.
     </p>
   </>
 )
@@ -391,20 +394,20 @@ const IDX_SHAPE_VIZ = (
       id === 'sort' ? (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
           {line('The query:', 'orders for one tenant, newest first, 20 of them.', C.storage)}
-          {line('Right shape:', '(tenant, created_at) — descend to the tenant, walk 20 leaves backwards, done. No sort step.', C.mem)}
-          {line('Wrong shape:', '(created_at, tenant) — cannot be entered by tenant at all, so the planner scans and then sorts.', C.alert)}
+          {line('Right shape:', '(tenant, created_at): jump to the tenant, walk 20 leaves backward, done. No sort step.', C.mem)}
+          {line('Wrong shape:', '(created_at, tenant): cannot enter by tenant at all, forcing a scan and a sort.', C.alert)}
         </div>
       ) : id === 'range' ? (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
           {line('The query:', "status = 'pending' AND created_at > yesterday.", C.compute)}
-          {line('Right shape:', '(status, created_at) — equality first pins one contiguous run, and the range is a walk inside it.', C.mem)}
-          {line('Wrong shape:', '(created_at, status) — the range comes first, so every matching row must be re-checked for status one at a time.', C.alert)}
+          {line('Right shape:', '(status, created_at): equality first pins one contiguous slice, and the range walks cleanly inside it.', C.mem)}
+          {line('Wrong shape:', '(created_at, status): the range leads, so every matching row has to be re-checked for status one by one.', C.alert)}
         </div>
       ) : (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          {line('The query:', 'SELECT id, status — nothing else — for one tenant.', C.mem)}
-          {line('Right shape:', '(tenant) INCLUDE (status) — the leaf already holds the answer, so the random heap fetch never happens.', C.mem)}
-          {line('The price:', 'status is now stored twice and rewritten on every update to it. Justify it with a measurement, not a hunch.', C.alert)}
+          {line('The query:', 'SELECT id, status (nothing else) for one tenant.', C.mem)}
+          {line('Right shape:', '(tenant) INCLUDE (status): the leaf already holds both columns, so the random heap fetch never happens.', C.mem)}
+          {line('The price:', 'status is now stored twice and rewritten every time it changes. Justify it with measurements, not a hunch.', C.alert)}
         </div>
       )
     }
@@ -414,39 +417,41 @@ const IDX_SHAPE_VIZ = (
 const IDX_LIMITS_BODY = (
   <>
     <p>
-      Everything above rests on one assumption: that the values can be put in order, one dimension at a time. Three
-      query shapes break it.
+      Everything above assumes your values fit on a single sorted line, one dimension at a time. Three common query
+      shapes break that assumption.
     </p>
     <p>
-      <b>Exact match only.</b> A hash index answers "equals this value" in a single step and does nothing else — no
-      ranges, no sorts, no prefixes. It is genuinely rare in practice, and not because it is bad: a B-tree at depth four
-      is close enough at equality and does four other jobs besides. Name it, say why you did not pick it, move on.
+      <b>Exact match only.</b> A hash index answers "equals this value" in a single step and does nothing else: no
+      ranges, no sorting, no prefixes. It shows up rarely in production, not because it is broken, but because a B-tree
+      at depth four is already fast enough for equality while covering four other query patterns for free. Name it, say
+      why you skipped it, and move on.
     </p>
     <p>
-      <b>Two dimensions at once.</b> Latitude and longitude are both ordered values, so indexing both looks obvious. It
-      does not work: the planner picks one of them and hand-filters a stripe of the planet. Sorted order is
-      one-dimensional and "near me" is not. Every real answer either flattens the plane into something orderable or
-      builds a tree around the data. A <T k="geohash">geohash</T> recursively halves the map and encodes the path as a
-      string, so nearby points share a prefix and an ordinary B-tree can index it — you then have to check the adjacent
-      cells too, because two points either side of a cell boundary can be metres apart and share no prefix at all. A{' '}
-      <T k="quadtree">quadtree</T> splits a node into four whenever it exceeds a threshold of about a hundred points, so
-      dense cities grow deep while empty ocean stays a single node. An <T k="rtree">R-tree</T> nests bounding rectangles
-      fitted to the data, which is what lets it index polygons and points together, at the cost of overlapping siblings
-      forcing one search down several branches.
+      <b>Two dimensions at once.</b> Latitude and longitude are both ordered numbers, so putting an index on each looks
+      tempting. It fails in practice because the planner picks one axis and hand-filters a giant stripe across the
+      planet. Sorted order is one-dimensional, and "near me" is not. Real spatial indexes either flatten the 2D plane
+      into an orderable string or build a tree shaped around the points. A <T k="geohash">geohash</T> recursively splits
+      the map and encodes the path as a string so nearby points share a prefix a normal B-tree can index; you still have
+      to check neighboring cells, since two points on opposite sides of a cell border can sit meters apart with no
+      shared prefix. A <T k="quadtree">quadtree</T> divides a region into four once it holds more than roughly a hundred
+      points, so dense cities branch deep while empty ocean stays one leaf. An <T k="rtree">R-tree</T> wraps data in
+      nested bounding rectangles, letting it index polygons alongside points, though overlapping sibling rectangles can
+      send one search down several branches.
     </p>
     <p>
-      <b>Somewhere in the middle of a string.</b> A B-tree indexes values from the left, so a query for documents{' '}
-      <i>containing</i> a word has no prefix to seek on and collapses into a scan. The fix is not a better tree. It is
-      to flip the mapping entirely — term → the list of documents holding it — which is an{' '}
-      <T k="invertedindex">inverted index</T>, a different structure with a different write path and a different bill.
+      <b>Words inside a block of text.</b> A B-tree indexes strings from the left edge, so searching for documents that{' '}
+      <i>contain</i> a word anywhere in the body has no prefix to seek on and falls back to a full scan. You do not fix
+      that with a cleverer B-tree. You flip the lookup around so terms map to the list of documents containing them
+      (term → documents). That structure is an <T k="invertedindex">inverted index</T>, with its own write pipeline and
+      its own tradeoffs.
     </p>
     <p style={{ color: C.dim }}>
-      Those two breakages are pages of their own: spatial indexes at full depth are{' '}
-      <Sec to="proximity">Proximity-based services</Sec>, and the inverted index is{' '}
-      <Sec to="search-db">Search-optimized databases</Sec>. The rest of the neighbourhood follows the same logic — the
-      log-structured engine above is the whole point of <Sec to="nosql-db">NoSQL databases</Sec>, an index is the first
-      and cheapest rung of <Sec to="scaling-reads">Scaling reads</Sec>, and whether yours gets used at all is decided by
-      a planner reading statistics over in <Sec to="relational-db">Relational databases</Sec>.
+      Those last two get their own briefings: spatial indexes live in{' '}
+      <Sec to="proximity">Proximity-based services</Sec>, and inverted indexes live in{' '}
+      <Sec to="search-db">Search-optimized databases</Sec>. The rest of the neighborhood connects along the same lines:
+      the log-structured engine above is the backbone of <Sec to="nosql-db">NoSQL databases</Sec>, an index is the first
+      and cheapest step in <Sec to="scaling-reads">Scaling reads</Sec>, and whether your index actually runs is decided
+      by the statistics-driven planner over in <Sec to="relational-db">Relational databases</Sec>.
     </p>
   </>
 )
@@ -464,34 +469,34 @@ const IDX_LIMITS_VIZ = (
     {(id) =>
       id === 'eq' ? (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          {line('Answered by:', 'a B-tree, in ~4 page reads. A hash index would do it in one — and nothing else.', C.mem)}
+          {line('Answered by:', 'a B-tree, in ~4 page reads. A hash index could do it in one, and nothing else.', C.mem)}
           <p style={{ color: C.dim, margin: '4px 0' }}>
-            The tempting wrong answer is the hash index. It is faster at exactly this and useless at everything beside
-            it, which is why it is rare in production.
+            The tempting trap is picking a hash index. It wins at pure equality and cannot help with anything else,
+            which is why you rarely see it in production.
           </p>
         </div>
       ) : id === 'range' ? (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          {line('Answered by:', 'a B-tree, and this is where it is untouchable — one descent, then a walk along linked leaves, already in order.', C.storage)}
+          {line('Answered by:', 'a B-tree, where it shines: one descent, then a smooth walk along linked leaves, already sorted.', C.storage)}
           <p style={{ color: C.dim, margin: '4px 0' }}>
-            Sorted retrieval is free here and impossible in every other family. Put the sort column in the composite
-            index and the sort step disappears from the plan.
+            Sorted retrieval comes for free here and nowhere else. Include the sort column in your composite index and
+            the sort step vanishes from the query plan.
           </p>
         </div>
       ) : id === 'near' ? (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          {line('Answered by:', 'a geohash on a B-tree, a quadtree, or an R-tree — depending on whether you index points or shapes.', C.compute)}
+          {line('Answered by:', 'a geohash in a B-tree, a quadtree, or an R-tree, depending on whether you index points or shapes.', C.compute)}
           <p style={{ color: C.dim, margin: '4px 0' }}>
-            The tempting wrong answer is two indexes, one per coordinate. The planner takes one and filters a stripe of
-            the planet by hand. Depth lives on Proximity-based services.
+            The tempting trap is adding two separate indexes, one for latitude and one for longitude. The planner picks
+            one and filters a stripe of the planet by hand. See Proximity-based services for the full picture.
           </p>
         </div>
       ) : (
         <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-          {line('Answered by:', 'an inverted index — term → documents — built by an analysis pipeline at write time.', C.alert)}
+          {line('Answered by:', 'an inverted index (term → documents), assembled by an analysis pipeline at write time.', C.alert)}
           <p style={{ color: C.dim, margin: '4px 0' }}>
-            The tempting wrong answer is an index on the text column. There is no prefix to seek on, so it degrades to a
-            scan with no ranking at the end. Depth lives on Search-optimized databases.
+            The tempting trap is indexing the text column with a B-tree. With no leading prefix to seek on, it drops
+            back to a scan with no relevance ranking. See Search-optimized databases for the full picture.
           </p>
         </div>
       )
@@ -504,25 +509,25 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     id: 'networking',
     shelf: 'concepts',
     title: 'Networking essentials',
-    thesis: 'What is each layer promising your code — and what does it cost to keep that promise?',
+    thesis: 'What does each layer promise your code, and what does it cost to keep that promise?',
     body: NET_STACK_BODY,
     viz: NET_STACK_VIZ,
     simplifies: NET_STACK_SIMPLIFIES,
     blocks: [
-      { heading: 'THE STACK — the organizing model', body: NET_STACK_BODY, viz: NET_STACK_VIZ, simplifies: NET_STACK_SIMPLIFIES },
+      { heading: 'THE STACK: the organizing model', body: NET_STACK_BODY, viz: NET_STACK_VIZ, simplifies: NET_STACK_SIMPLIFIES },
       {
-        heading: 'TRANSPORT — the guarantees you order, and their price',
+        heading: 'TRANSPORT: the guarantees you order, and their price',
         body: NET_TRANSPORT_BODY,
         viz: NET_TRANSPORT_VIZ,
         simplifies:
-          'Assumes 30 packets a second and an 80 ms round trip; real TCP recovers smarter (fast retransmit, SACK) and real video hides loss behind jitter buffers — the shape of the trade survives all of it.',
+          'Models 30 packets a second over an 80 ms round trip. Real TCP recovers smarter with fast retransmit and SACK, and real video smooths loss with jitter buffers, though the core tradeoff stays the same.',
       },
       {
-        heading: 'ONE TAP, EVERY LAYER — the model in motion',
+        heading: 'ONE TAP, EVERY LAYER: the model in motion',
         body: NET_TAP_BODY,
         viz: NET_TAP_VIZ,
         simplifies:
-          'Collapses TCP and TLS into one step, ignores HTTP/2 multiplexing and connection reuse, treats DNS as a single hop rather than a cache hierarchy — and shows one request, where a real browser opens several connections and reuses them all.',
+          'Combines TCP and TLS into one step, skips HTTP/2 multiplexing and connection reuse, and treats DNS as a single hop instead of a cache hierarchy. It also traces one request, whereas real browsers open several connections and reuse them.',
       },
       { heading: 'WHERE THIS PAGE HANDS OFF', body: NET_HANDOFF_BODY },
     ],
@@ -531,7 +536,7 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       terms: ['request', 'dns', 'tls', 'tcp', 'udp', 'handshake', 'headofline', 'cdn', 'lb', 'appserver', 'throughput'],
     },
     termShelf: 'networking',
-    feltIn: { note: <>Race a real operation against the speed of light in the Lab.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
+    feltIn: { note: <>Race real system operations against the speed of light in the Lab.</>, to: '/lab/light', cta: 'play RACE LIGHT' },
   },
   {
     id: 'api-design',
@@ -541,25 +546,26 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          A good API is a contract that makes the common case one round trip and the dangerous case impossible. Two levers
-          dominate: whether writes are <T k="idempotent">idempotent</T> (safe to <T k="retry">retry</T> — so a lost
-          acknowledgment doesn't double-charge a card), and how you <T k="pagination">paginate</T> lists so one call can't
-          drag back a million rows.
+          A good API contract makes the common path a single round trip and makes dangerous mistakes hard to trigger.
+          Two levers carry most of the weight: making writes <T k="idempotent">idempotent</T> (safe to{' '}
+          <T k="retry">retry</T>, so a dropped acknowledgment never double-charges a card), and choosing how you{' '}
+          <T k="pagination">paginate</T> lists so one request cannot drag back a million rows.
         </p>
         <p style={{ color: C.dim }}>
-          Drag the page size below: fetching a fixed 10,000-item list, a tiny page means many <T k="rest">REST</T> round
-          trips (each paying network latency); a huge page means fewer trips but a heavier payload and slower first byte.
-          The right size is a fit to the client, not a universal constant. Encoding is the same kind of fit: REST over
-          JSON stays at the public edge, while internal calls often move to <T k="grpc">gRPC</T> and{' '}
-          <T k="protobuf">Protobuf</T> once message size and parse cost show up in the budget.
+          Drag the page size slider below for a fixed 10,000-item list. Tiny pages turn into a long chain of{' '}
+          <T k="rest">REST</T> round trips, each paying network latency before data moves. Huge pages cut the trip count
+          but produce fat payloads and a slower first byte. The right page size fits the client, not some universal
+          constant. Wire encoding follows the same logic: REST over JSON stays friendly at the public edge, while
+          internal service calls often switch to <T k="grpc">gRPC</T> and <T k="protobuf">Protobuf</T> once payload size
+          and parse time start showing up in the budget.
         </p>
         <p>
-          Two shapes the slider cannot show. How you address the NEXT page decides whether deep paging stays cheap: a{' '}
-          <T k="cursor">cursor</T> asks for what comes after the last item seen, so page 1,000 costs what page 1 costs and
-          an insert mid-scroll cannot make you skip a row — where an offset makes the database count past every skipped
-          row. And when clients want genuinely different field sets, <T k="graphql">GraphQL</T> lets each ask for exactly
-          what it needs in one round trip, trading away the URL-level caching and per-endpoint rate limiting that made
-          REST easy to operate.
+          Two big choices sit outside the slider. First, how you ask for the next page determines whether deep scrolling
+          stays fast: a <T k="cursor">cursor</T> asks for rows after the last item seen, so page 1,000 costs the same as
+          page 1 and an insert mid-scroll will not shift rows under you, whereas an offset forces the database to count
+          past every skipped row. Second, when different clients need genuinely different field sets,{' '}
+          <T k="graphql">GraphQL</T> lets each ask for just what it needs in one round trip, trading away the URL-level
+          caching and simple per-endpoint rate limiting that make REST straightforward to operate.
         </p>
       </>
     ),
@@ -584,10 +590,10 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
             ),
             caption:
               trips > 40
-                ? 'Tiny pages: latency-bound. Each trip pays a full network round trip before any data moves.'
+                ? 'Tiny pages: latency-bound. Each request pays a full network round trip before any data moves.'
                 : payloadKb > 400
-                  ? 'Huge pages: payload-bound. Fewer trips, but slow first byte and fat responses to parse.'
-                  : 'A balanced page: few trips, modest payloads. This is the range most cursors target.',
+                  ? 'Huge pages: payload-bound. Fewer trips, but a slower first byte and heavy responses to parse.'
+                  : 'Balanced page size: modest trip count, reasonable payloads. Most cursor-based APIs aim right around here.',
             bars: [
               { label: 'round trips', frac: trips / 1000, col: C.net, tag: String(trips) },
               { label: 'payload/trip', frac: payloadKb / 800, col: C.compute, tag: `${payloadKb}KB` },
@@ -597,12 +603,12 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       />
     ),
     simplifies:
-      'Assumes uniform item size and a fixed total; real pagination uses cursors (not offsets) to stay stable under writes, and payload cost is nonlinear once compression and gzip kick in.',
+      'Assumes uniform item size and a fixed total. Real pagination uses cursors instead of offsets to stay stable under live writes, and payload size turns nonlinear once gzip compression kicks in.',
     related: {
       toys: ['light'],
       terms: ['rest', 'pagination', 'idempotent', 'retry', 'request', 'grpc', 'protobuf'],
     },
-    feltIn: { note: <>Taste tests judge API choices against stated requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
+    feltIn: { note: <>Taste tests put API choices head-to-head against real requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {
     id: 'data-modeling',
@@ -612,21 +618,23 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          Every schema answers one question: do you store each fact once, or many times? <T k="normalization">Normalizing</T>{' '}
-          keeps one copy and reassembles it with a <T k="join">join</T> at read time — writes are clean, reads pay to gather.{' '}
-          <T k="denormalization">Denormalizing</T> pre-joins the data into the shape the screen needs — reads are one lookup,
-          but every <T k="write">write</T> must update every copy.
+          Every schema makes one foundational choice: do you store each fact once, or copy it into several places?{' '}
+          <T k="normalization">Normalizing</T> keeps a single copy and stitches rows back together with a{' '}
+          <T k="join">join</T> at read time, keeping writes clean while reads pay to gather the pieces.{' '}
+          <T k="denormalization">Denormalizing</T> pre-assembles data into the shape the screen expects, giving you
+          one-lookup reads while every <T k="write">write</T> has to update every copy.
         </p>
         <p style={{ color: C.dim }}>
-          Toggle the two below. The choice is <T k="readpct">read/write-mix</T> arithmetic: a read-heavy feed denormalizes
-          and eats the write <T k="fanout">fan-out</T>; a write-heavy ledger normalizes and eats the join. An{' '}
-          <T k="index">index</T> is the same trade in miniature — a sorted copy that speeds a read and taxes every write.
+          Flip between the two layouts below. The decision comes down to <T k="readpct">read/write-mix</T> math: a
+          read-heavy feed denormalizes and absorbs the write <T k="fanout">fan-out</T>, while a write-heavy ledger
+          normalizes and pays for the join. Even a plain <T k="index">index</T> is this same tradeoff in miniature: a
+          sorted extra copy that speeds up a read and taxes every write.
         </p>
         <p>
-          There is a third position between the two toggles: keep the normalized truth AND store the assembled answer as
-          a <T k="materializedview">materialized view</T>, refreshed in the background rather than recomputed per request.
-          Reads stop paying for the join, writes stop fanning out to every copy, and the price moves to a place you can
-          state out loud — the view is exactly as stale as its last refresh.
+          There is a third option between the two toggles: keep the normalized source of truth and store the assembled
+          answer in a <T k="materializedview">materialized view</T> that refreshes in the background instead of on every
+          request. Reads skip the join, writes skip fanning out to every copy, and the cost moves to a place you can
+          state clearly: the view is exactly as stale as its last refresh.
         </p>
       </>
     ),
@@ -645,10 +653,10 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
                 users · posts · likes (three tables)
               </div>
               <p style={{ marginTop: 8 }}>
-                <b style={{ color: C.mem }}>Write:</b> one row, one place. Truth is never contradictory.
+                <b style={{ color: C.mem }}>Write:</b> one row, one home. Facts never disagree with each other.
                 <br />
-                <b style={{ color: C.alert }}>Read:</b> a feed page joins 3 tables and sorts — expensive, and it gets worse as
-                data grows.
+                <b style={{ color: C.alert }}>Read:</b> loading a feed joins 3 tables and sorts, which gets heavier as
+                the tables grow.
               </p>
             </div>
           ) : (
@@ -657,10 +665,10 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
                 feed_items (one fat pre-joined row per card)
               </div>
               <p style={{ marginTop: 8 }}>
-                <b style={{ color: C.mem }}>Read:</b> one lookup, already in display shape. Fast and flat.
+                <b style={{ color: C.mem }}>Read:</b> one lookup, already shaped for the UI. Fast and predictable.
                 <br />
-                <b style={{ color: C.alert }}>Write:</b> a like updates every feed row that embedded it — write fan-out, and
-                copies can drift.
+                <b style={{ color: C.alert }}>Write:</b> a single like has to update every feed row that embedded it,
+                creating write fan-out and letting copies drift.
               </p>
             </div>
           )
@@ -668,15 +676,15 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       </Toggler>
     ),
     simplifies:
-      'Real systems mix both (a normalized source of truth with denormalized read projections kept in sync by CDC); the toggle pretends it is one-or-the-other.',
+      'Real systems usually mix both: a normalized source of truth feeding denormalized read projections kept fresh by CDC. The toggle frames it as one-or-the-other.',
     related: { toys: ['disk'], terms: ['normalization', 'denormalization', 'join', 'index', 'write', 'readpct', 'fanout', 'cdc'] },
-    feltIn: { note: <>Builder scenarios force the read/write-mix decision under a budget.</>, to: '/builder', cta: 'open the Builder' },
+    feltIn: { note: <>Builder scenarios make you balance read/write mix under a real budget.</>, to: '/builder', cta: 'open the Builder' },
   },
   {
     id: 'indexing',
     shelf: 'concepts',
     title: 'Database indexing',
-    thesis: 'What does the engine actually do to find your row — and what does each shortcut cost?',
+    thesis: 'How does the engine actually find your row, and what does each shortcut cost?',
     body: IDX_SCAN_BODY,
     viz: IDX_SCAN_VIZ,
     simplifies: IDX_SCAN_SIMPLIFIES,
@@ -687,39 +695,39 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
         body: IDX_TREE_BODY,
         viz: <BTreeWalk accent={C.storage} />,
         simplifies:
-          'Fan-out depends on key width, so a wide text key drops it sharply and can add a level; assumes no page compression, and ignores that the planner may measure and choose a scan anyway.',
+          'Fan-out depends on key width, so wide text keys drop it sharply and can add a level. Assumes no page compression, and ignores that a planner may still measure and choose a scan.',
       },
       {
         heading: 'WHAT EVERY INDEX COSTS',
         body: IDX_COST_BODY,
         viz: IDX_COST_VIZ,
         simplifies:
-          'Assumes every index is maintained on every write — true for inserts and deletes, but an update only touches the indexes whose columns it changed. Index size is taken as a flat ~15% of the table, which a wide or covering index blows past.',
+          'Assumes every index updates on every write. That holds for inserts and deletes, while updates only touch indexes whose columns actually changed. Index size is modeled as a flat ~15% of the table, which wide or covering indexes easily exceed.',
       },
       {
         heading: 'WHEN THE WRITE PATH WINS',
         body: IDX_LSM_BODY,
         viz: <LsmPath accent={C.storage} />,
         simplifies:
-          'One memtable and a handful of SSTables, where a real engine runs several levels holding many files each; compaction runs continuously rather than as a discrete step, and the log is recycled rather than growing forever.',
+          'Shows one memtable and a handful of SSTables, whereas a real engine runs several levels holding many files each. Compaction also runs continuously in the background, and the write-ahead log is recycled rather than growing forever.',
       },
       {
         heading: 'THE SHAPE, NOT JUST THE COLUMN',
         body: IDX_SHAPE_BODY,
         viz: IDX_SHAPE_VIZ,
         simplifies:
-          'A real planner decides on statistics and may still pick a scan; these are the shapes to reason with, not a promise about any one engine. Row counts are illustrative.',
+          'A real planner decides from table statistics and may still pick a scan. Treat these as shapes to reason with, not guarantees about any one engine. Row counts are illustrative.',
       },
       {
         heading: 'WHERE SORTED ORDER RUNS OUT',
         body: IDX_LIMITS_BODY,
         viz: IDX_LIMITS_VIZ,
         simplifies:
-          'Real engines blur these lines — a relational engine ships spatial and full-text index types in the box — so "which family" is a question about the shape of the access, not about which product you have to buy.',
+          'Real databases blur these borders: relational engines ship spatial and full-text index types right in the box. Picking an index family is about the shape of your query, not which vendor logo you have to buy.',
       },
     ],
     related: { toys: ['disk', 'lsmbtree'], terms: ['heapfile', 'index', 'btree', 'lsm', 'wal', 'durable', 'compositeindex', 'queryplanner'] },
-    feltIn: { note: <>Race the same writes through a B-tree and an LSM, then pay the read bill.</>, to: '/lab/lsmbtree', cta: 'play LSM vs B-TREE' },
+    feltIn: { note: <>Send the same write stream through a B-tree and an LSM, then pay the read bill.</>, to: '/lab/lsmbtree', cta: 'play LSM vs B-TREE' },
   },
   {
     id: 'caching',
@@ -729,26 +737,28 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          A <T k="read">read</T> just looks, so its answer can be <i>copied</i> — into a <T k="cache">cache</T> in front of
-          the database. Every <T k="hitrate">hit</T> is a read the database never sees. Drag the hit rate: this single number
-          decides whether your database is bored or on fire. A <T k="write">write</T> changes the truth and can't be cached
-          away — every copy must learn it.
+          A <T k="read">read</T> only looks, so its answer can be <i>copied</i> into a <T k="cache">cache</T> sitting in
+          front of the database. Every <T k="hitrate">hit</T> is a query the database never has to answer. Drag the hit
+          rate below: this one percentage decides whether your database is bored or on fire. A <T k="write">write</T>{' '}
+          changes the truth and cannot be cached away, because every copy has to learn about it.
         </p>
         <p style={{ color: C.dim }}>
-          The catch lives in the tail. A hot key's <T k="ttl">TTL</T> expires and thousands of misses race to recompute the
-          same answer at once — a <T k="stampede">stampede</T>, where the cache's <i>absence</i> is the load spike. Defenses
-          all break the synchronization: jittered TTLs, <T k="coalescing">request coalescing</T> so the first miss fetches
-          while every duplicate waits on it, serving stale while refreshing.
+          The trouble hides in the tail. When a hot key's <T k="ttl">TTL</T> expires, thousands of simultaneous misses
+          can rush the database to recompute the exact same answer. That is a <T k="stampede">stampede</T>, where the
+          cache's sudden <i>absence</i> becomes the traffic spike. Every defense breaks that synchronization: jittered
+          TTLs, <T k="coalescing">request coalescing</T> so the first miss fetches while duplicate callers wait on it,
+          or serving stale values while refreshing in the background.
         </p>
         <p>
-          Underneath the slider sit three decisions. WHO fills the cache: <T k="cacheaside">cache-aside</T> puts the logic
-          in the application, so a cache outage is a latency event rather than an outage;{' '}
-          <T k="readthrough">read-through</T> makes the cache fetch on a miss, centralizing that logic and making the cache
-          a hard dependency; <T k="writethrough">write-through</T> writes both together so the cache is never stale, paid
-          for on every write. WHAT leaves when memory fills is <T k="eviction">eviction</T> — least-recently-used, an
-          approximation of the thing you cannot know. And HOW a value is invalidated is the hardest of the three, which is
-          why <T k="keyversion">key versioning</T> avoids it entirely: put a content hash in the key and a change becomes a
-          miss instead of a delete you would have to chase through every layer.
+          Three practical decisions sit underneath the slider. First, who fills the cache: <T k="cacheaside">cache-aside</T>{' '}
+          keeps the logic in your app, so a cache outage turns into higher latency rather than a full outage;{' '}
+          <T k="readthrough">read-through</T> lets the cache fetch on a miss, centralizing the code while turning the
+          cache into a hard dependency; <T k="writethrough">write-through</T> writes to both together so the cache stays
+          fresh at the cost of slower writes. Second, what leaves when memory fills is <T k="eviction">eviction</T>,
+          usually least-recently-used, which is our best guess at what will not be needed next. Third, how you
+          invalidate stale data is the hardest part of all, which is why <T k="keyversion">key versioning</T> sidesteps
+          it: bake a content hash into the key and an update becomes a clean miss instead of a delete you have to chase
+          across every layer.
         </p>
       </>
     ),
@@ -772,10 +782,10 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
             ),
             caption:
               toDb > 30_000
-                ? 'Above a single Postgres primary’s ~30k cached QPS — the cache is barely helping.'
+                ? 'Above a single Postgres primary’s ~30k cached QPS. At this hit rate, the cache is barely helping.'
                 : toDb > 5_000
-                  ? 'Survivable on one primary, but a cache restart would drop you back to 100k/s instantly.'
-                  : 'The database is nearly idle. This is why read-heavy systems live or die by hit rate.',
+                  ? 'Survivable on one primary, though a cold cache restart would slam you straight back to 100k/s.'
+                  : 'The database is nearly idle. Read-heavy systems live or die right here.',
             bars: [
               { label: 'served by cache', frac: v / 100, col: C.mem, tag: `${v}%` },
               { label: 'hits the DB', frac: (100 - v) / 100, col: C.alert, tag: `${100 - v}%` },
@@ -785,9 +795,9 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       />
     ),
     simplifies:
-      'Assumes a fixed 100k reads/s and a uniform miss cost; real hit rates depend on key skew and value churn, and a miss can be far more expensive than a hit.',
+      'Assumes a flat 100k reads/s and uniform miss cost. Real hit rates depend heavily on key skew and churn, and a single miss can cost far more work than a hit.',
     related: { toys: ['stampede', 'dram'], terms: ['cache', 'hitrate', 'ttl', 'stampede', 'read', 'write', 'herd'] },
-    feltIn: { note: <>Expire a hot key and watch ten thousand misses dogpile the DB.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
+    feltIn: { note: <>Expire a hot key and watch ten thousand misses dogpile the database.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
   },
   {
     id: 'sharding',
@@ -797,23 +807,24 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          <T k="shard">Sharding</T> scales <T k="write">writes</T> by splitting data across independent databases — and the{' '}
-          <T k="partitionkey">partition key</T> decides everything. The cluster can only spread load as evenly as your keys
-          spread. Toggle to a{' '}
-          <T k="hotpartition">hot key</T> (this hour's bucket, a viral post's id): every concurrent writer funnels to one
-          node while the rest of the expensive cluster idles.
+          <T k="shard">Sharding</T> scales <T k="write">writes</T> by splitting your data across independent databases,
+          and your <T k="partitionkey">partition key</T> decides whether it actually works. A cluster can only spread
+          traffic as evenly as your keys spread. Flip the toggle below to a <T k="hotpartition">hot key</T> (this
+          hour's bucket, or a viral post's id): every writer piles onto a single node while the rest of your expensive
+          cluster sits around doing almost nothing.
         </p>
         <p style={{ color: C.dim }}>
-          Total capacity is a lie; per-key capacity is what saturates. Fixes: salt or compose the key so writers spread.
-          Querying by a non-key column means a <T k="gsi">secondary index</T> — a second copy that doubles writes — and one
-          event reaching many partitions is a <T k="fanout">fan-out</T> choice, priced by your most-followed user.
+          Cluster-wide capacity is a comforting fiction; per-key capacity is what actually hits the wall. To fix it,
+          salt or compose the key so writers land across multiple shards. Querying by a non-key column means building a{' '}
+          <T k="gsi">secondary index</T> (a second copy that doubles your writes), and one event touching many
+          partitions becomes a <T k="fanout">fan-out</T> problem priced by your single most-followed user.
         </p>
         <p>
-          The bars above assume every query knows its key. One that doesn't becomes a{' '}
-          <T k="scattergather">scatter-gather</T>: the coordinator asks every shard and waits for the slowest, so that
-          query gets worse with each shard you add. Inside a partition, ordering is a second decision — the{' '}
-          <T k="clusteringkey">clustering key</T> is the physical sort on disk, which is why "this user's newest first"
-          is one sequential read and any other order is a scan plus a sort.
+          The bars below assume every query already knows its partition key. Any query that does not turns into a{' '}
+          <T k="scattergather">scatter-gather</T>: the coordinator asks every shard and waits for the slowest one to
+          answer, so that query gets slower with every shard you add. Inside a partition, ordering is a second lever.
+          The <T k="clusteringkey">clustering key</T> sets the physical sort order on disk, which is why "this user's
+          newest posts first" is one sequential read while any other order forces a scan and a sort.
         </p>
       </>
     ),
@@ -855,8 +866,8 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
               </div>
               <p style={{ fontSize: 12.5, color: C.dim, marginTop: 8 }}>
                 {id === 'even'
-                  ? 'Load spreads; each shard cruises near 60%. Add shards, add capacity.'
-                  : 'One shard is pinned at 100% and throttling; seven idle. More shards would not help — the key does not spread.'}
+                  ? 'Load spreads cleanly; each shard cruises near 60%. Add more shards, get more capacity.'
+                  : 'One shard is pinned at 100% and throttling while seven sit idle. Adding more shards will not help until the key spreads.'}
               </p>
             </div>
           )
@@ -864,9 +875,9 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       </Toggler>
     ),
     simplifies:
-      'Eight fixed equal partitions; real stores split hot partitions adaptively (too late for a per-second spike) and rebalance in the background.',
+      'Uses eight fixed, equal partitions. Real databases split hot partitions adaptively (usually too late to save a per-second spike) and rebalance in the background.',
     related: { toys: ['hotpartition'], terms: ['shard', 'hotpartition', 'gsi', 'fanout', 'write'] },
-    feltIn: { note: <>Watch "now" as a partition key melt one node while seven idle.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
+    feltIn: { note: <>Use "now" as a partition key and watch one node melt while seven sit idle.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
     id: 'consistent-hashing',
@@ -876,30 +887,31 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          Assign keys to nodes with <span className="mono">hash(key) % N</span> and every time N changes — a node dies, a
-          node joins — nearly every key re-homes. For a <T k="cache">cache</T> that means a near-total miss storm; for a{' '}
-          <T k="shard">shard</T> it means moving almost all the data. Consistent hashing fixes this by placing nodes and keys
-          on a ring: a key belongs to the next node clockwise.
+          If you place keys on nodes with <span className="mono">hash(key) % N</span>, then whenever N changes (a node
+          crashes, or a fresh node joins), nearly every key lands on a new owner. For a <T k="cache">cache</T> that
+          triggers a massive miss storm; for a <T k="shard">shard</T> it means copying almost your entire dataset across
+          the network. Consistent hashing avoids that reshuffle by placing both nodes and keys on a circle, where each
+          key belongs to the next node clockwise.
         </p>
         <p style={{ color: C.dim }}>
-          Drag the node count. Adding a node steals only its new clockwise slice — about <b>1/N</b> of the keys move, not all
-          of them. That is a bound on MOVEMENT, not a promise of evenness: with one point per node, random placement
-          leaves arcs of wildly different sizes. Real systems give each machine hundreds of small{' '}
-          <T k="vnode">virtual nodes</T> scattered around the circle, so load averages out and a death is absorbed by
-          many neighbours instead of doubling one.
+          Drag the node count below. Adding a node claims only its new clockwise slice, so roughly <b>1/N</b> of the
+          keys move instead of almost all of them. Notice that this bounds key movement, not balance: with only one spot
+          per machine, random placement produces arcs of wildly uneven sizes. Production systems assign each machine
+          hundreds of small <T k="vnode">virtual nodes</T> scattered around the ring, smoothing out the load and letting
+          many neighbors share the fallout when a node dies instead of doubling traffic on one unlucky neighbor.
         </p>
         <p style={{ color: C.dim }}>
-          A ring is not the only way to bound movement. Redis Cluster cuts the key space into 16,384 fixed{' '}
-          <T k="hashslot">hash slots</T> and assigns slots to nodes, so rebalancing means handing over whole slots and
-          every client just caches the slot table — same goal, a lookup instead of a ring walk.
+          A ring is not the only way to keep rebalancing small. Redis Cluster divides the key space into 16,384 fixed{' '}
+          <T k="hashslot">hash slots</T> and maps slots to nodes. Rebalancing means handing over whole slots while
+          clients cache the slot table: same goal, solved with a direct table lookup instead of a ring walk.
         </p>
       </>
     ),
     viz: <HashRing />,
     simplifies:
-      'Uses one ring point per node (real deployments use dozens of virtual nodes to smooth load) and 12 evenly-hashed keys; skew and hot keys still need separate handling.',
+      'Places one ring point per node (real deployments use dozens of virtual nodes to smooth out load) and 12 evenly-hashed keys. Skew and hot keys still need separate handling.',
     related: { toys: ['hotpartition'], terms: ['consistenthash', 'shard', 'cache', 'hitrate'] },
-    feltIn: { note: <>The hot-partition toy shows what happens when keys don’t spread.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
+    feltIn: { note: <>See what happens in the Lab when keys stop spreading evenly.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
     id: 'cap',
@@ -909,24 +921,25 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
     body: (
       <>
         <p>
-          <T k="cap">CAP</T> isn't a buzzword — it's a proof about geography. Partitions <i>will</i> happen between regions.
-          When they do, a distributed system must choose per operation: stay <T k="consistency">consistent</T> and refuse
-          requests it can't confirm, or stay available and answer with possibly-stale data. Toggle a partition below and
-          watch each choice.
+          <T k="cap">CAP</T> is not an interview buzzword; it is a proof about geography. Network partitions <i>will</i>{' '}
+          happen between regions. When a link cuts off, a distributed system has to make a per-operation choice: protect{' '}
+          <T k="consistency">consistency</T> by refusing requests it cannot verify, or stay available and answer with
+          data that might be stale. Flip between the two responses to a partition below.
         </p>
         <p style={{ color: C.dim }}>
-          Consistency is bought with coordination: a <T k="quorum">quorum</T> of replicas must agree before answering, via{' '}
-          <T k="consensus">consensus</T> that also runs the <T k="leader">leader election</T> so a split can't crown two
-          leaders. That agreement is round trips — which is why strong cross-region writes cost ~150&nbsp;ms. The interview
-          question is never "CP or AP?" but "which requests may be stale, which must never be?"
+          Consistency costs coordination. A <T k="quorum">quorum</T> of replicas has to agree before answering, using{' '}
+          <T k="consensus">consensus</T> that also handles <T k="leader">leader election</T> so a split cannot crown two
+          leaders at once. Agreement takes round trips, which is why strong cross-region writes cost ~150&nbsp;ms. In an
+          interview, the useful question is rarely "CP or AP?" It is "which requests can tolerate staleness, and which
+          ones must never be wrong?"
         </p>
         <p>
-          The quorum is not ceremony — it is what prevents <T k="splitbrain">split brain</T>, where both sides of a
-          partition elect a leader and both accept writes. At most one side can hold a majority, so at most one side may
-          act. Pick AP instead and you have signed up for the reconciliation: a coordinator takes writes for absent
-          replicas as a <T k="hintedhandoff">hinted handoff</T> and replays them on recovery, and genuinely concurrent
-          edits are resolved by <T k="lastwritewins">last write wins</T> — which always converges and silently discards
-          the losing write. Say which of your writes can afford to be the one discarded.
+          That quorum is not ceremony; it is what stops <T k="splitbrain">split brain</T>, where both halves of a
+          partition elect their own leader and accept conflicting writes. Only one side can hold a majority, so only one
+          side is allowed to proceed. Choosing AP means signing up for cleanup once the link heals: a coordinator holds
+          writes for unreachable replicas via <T k="hintedhandoff">hinted handoff</T> and replays them on recovery,
+          while concurrent edits are often settled with <T k="lastwritewins">last write wins</T>, which always converges
+          by silently dropping the losing write. If you pick AP, be explicit about which writes can afford to be dropped.
         </p>
       </>
     ),
@@ -945,13 +958,15 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
             </div>
             {id === 'cp' ? (
               <p style={{ marginTop: 8 }}>
-                <b style={{ color: C.net }}>CP:</b> the minority side refuses writes it can't confirm with a quorum. No wrong
-                answers — but some users see errors until the partition heals. Right for balances, inventory, locks.
+                <b style={{ color: C.net }}>CP:</b> the minority side refuses writes it cannot confirm with a quorum.
+                Nobody gets a wrong answer, though some users hit errors until the partition heals. Fit for balances,
+                inventory, and locks.
               </p>
             ) : (
               <p style={{ marginTop: 8 }}>
-                <b style={{ color: C.compute }}>AP:</b> both sides keep accepting writes and reconcile later. Everyone stays
-                up — but two truths may diverge and need merging. Right for carts, likes, presence.
+                <b style={{ color: C.compute }}>AP:</b> both sides keep accepting writes and reconcile later. Everyone
+                stays online, though two versions of the truth can diverge and need merging. Fit for carts, likes, and
+                presence.
               </p>
             )}
           </div>
@@ -959,8 +974,8 @@ export const CONCEPTS_SECTIONS: ManualSection[] = [
       </Toggler>
     ),
     simplifies:
-      'Treats CAP as a clean binary; real systems tune consistency per request (read-your-writes, bounded staleness) and partitions are rarely total.',
+      'Frames CAP as a clean binary. Real systems tune consistency per request (read-your-writes, bounded staleness), and real partitions are rarely total.',
     related: { toys: ['consensus'], terms: ['cap', 'consistency', 'consensus', 'quorum', 'leader', 'failover'] },
-    feltIn: { note: <>Count the round trips a single strongly-consistent write actually costs.</>, to: '/lab/consensus', cta: 'play CONSENSUS ROUND-TRIPS' },
+    feltIn: { note: <>Count every round trip a single strongly-consistent write actually takes.</>, to: '/lab/consensus', cta: 'play CONSENSUS ROUND-TRIPS' },
   },
 ]

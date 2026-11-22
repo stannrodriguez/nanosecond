@@ -60,7 +60,7 @@ test('review and drills tabs live in the URL', async ({ page }) => {
   await page.goto('/#/review/taste')
   await expect(page.getByText(/Two defensible designs, one set of requirements/i).first()).toBeVisible()
   await page.goto('/#/drills/calibration')
-  await expect(page.getByText(/No answers yet — run a few drills/)).toBeVisible()
+  await expect(page.getByText(/No answers yet\. Run a few drills/)).toBeVisible()
 })
 
 test('journal deep link still routes to the log', async ({ page }) => {

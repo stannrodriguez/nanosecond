@@ -441,7 +441,7 @@ function SayItCard({ s }: { s: ManualSection }) {
         </span>
       </div>
       <div style={{ fontSize: 12.5, color: C.faint, marginTop: 5, lineHeight: 1.5 }}>
-        Say your answer out loud, flip the card, and grade yourself honestly. Any card you blank on returns tomorrow.
+        Say your answer out loud, flip the card, and grade yourself honestly. Any card you blank on comes straight back.
       </div>
     </LiftCard>
   )

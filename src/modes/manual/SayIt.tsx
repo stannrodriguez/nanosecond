@@ -221,7 +221,7 @@ function EndScreen({ s, grades, onAgain }: { s: ManualSection; grades: (SayItGra
       </div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.6, margin: 0 }}>
         Your grades move each card through the same Leitner boxes used for numeric drills: cards you nail wait longer between
-        reviews, and cards you blank on return tomorrow. Still shaky on one?{' '}
+        reviews, and cards you blank on come straight back. Still shaky on one?{' '}
         <Link to={`/manual/briefings/${s.id}`} style={{ color: C.net }}>
           Re-read the briefing
         </Link>

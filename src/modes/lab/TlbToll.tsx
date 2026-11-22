@@ -24,9 +24,9 @@ interface Regime {
   note: string
 }
 const regimeFor = (kb: number): Regime => {
-  if (kb <= TLB_REACH_KB) return { name: 'TLB-covered', translate: 0, fetch: FETCH_NS, color: C.ok, note: 'translation is free — the TLB has the mapping' }
-  if (kb <= RAM_KB) return { name: 'page-walk', translate: WALK_NS, fetch: FETCH_NS, color: C.compute, note: 'TLB miss: the CPU walks the page table on almost every access' }
-  return { name: 'swap', translate: WALK_NS, fetch: FAULT_NS, color: C.alert, note: 'the page is on disk — every touch is a fault (~8 ms)' }
+  if (kb <= TLB_REACH_KB) return { name: 'TLB-covered', translate: 0, fetch: FETCH_NS, color: C.ok, note: 'Translation is free. The TLB already holds this page mapping.' }
+  if (kb <= RAM_KB) return { name: 'page-walk', translate: WALK_NS, fetch: FETCH_NS, color: C.compute, note: 'TLB miss. The CPU walks the page table in memory on nearly every access.' }
+  return { name: 'swap', translate: WALK_NS, fetch: FAULT_NS, color: C.alert, note: 'Page lives on disk. Every touch triggers a page fault (~8 ms).' }
 }
 
 const fmtSize = (kb: number) => (kb >= 1024 * 1024 ? `${Math.round(kb / 1024 / 1024)} GB` : kb >= 1024 ? `${Math.round(kb / 1024)} MB` : `${Math.round(kb)} KB`)
@@ -67,20 +67,21 @@ export function TlbToll({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Programs address a private, imaginary memory; the hardware translates every <T k="virtualmemory">address</T> to a real one
-        first — so each access is secretly <b>translate, then fetch</b>. A small cache called the TLB keeps recent translations
-        free. Grow the working set past what it can cover and a second cliff appears — one the <T k="cpucache">caches</T> can't
-        save you from.
+        Every program works inside its own private address space, so the hardware has to translate each{' '}
+        <T k="virtualmemory">address</T> to physical RAM before reading it. Every memory access is quietly a two-step job:{' '}
+        <b>translate, then fetch</b>. A tiny hardware cache called the TLB keeps recent translations essentially free. Push your
+        working set past its reach, though, and you hit a second cliff that the regular <T k="cpucache">caches</T> cannot rescue
+        you from.
       </p>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
           <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-            working set: <b style={{ color: r.color, fontSize: 17 }}>{fmtSize(sizeKB)}</b>{' '}
+            Working set: <b style={{ color: r.color, fontSize: 17 }}>{fmtSize(sizeKB)}</b>{' '}
             <span style={{ color: C.faint }}>· {r.name}</span>
           </span>
           <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-            per access: <b style={{ color: r.color, fontSize: 17 }}>{fmtNs(eff)}</b>
+            Per access: <b style={{ color: r.color, fontSize: 17 }}>{fmtNs(eff)}</b>
           </span>
         </div>
         <input type="range" min={L2MIN} max={L2MAX} step={0.1} value={l2} onChange={(e) => setL2(+e.target.value)} style={{ marginTop: 12 }} aria-label="working set size (log scale)" />
@@ -111,17 +112,18 @@ export function TlbToll({ onComplete }: { onComplete: () => void }) {
           <polyline points={pts.join(' ')} fill="none" stroke={C.storage} strokeWidth={2.5} />
           <circle cx={xr(l2)} cy={yr(eff)} r={6} fill={r.color} stroke={C.bg} strokeWidth={1.5} />
           <text x={PADL} y={H - 8} fill={C.faint} fontSize={9.5} fontFamily="'IBM Plex Mono', monospace">
-            working set (log) → · effective access time (log)
+            working set (log) → · access time (log)
           </text>
         </svg>
       </div>
 
       <Punchline color={C.mem}>
-        "It fits in RAM" was never the last question — it has to fit in the <i>map</i> of RAM too. Inside the TLB's reach,
-        translation is invisible; past it you pay a <b>page walk</b> on nearly every access, and past physical RAM you fall onto
-        the disk rungs from <b>The Disk</b> — a ~{Math.round(FAULT_NS / (FETCH_NS + WALK_NS)).toLocaleString()}× cliff the moment
-        you touch swap. This is why huge-memory workloads reach for huge pages (fewer, bigger mappings) and why "the box started
-        swapping" is a synonym for "the box died."
+        "It fits in RAM" is only half the check. Your hot data also needs to fit in the <i>map</i> of RAM. Inside the TLB's
+        reach, address translation disappears into the background. Spill past it and you pay a <b>page walk</b> on almost every
+        lookup. Spill past physical RAM and you drop straight onto the mechanical rungs of <b>The Disk</b>, a{' '}
+        ~{Math.round(FAULT_NS / (FETCH_NS + WALK_NS)).toLocaleString()}× cliff the second you touch swap. That is why
+        large-memory systems turn on huge pages (fewer, wider entries to cover more ground) and why "the box started swapping"
+        is ops shorthand for "the box is done."
       </Punchline>
     </div>
   )

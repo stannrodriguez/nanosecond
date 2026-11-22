@@ -72,10 +72,11 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        This is DRAM: each bit is <b>one transistor and one microscopic capacitor</b>. A charged capacitor is a 1. The problem:
-        capacitors leak. Every green bar below is a bit of your data, bleeding away. The only reason your RAM holds anything is
-        the <b>refresh sweep</b> — hardware re-reading and re-writing every row, every 64 ms, forever. Turn it off. (Time slowed
-        ~10 billion× so you can watch; the sweep bar is your memory controller doing its eternal chore.)
+        Inside DRAM, every bit is <b>one transistor and one microscopic capacitor</b>. Charge the capacitor and you have a 1. The
+        catch is that tiny capacitors leak. Each green bar below is a bit of stored data slowly draining away. Your RAM only
+        remembers anything because of the <b>refresh sweep</b>, where the memory controller reads and rewrites every row every
+        64 ms, nonstop. Switch refresh off to see what happens. (Time is slowed ~10 billion× so you can watch the controller
+        make its rounds.)
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '14px 0', flexWrap: 'wrap', alignItems: 'center' }}>
         <button
@@ -91,7 +92,7 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
             cursor: 'pointer',
           }}
         >
-          Refresh: {refreshOn ? 'ON — data survives' : 'OFF — watch it die'}
+          Refresh: {refreshOn ? 'ON (data survives)' : 'OFF (watch it fade)'}
         </button>
         <button
           onClick={() => {
@@ -111,7 +112,7 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
           Rewrite all data
         </button>
         <span className="mono" style={{ fontSize: 13, color: corruptCount ? C.alert : C.dim }}>
-          bits lost: <b>{corruptCount}</b> / {GRID}
+          Bits lost: <b>{corruptCount}</b> / {GRID}
         </span>
       </div>
 
@@ -126,7 +127,7 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
               <div
                 key={i}
                 onClick={() => readCell(i)}
-                title="click to read (read = drain + sense + rewrite)"
+                title="Click to read (drain, sense, then rewrite)"
                 style={{
                   height: 42,
                   background: C.bg,
@@ -172,18 +173,19 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
           className="mono"
           style={{ fontSize: 11, color: C.faint, marginTop: 10, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}
         >
-          <span>green = charged (1) · grey = empty (0) · amber = fading · ✕ = below the sense threshold: data gone</span>
-          <span style={{ color: C.net }}>{refreshOn ? `refresh sweep on row ${sweepRow.current + 1}` : 'no refresh'}</span>
+          <span>green = charged (1) · grey = empty (0) · amber = fading · ✕ = below sense threshold (bit lost)</span>
+          <span style={{ color: C.net }}>{refreshOn ? `refreshing row ${sweepRow.current + 1}` : 'refresh off'}</span>
         </div>
       </div>
 
       <Punchline color={C.mem}>
-        Now the numbers explain themselves. <b>Why ~100 ns?</b> Reading means letting a whisper of charge bleed onto a long wire
-        and waiting for a sense amplifier to decide 0-or-1 — then rewriting, because reading <i>destroyed</i> the bit (click a
-        cell: that white flash is drain → sense → rewrite). <b>Why is RAM cheap and dense?</b> One transistor + one capacitor per
-        bit, vs six transistors for cache SRAM. <b>Why does RAM lose everything at power-off?</b> You just watched why. And every
-        database's crash-recovery story — WAL, fsync, replication — exists because the fast tier of every system is made of{' '}
-        <i>this</i>.
+        Once you see the capacitor, the numbers make sense. <b>Why ~100 ns?</b> Reading a cell lets a tiny trickle of charge onto
+        a long wire, waits for a sense amplifier to call 0 or 1, and immediately rewrites the charge because the read itself{' '}
+        <i>drained</i> the bit (click any cell to watch that white flash: drain → sense → rewrite).{' '}
+        <b>Why is RAM cheap and dense?</b> Each bit takes one transistor and one capacitor, compared to six transistors for cache
+        SRAM. <b>Why does RAM go blank when the power cuts?</b> Without refresh, the charge leaks away in milliseconds. Every
+        database durability mechanism, from WAL and fsync to replication, exists because the fastest memory in the machine is
+        built out of leaking buckets.
       </Punchline>
     </div>
   )

@@ -39,18 +39,19 @@ export function HeatWall({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        A transistor burns a little energy every time it flips, and a faster clock needs a higher voltage to flip cleanly — so
-        power climbs like <b>frequency cubed</b>. A chip package can only shed so much heat. Drag the clock up and watch power
-        slam into that ceiling: past it, the die must <b>throttle</b> or cook.
+        Every transistor flip burns a tiny amount of energy, and running faster demands both more flips per second and higher
+        voltage to flip cleanly. Together, power scales with <b>frequency cubed</b>. A chip package can only dissipate a fixed
+        amount of heat. Drag the clock upward and watch power collide with that ceiling: cross it, and the silicon has to{' '}
+        <b>throttle</b> or overheat.
       </p>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
           <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-            clock: <b style={{ color: over ? C.alert : C.compute, fontSize: 17 }}>{ghz.toFixed(1)} GHz</b>
+            Clock: <b style={{ color: over ? C.alert : C.compute, fontSize: 17 }}>{ghz.toFixed(1)} GHz</b>
           </span>
           <span className="mono" style={{ fontSize: 13, color: C.dim }}>
-            power: <b style={{ color: over ? C.alert : C.ok, fontSize: 17 }}>{Math.round(power)} W</b>
+            Power: <b style={{ color: over ? C.alert : C.ok, fontSize: 17 }}>{Math.round(power)} W</b>
             <span style={{ color: C.faint }}> / {COOLING_BUDGET} W budget</span>
             {over && <b style={{ color: C.alert }}> · THROTTLING</b>}
           </span>
@@ -87,10 +88,11 @@ export function HeatWall({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.compute}>
-        Double the clock and you roughly <b>octuple</b> the heat — so a package that sheds ~100 W hits a wall near <b>~4 GHz</b>,
-        and it has barely moved in twenty years. That wall is the whole story of modern CPUs: around 2005 the industry stopped
-        selling gigahertz and started selling <i>cores</i>, because two cores at 3 GHz fit the heat budget that one core at 6 GHz
-        shatters. "Just get a faster machine" quietly died here — and every parallel-programming headache was born.
+        Double the clock speed and you roughly <b>octuple</b> the heat. A package that sheds ~100 W runs straight into a ceiling
+        near <b>~4 GHz</b>, and single-core clocks have barely budged past it in twenty years. Around 2005, chipmakers stopped
+        promising faster gigahertz and started shipping more <i>cores</i>, because two cores at 3 GHz fit inside the thermal
+        budget that one core at 6 GHz blows right through. "Just buy a faster machine" ended at this curve, and every
+        multicore coordination headache started right after.
       </Punchline>
     </div>
   )

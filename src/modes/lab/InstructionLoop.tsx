@@ -29,9 +29,10 @@ export function InstructionLoop({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        This is what "the computer runs your code" actually means: every instruction is <b>fetched, decoded, executed</b>, its
-        memory touched, its result written back — five steps. Run them one-at-a-time and the core mostly sits idle. Switch on the{' '}
-        <b>pipeline</b> and the steps overlap like an assembly line — same clock, far more work.
+        Running code comes down to a five-step cycle for every instruction: <b>fetch, decode, execute</b>, touch memory, and
+        write back the result. Finish one completely before starting the next and four-fifths of the core sits idle at any
+        moment. Turn on the <b>pipeline</b> and those steps overlap like an assembly line: same clock speed, much more work
+        completed.
       </p>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '14px 0' }}>
@@ -52,7 +53,7 @@ export function InstructionLoop({ onComplete }: { onComplete: () => void }) {
             cursor: 'pointer',
           }}
         >
-          pipeline: {pipelined ? 'ON — assembly line' : 'OFF — one at a time'}
+          pipeline: {pipelined ? 'ON (assembly line)' : 'OFF (one at a time)'}
         </button>
         <span className="mono" style={{ fontSize: 13, color: C.dim }}>
           {NINSTR} instructions in{' '}
@@ -101,17 +102,18 @@ export function InstructionLoop({ onComplete }: { onComplete: () => void }) {
             </g>
           ))}
           <text x={2} y={H - 6} fill={C.faint} fontSize={10} fontFamily="'IBM Plex Mono', monospace">
-            cycles → {pipelined ? '(one instruction retires every cycle once the pipe is full)' : '(the core finishes one before starting the next)'}
+            cycles → {pipelined ? '(once full, one instruction finishes every cycle)' : '(each instruction finishes before the next begins)'}
           </text>
         </svg>
       </div>
 
       <Punchline color={C.compute}>
-        Same six instructions, same clock speed — <b>{SEQ_CYCLES} cycles vs {PIPE_CYCLES}</b>. The pipeline didn't make any single
-        instruction faster; it stopped the core from waiting, retiring one result per cycle once full. Push it further —
-        toward one-per-cycle, then several — and you get the modern core. But the assembly line only flies if it knows which
-        instruction comes next: at every branch it has to <i>guess</i> (toy 16), and the faster the clock it runs at, the more
-        heat it makes (toy 15). This little loop, billions of times a second, is your program.
+        Same six instructions, same clock speed: <b>{SEQ_CYCLES} cycles vs {PIPE_CYCLES}</b>. Pipelining does not make any
+        individual instruction faster. It simply keeps every stage busy, retiring one finished result per cycle once the line
+        fills up. Push that idea wider, retiring several instructions per cycle, and you have a modern CPU core. The catch is
+        that an assembly line only runs smoothly when it knows what comes next. At every branch, the core has to <i>guess</i>{' '}
+        (toy 16), and pushing the clock higher hits a thermal limit (toy 15). That tight loop, spinning billions of times a
+        second, is your program.
       </Punchline>
     </div>
   )

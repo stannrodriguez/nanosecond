@@ -43,7 +43,7 @@ export function Interrogate({ id, onScore }: { id?: string; onScore: (n: number)
       addScar({
         mode: 'interrogation',
         theme: `interrogation: ${iv.title}`,
-        what: 'locked requirements without asking the load-bearing question',
+        what: 'locked the spec without asking the load-bearing question',
         truth: iv.questions[crucialIx].text,
         lesson: iv.trapForUnasked.lesson,
       })
@@ -60,9 +60,9 @@ export function Interrogate({ id, onScore }: { id?: string; onScore: (n: number)
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.55, margin: '6px 0 12px' }}>
-        The stakeholder hands you a vague pitch. <Term k="request">Requirements</Term> are{' '}
-        <b style={{ color: C.text }}>extracted, not given</b> — spend a fixed question budget to drag them into the light.
-        You can’t afford every question, and one of them is load-bearing.
+        A stakeholder walks in with a vague pitch. <Term k="request">Requirements</Term> are{' '}
+        <b style={{ color: C.text }}>extracted, not given</b>. Spend your question budget to uncover what you’re
+        actually building. You can’t afford every question, and one of them decides the whole design.
       </p>
 
       {/* The vague pitch */}
@@ -136,7 +136,7 @@ export function Interrogate({ id, onScore }: { id?: string; onScore: (n: number)
 
       {!done ? (
         <Button variant="danger" onClick={lock} disabled={asked.length === 0} style={{ marginTop: 12, padding: '11px 24px' }}>
-          Lock requirements &amp; start building →
+          Lock requirements and start building →
         </Button>
       ) : (
         <>
@@ -201,11 +201,11 @@ function Postmortem({
   const ranked = iv.questions.map((q, i) => ({ q, i })).sort((a, b) => b.q.value - a.q.value)
   return (
     <Panel style={{ marginTop: 12 }}>
-      <Eyebrow style={{ marginBottom: 8 }}>DEBRIEF · YOU LOCKED {uncovered}/{total} REQUIREMENTS</Eyebrow>
+      <Eyebrow style={{ marginBottom: 8 }}>DEBRIEF · YOU UNCOVERED {uncovered}/{total} REQUIREMENTS</Eyebrow>
       <div style={{ fontSize: 13, color: C.dim, lineHeight: 1.55, marginBottom: 12 }}>
         {asked.includes(crucialIx)
-          ? 'You bought the load-bearing question — the build survives contact with reality. Now spend nothing on the questions that changed nothing.'
-          : 'You missed the one question that decided the architecture. Every other answer was real, but none of them would have saved you.'}
+          ? 'You caught the load-bearing question, so this design holds up in production. Next time, skip the questions that leave the architecture untouched.'
+          : 'You missed the one question that decides the architecture. The other answers were true, yet none of them could save the build.'}
       </div>
       <Eyebrow color={C.net} style={{ marginBottom: 8 }}>
         EVERY QUESTION, RANKED BY INFORMATION VALUE
@@ -227,7 +227,7 @@ function Postmortem({
                 <span style={{ color: C.gold }}>{'★'.repeat(q.value)}</span>
                 {'☆'.repeat(5 - q.value)} · {q.cost.toFixed(1)}m ·{' '}
                 {q.crucial ? (
-                  <span style={{ color: C.alert }}>{wasAsked ? 'ASKED (crucial)' : 'MISSED · CRUCIAL'}</span>
+                  <span style={{ color: C.alert }}>{wasAsked ? 'ASKED · CRUCIAL' : 'MISSED · CRUCIAL'}</span>
                 ) : wasAsked ? (
                   <span style={{ color: C.ok }}>asked</span>
                 ) : (
@@ -237,7 +237,7 @@ function Postmortem({
             </div>
             <div style={{ fontSize: 12.5, lineHeight: 1.55, color: C.dim, marginTop: 4 }}>
               <span className="mono" style={{ fontSize: 10, letterSpacing: 1, color: C.compute }}>
-                WOULD HAVE CHANGED ·{' '}
+                {wasAsked ? 'WHAT IT CHANGED · ' : 'WOULD HAVE CHANGED · '}
               </span>
               {q.changes}
             </div>

@@ -106,7 +106,7 @@ export default function Builder() {
               {
                 name: 'backlog drained by end',
                 pass: endLag < 1000,
-                detail: endLag >= 1000 ? `${fmtNum(endLag)} msgs stranded — drain < intake` : 'clean',
+                detail: endLag >= 1000 ? `${fmtNum(endLag)} msgs stranded (drain < intake)` : 'clean',
               },
             ]
           : []),
@@ -115,7 +115,7 @@ export default function Builder() {
       const diagnosis = diagnoseTiers(frames)
       if (pass && cost < sc.budget * 0.75)
         diagnosis.push(
-          `Passed with $${sc.budget - cost}/mo to spare. Interview move: name your headroom on purpose — "I'm at ~65% utilization to absorb 1.5× bursts."`,
+          `Passed with $${sc.budget - cost}/mo left in the budget. Interview move: call out your headroom on purpose, e.g. "I'm sizing for ~65% utilization so 1.5× bursts don't tip us over."`,
         )
       setVerdict({ pass, checks, diagnosis })
       if (!pass)
@@ -125,9 +125,9 @@ export default function Builder() {
           what: `${cfg.app} app · ${cfg.cache} cache · ${cfg.shards} shard(s) · ${cfg.replicas} repl${cfg.queue ? ` · queue+${cfg.workers}w` : ''} ($${cost})`,
           truth: checks
             .filter((c) => !c.pass)
-            .map((c) => `${c.name} — ${c.detail}`)
+            .map((c) => `${c.name} (${c.detail})`)
             .join('; '),
-          lesson: diagnosis[0] ?? 'The architecture did not fit the story — re-read the translate table.',
+          lesson: diagnosis[0] ?? 'The stack did not match the workload. Re-check the numbers table above.',
         })
     },
   })
@@ -212,7 +212,7 @@ export default function Builder() {
               <div style={{ padding: '8px 0', borderBottom: `1px solid ${C.line}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
                   <span style={{ color: C.dim }}>
-                    <T k="hitrate">hit rate</T> (depends on the story!)
+                    <T k="hitrate">hit rate</T> (depends on the story)
                   </span>
                   <span className="mono" style={{ color: C.mem }}>
                     {Math.round(cfg.hitRate * 100)}%
@@ -275,9 +275,9 @@ export default function Builder() {
                   </div>
                 ))}
                 <div style={{ color: C.faint, fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>
-                  Watch which component gets hot first — that's the story's bottleneck telling on itself. As traffic ramps to
-                  peak, bars go amber past 80% <T k="util">utilization</T> (where waiting stops being linear) and red at 100%
-                  (where requests die).
+                  Watch which tier heats up first: that is the workload showing you its real bottleneck. As traffic climbs toward
+                  peak, bars turn amber past 80% <T k="util">utilization</T> (where waiting stops growing linearly) and red at
+                  100% (where requests start failing).
                 </div>
               </div>
             )}
@@ -310,7 +310,7 @@ export default function Builder() {
                 </div>
                 {verdict.checks.map((c) => (
                   <div key={c.name} className="mono" style={{ fontSize: 12.5, marginBottom: 5, color: c.pass ? C.dim : C.alert }}>
-                    {c.pass ? '✓' : '✗'} {c.name} <span style={{ color: C.faint }}>— {c.detail}</span>
+                    {c.pass ? '✓' : '✗'} {c.name} <span style={{ color: C.faint }}>· {c.detail}</span>
                   </div>
                 ))}
                 {verdict.diagnosis.length > 0 && (

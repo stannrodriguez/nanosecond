@@ -181,12 +181,12 @@ export function TheDisk({ onComplete }: { onComplete: () => void }) {
         ctx.fillStyle = C.storage
         ctx.fillText('RANDOM READS', 96, 262)
         ctx.fillStyle = C.faint
-        ctx.fillText(s.phase === 'seek' ? 'seeking (arm moving)…' : s.phase === 'rotwait' ? 'waiting for rotation…' : 'reading!', 92, 278)
+        ctx.fillText(s.phase === 'seek' ? 'moving arm to track…' : s.phase === 'rotwait' ? 'waiting for sector…' : 'reading sector!', 92, 278)
         drawPlatter(ctx, 470, 130, 100, s.angle, { headR: s.seqTrackR, reading: true, target: null, seqArc: s.seqArc, trackR: s.seqTrackR })
         ctx.fillStyle = C.mem
         ctx.fillText('SEQUENTIAL STREAM', 400, 262)
         ctx.fillStyle = C.faint
-        ctx.fillText('head never moves — data flows', 392, 278)
+        ctx.fillText('arm stays put, data streams', 392, 278)
       }
     }
     if (!won.current && s.randReads >= 3 && (s.seqMB * 1024) / (s.randReads * 4) > 300) {
@@ -202,9 +202,10 @@ export function TheDisk({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Two identical 7200 RPM drives, slowed 120× so you can watch. The left one does what a database without an index (or a
-        badly designed one) asks: jump to a random sector — swing the arm (~4 ms), then <i>wait for the platter to bring the data
-        around</i> (~4 ms average). The right one refuses to move the head and just streams. Same hardware. Watch the score.
+        Two identical 7200 RPM hard drives, slowed 120× so you can see the mechanics. The left drive does what a database without an index, or a badly designed one, asks: swing
+        the actuator arm to a new track (~4 ms), then <i>wait for the spinning platter to carry the sector underneath it</i> (~4
+        ms on average). The right drive parks the head on one track and streams continuously. Same hardware, opposite access
+        patterns. Watch the gap open up.
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '14px 0' }}>
         <Button variant={running ? 'secondary' : 'primary'} size="lg" onClick={() => setRunning(!running)}>
@@ -226,26 +227,27 @@ export function TheDisk({ onComplete }: { onComplete: () => void }) {
       </div>
       <div className="mono" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13, marginTop: 12 }}>
         <span style={{ color: C.dim }}>
-          disk time <b style={{ color: C.text }}>{stats.diskMs.toFixed(0)} ms</b>
+          Disk time <b style={{ color: C.text }}>{stats.diskMs.toFixed(0)} ms</b>
         </span>
         <span style={{ color: C.dim }}>
-          random: <b style={{ color: C.storage }}>{stats.randReads} reads</b> ({randKB} KB)
+          Random: <b style={{ color: C.storage }}>{stats.randReads} reads</b> ({randKB} KB)
         </span>
         <span style={{ color: C.dim }}>
-          sequential: <b style={{ color: C.mem }}>{stats.seqMB.toFixed(1)} MB</b>
+          Sequential: <b style={{ color: C.mem }}>{stats.seqMB.toFixed(1)} MB</b>
         </span>
         {ratio > 1 && (
           <span style={{ color: C.compute }}>
-            sequential is winning <b>{Math.round(ratio).toLocaleString()}×</b>
+            Sequential is ahead by <b>{Math.round(ratio).toLocaleString()}×</b>
           </span>
         )}
       </div>
       <Punchline color={C.storage}>
-        The random drive maxes out near <b>120 reads/second</b> — that number is rotation physics (7200 RPM = 8.3 ms/rev, you
-        wait half a spin on average) and cannot be engineered away. The entire modern data stack is built to dodge this: B-trees
-        minimize the jumps, LSM-trees &amp; write-ahead logs convert writes into pure appends, and Kafka is fast{' '}
-        <i>precisely because</i> it's just the right-hand platter with an API. Even on SSDs (no moving parts) the
-        sequential-beats-random asymmetry survives — smaller, but it drives the same designs.
+        The random drive tops out around <b>120 reads/second</b>. That ceiling comes straight from spinning metal (7200 RPM is
+        8.3 ms per revolution, so you wait half a spin on average) and no clever software can outrun it. Much of the modern data
+        stack exists to work around this single gap: B-trees minimize how many jumps a lookup needs, LSM-trees and write-ahead
+        logs turn random writes into sequential appends, and Kafka hits huge throughput <i>precisely because</i> it treats
+        storage like the right-hand platter behind an API. Even on SSDs with no moving parts, sequential access still beats
+        random access. The ratio shrinks, yet the same storage architectures still win.
       </Punchline>
     </div>
   )

@@ -97,7 +97,7 @@ export function FindTheFlaw({ puzzleId, onScore }: { puzzleId?: string; onScore:
         </GhostButton>
         <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>DESIGN REVIEW</h1>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: C.dim, whiteSpace: 'nowrap' }}>
-          puzzle {pi + 1}/{PUZZLES.length} · par {fmtPar(p.par)}
+          Puzzle {pi + 1} of {PUZZLES.length} · par {fmtPar(p.par)}
         </span>
       </div>
 
@@ -143,7 +143,7 @@ export function FindTheFlaw({ puzzleId, onScore }: { puzzleId?: string; onScore:
 
       {!done && (
         <div style={{ marginTop: 14 }}>
-          <GhostButton onClick={() => commit(SOUND)}>…or declare it sound — ship it ✓</GhostButton>
+          <GhostButton onClick={() => commit(SOUND)}>Or declare it sound: ship it ✓</GhostButton>
         </div>
       )}
 
@@ -171,14 +171,14 @@ function fmtPar(par: number): string {
 function verdict(correct: boolean, fine: boolean | undefined, declaredSound: boolean, accused: string, flawLabel: string): string {
   if (correct) {
     return fine
-      ? '✓ CORRECT — the honest call was "ship it". You resisted fixing what wasn\'t broken.'
-      : '✓ CAUGHT IT — you smelled it before the traffic did.'
+      ? '✓ CORRECT: the honest call was "ship it." Nothing here needed fixing, and you resisted adding complexity anyway.'
+      : '✓ CAUGHT IT: you spotted the weak point before production traffic did.'
   }
   if (fine) {
-    return `✗ NOT THE BOTTLENECK — you accused "${accused}", but this design was sound. A fix here buys complexity for no requirement.`
+    return `✗ NOT THE BOTTLENECK: you pointed at "${accused}", but this design holds up as drawn. Adding parts here buys complexity without serving a requirement.`
   }
   if (declaredSound) {
-    return `✗ YOU SHIPPED THE FLAW — the real flaw was "${flawLabel}".`
+    return `✗ YOU SHIPPED THE FLAW: this one breaks at "${flawLabel}".`
   }
-  return `✗ NOT THE BOTTLENECK — you accused "${accused}", but the real flaw was "${flawLabel}".`
+  return `✗ NOT THE BOTTLENECK: you pointed at "${accused}", but the real fault sits at "${flawLabel}".`
 }

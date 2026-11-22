@@ -7,7 +7,7 @@ import { ThisActuallyHappened } from '../../ui/ThisActuallyHappened'
 export function paceLabel(par: number, solveSecs: number): { text: string; col: string } {
   if (solveSecs <= par) return { text: `${fmtSecs(solveSecs)} · under par (${fmtSecs(par)}) ✓`, col: C.ok }
   if (solveSecs <= par * 1.5) return { text: `${fmtSecs(solveSecs)} · a touch over par (${fmtSecs(par)})`, col: C.compute }
-  return { text: `${fmtSecs(solveSecs)} · over par (${fmtSecs(par)}) — pace it faster`, col: C.dim }
+  return { text: `${fmtSecs(solveSecs)} · over par (${fmtSecs(par)}), aim for a faster read`, col: C.dim }
 }
 
 export function fmtSecs(s: number): string {

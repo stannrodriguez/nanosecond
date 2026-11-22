@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
 test('lab: switch to The Queue toy and see the knee chart', async ({ page }) => {
   await page.goto('/#/lab')
   await page.getByRole('button', { name: /THE QUEUE/ }).click()
-  await expect(page.getByText('80% — the knee')).toBeVisible()
+  await expect(page.getByText('80%: the knee')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: 'e2e/shots/lab-queue.png', fullPage: true })
 })

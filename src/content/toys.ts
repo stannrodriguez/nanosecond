@@ -27,12 +27,12 @@ export const TOYS: ToyEntry[] = [
     name: 'RACE LIGHT',
     sub: 'latency is distance',
     oneLiner:
-      "Latency numbers are hard to feel; distances aren't. This races one operation — a cache hit, a disk read, a cross-region hop — against light itself, so its duration becomes a physical place: the chip, the building, the planet.",
+      'Latency numbers are easy to memorize and hard to feel, while physical distance makes instant sense. Race a cache hit, a disk read, or a cross-region hop against light itself and watch its duration map onto a real place: the chip, the building, or the planet.',
     ch: 'net',
     targetNumbers: ['cpu-cycle', 'l1-hit', 'dram-access', 'nvme-read', 'hdd-seek', 'cross-region-rtt'],
     forgeUnlocks: 'cdn',
-    simplifies: 'Uses light in vacuum (30 cm/ns); signals in silicon and fiber travel ~⅓ slower, and every real operation includes software overhead the racetrack ignores.',
-    click: "It's clicked when nanoseconds, microseconds, and milliseconds stop being metric prefixes and become places — the chip, the box, the building, the planet.",
+    simplifies: 'Uses light in a vacuum (30 cm/ns). Signals in silicon and fiber move roughly a third slower, and real operations add software overhead that this track leaves out.',
+    click: "It's clicked when nanoseconds, microseconds, and milliseconds stop feeling like metric prefixes and start mapping directly to places: the chip, the box, the building, and the planet.",
   },
   {
     id: 'disk',
@@ -40,12 +40,12 @@ export const TOYS: ToyEntry[] = [
     name: 'THE DISK',
     sub: 'random vs sequential, 1000×',
     oneLiner:
-      'A spinning disk reads ~1000× faster in order than at random, because every random jump moves a physical arm and waits for the platter. Two identical drives read the same data — one jumping, one streaming — so you can watch the gap open.',
+      'A spinning disk reads ~1000× faster in order than at random because every random jump swings a physical arm and waits for the platter to rotate under it. Watch two identical drives read the exact same data, one jumping and one streaming, as the gap opens up.',
     ch: 'storage',
     targetNumbers: ['hdd-seek', 'hdd-iops'],
     forgeUnlocks: 'queue',
-    simplifies: 'One platter, one head, no OS scheduling or drive cache; real drives reorder requests (elevator algorithms) to soften — never beat — the physics.',
-    click: "It's clicked when \"random or sequential?\" becomes your first question about any storage work — asked before any math, because the answer moves everything 1000×.",
+    simplifies: 'Models one platter and one head, with no OS scheduler or drive cache. Real drives reorder requests with elevator algorithms to soften the physics, never to escape them.',
+    click: 'It\'s clicked when you ask "random or sequential?" before doing any storage math, because that single answer shifts the numbers by 1000×.',
   },
   {
     id: 'dram',
@@ -53,12 +53,12 @@ export const TOYS: ToyEntry[] = [
     name: 'LEAKY BITS',
     sub: 'bits are charge, and charge leaks',
     oneLiner:
-      'RAM stores each bit as charge in a leaking capacitor, kept alive only by a hardware refresh that rewrites every row, forever. This shows the leak and the refresh — and lets you switch the refresh off to watch your data drain away.',
+      'RAM stores each bit as electrical charge inside a leaky capacitor, kept alive only by a hardware refresh loop that rewrites every row over and over. Watch the charge drain and recharge, then flip refresh off to see your data fade out.',
     ch: 'mem',
     targetNumbers: ['dram-access'],
     forgeUnlocks: null,
-    simplifies: 'Time slowed ~10 billion×; real cells leak in ~64 ms not seconds, refresh is per-row DMA the CPU never sees, and ECC quietly fixes single-bit losses.',
-    click: "It's clicked when \"in memory\" stops sounding like a place data is safe — and \"does this survive a power cut?\" becomes a reflex you apply to every piece of state.",
+    simplifies: 'Slows time down ~10 billion×. Real cells leak in ~64 ms rather than seconds, refresh runs as per-row DMA invisible to the CPU, and ECC quietly repairs single-bit errors.',
+    click: 'It\'s clicked when "stored in memory" stops sounding safe, and "does this survive a power cut?" becomes a reflex for every piece of state you design.',
   },
   {
     id: 'queue',
@@ -66,12 +66,12 @@ export const TOYS: ToyEntry[] = [
     name: 'THE QUEUE',
     sub: 'why 80% is the real 100%',
     oneLiner:
-      'This explains why a server breaks long before 100% busy: as utilization climbs, waiting time explodes while throughput still looks fine. Drag utilization and watch the wait-time curve — the one the CPU graph never shows you.',
+      'A server starts hurting long before it hits 100% busy. As utilization climbs, waiting time shoots upward while throughput still looks healthy. Drag utilization across the knee to watch the wait-time curve your CPU graph never shows.',
     ch: 'compute',
     targetNumbers: ['queue-knee', 'app-server-rps'],
     forgeUnlocks: 'workers',
-    simplifies: 'A single M/M/1-flavored server with random service times; real systems have many servers, admission control, and retries that make the knee even sharper.',
-    click: "It's clicked when \"the server is only at 85%, we have headroom\" makes you wince — because you can see the wait-time curve bending long before the CPU graph admits anything.",
+    simplifies: 'Models a single M/M/1-style server with random service times. Real fleets add multiple servers, admission control, and client retries that make the knee even sharper.',
+    click: 'It\'s clicked when hearing "the server is only at 85%, we have headroom" makes you wince, because you can picture the wait-time curve bending steeply before the CPU graph admits trouble.',
   },
   {
     id: 'hotpartition',
@@ -79,12 +79,12 @@ export const TOYS: ToyEntry[] = [
     name: 'HOT PARTITION',
     sub: 'every key lands on one node',
     oneLiner:
-      'A partitioned database spreads load by hashing the partition key — so when every writer uses the same key ("now", today\'s date, a viral ID), every write lands on the same node. This simulates a timestamp key: watch one node melt while seven idle.',
+      'Partitioned databases spread data by hashing the partition key. When every writer picks the same key, like "now", today\'s date, or a viral ID, every write piles onto a single node. Send a timestamp-keyed burst and watch one node melt while seven sit idle.',
     ch: 'storage',
     targetNumbers: ['partition-write-cap'],
     forgeUnlocks: 'shards',
-    simplifies: 'Eight fixed partitions with equal capacity; real stores split hot partitions adaptively (too late for a per-second spike) and rebalance in the background.',
-    click: "It's clicked when you can smell a hot key in a schema — \"partitioned by timestamp?!\" — before it ships, melts one node, and pages you at 3am.",
+    simplifies: 'Uses eight fixed partitions with equal capacity. Real databases can split hot partitions adaptively, though rarely fast enough for a sudden per-second spike, and they rebalance in the background.',
+    click: 'It\'s clicked when you spot a hot key in a schema review, like "partitioned by timestamp", before it ships, melts one node, and pages you at 3am.',
   },
   {
     id: 'replag',
@@ -92,12 +92,12 @@ export const TOYS: ToyEntry[] = [
     name: 'REPLICATION LAG',
     sub: 'the copy is the recent past',
     oneLiner:
-      "A replica replays the primary's writes with a delay, so reading from it is reading the recent past. Push writes faster than the replica can apply them, watch the lag grow — then try to read your own comment back, and lose the race.",
+      "A read replica replays the primary's writes after a delay, so reading from a replica means reading the recent past. Push writes faster than the replica can keep up, watch the lag widen, and try reading back your own comment before it arrives.",
     ch: 'storage',
     targetNumbers: ['pg-writes'],
     forgeUnlocks: 'replicas',
-    simplifies: 'One replica applying a perfectly ordered stream; real lag also spikes on big transactions, vacuum, and network hiccups — and failover can lose unreplicated writes.',
-    click: "It's clicked when a user's vanished comment stops being spooky and becomes a race you can draw on a napkin: the write went to the primary, the read beat it to the replica.",
+    simplifies: 'Models one replica replaying a neatly ordered stream. In production, lag also spikes during large transactions, vacuum, and network hiccups, and a failover can drop unreplicated writes.',
+    click: "It's clicked when a user's missing comment stops feeling mysterious and turns into a race you can sketch on a napkin: the write hit the primary, and the read reached the replica first.",
   },
   {
     id: 'pipe',
@@ -105,25 +105,25 @@ export const TOYS: ToyEntry[] = [
     name: 'THE PIPE',
     sub: 'bandwidth × RTT',
     oneLiner:
-      "A TCP sender may only keep one window of bytes in flight before stopping to wait for acknowledgments to cross back. This shows why a single stream on a big, long link tops out far below the link's bandwidth — distance, not the pipe, sets the ceiling.",
+      "A TCP sender can only keep one window of unacknowledged bytes in flight before pausing to wait for replies to travel back. On a fast, long-distance link, a single stream tops out well below the advertised bandwidth because distance, not pipe width, sets the cap.",
     ch: 'net',
     targetNumbers: ['bdp', 'cross-region-rtt'],
     forgeUnlocks: null,
-    simplifies: 'Ignores slow start, congestion control dynamics, and packet loss — all of which make a single real stream even worse than this model.',
-    click: "It's clicked when \"the link is huge, why is one transfer slow?\" answers itself: a single stream keeps only one window in flight, so window ÷ round-trip is the real ceiling.",
+    simplifies: 'Leaves out slow start, congestion-control adjustments, and packet loss. All three make a real single TCP stream perform even worse than this model.',
+    click: 'It\'s clicked when "the link is huge, why is this transfer slow?" answers itself: a single stream only keeps one window in flight, so window ÷ round-trip is the real ceiling.',
   },
   {
     id: 'consensus',
     n: '08',
     name: 'CONSENSUS ROUND-TRIPS',
-    sub: 'agreement is round trips',
+    sub: 'agreement costs round trips',
     oneLiner:
-      'A strongly-consistent write is not done until a majority of replicas confirm it — and confirmation is a round-trip conversation across real distance. This runs the identical protocol at four replica placements, rack to planet, so you can watch geography alone set the price.',
+      'A strongly consistent write is not finished until a majority of replicas confirm it, and confirmation requires round-trip messages across physical distance. Run the exact same protocol at four replica layouts, from one rack to the whole planet, and watch geography alone set the latency.',
     ch: 'net',
     targetNumbers: ['cross-region-rtt', 'same-dc-rtt'],
     forgeUnlocks: null,
-    simplifies: 'Shows the classic 2-phase happy path; real protocols batch, pipeline, and lease-optimize reads — but the floor per unbatched write is still round trips × distance.',
-    click: "It's clicked when you can price a strongly-consistent write straight off a map — count the round trips, look at where the replicas live, done — before anyone tells you the latency.",
+    simplifies: 'Shows the classic 2-phase happy path. Real consensus systems batch, pipeline, and use leader leases for fast reads, yet an unbatched write still cannot beat round trips × distance.',
+    click: "It's clicked when you can estimate a strongly consistent write straight off a map: count the round trips, check where the replicas sit, and know the floor before anyone runs a benchmark.",
   },
   {
     id: 'lsmbtree',
@@ -131,12 +131,12 @@ export const TOYS: ToyEntry[] = [
     name: 'LSM vs B-TREE',
     sub: 'same writes, two engines',
     oneLiner:
-      'The two database engine families make opposite bets: a B-tree pays at write time to keep every row in place; an LSM appends now and pays at read time. This races the same write stream through both engines, then compares what a single read costs each afterward.',
+      'The two main storage-engine families place opposite bets. A B-tree pays at write time to keep every row filed in place, while an LSM appends sequentially now and pays later during reads and compaction. Feed the same write stream to both and compare what a lookup costs afterward.',
     ch: 'storage',
     targetNumbers: ['hdd-seek', 'pg-writes'],
     forgeUnlocks: null,
-    simplifies: 'Two-level caricature: real B-trees cache hot pages in RAM, and real LSMs bound read amplification with bloom filters and compaction — the asymmetry survives, softened.',
-    click: "It's clicked when \"tuned for reads or for writes?\" is the first thing you ask of any database engine — knowing that whoever answers is paying for it somewhere else.",
+    simplifies: 'A simplified two-level comparison. Real B-trees cache hot pages in RAM, and real LSMs curb read amplification with bloom filters and compaction, softening the gap without erasing it.',
+    click: 'It\'s clicked when "tuned for reads or for writes?" is the first question you ask about any storage engine, knowing that saving work on one side means paying for it on the other.',
   },
   {
     id: 'connpool',
@@ -144,12 +144,12 @@ export const TOYS: ToyEntry[] = [
     name: 'CONNECTION POOL',
     sub: '100 conns vs 10k clients',
     oneLiner:
-      'Apps borrow database connections from a fixed-size pool — which puts one more queue, invisible to every dashboard, in front of the database. This shows ten thousand clients contending for one hundred connections while the database itself reports barely any load.',
+      'Application servers borrow database connections from a fixed-size pool, which puts another queue right in front of the database, often invisible on database dashboards. Watch 10,000 clients compete for 100 connections while the database itself reports light load.',
     ch: 'compute',
     targetNumbers: ['pg-reads', 'queue-knee'],
     forgeUnlocks: null,
-    simplifies: 'Fixed-size pool with uniform query times; real pools add health checks, per-statement modes, and the database itself degrades as connection count grows.',
-    click: "It's clicked when \"the database is slow\" sends you to check the waiting line in FRONT of the database first — because the queue you can't see is still a queue.",
+    simplifies: 'Models a fixed-size pool with uniform query times. Real pools add health checks and transaction or statement pooling modes, and real databases also slow down as open connections multiply.',
+    click: 'It\'s clicked when "the database is slow" sends you to check the waiting line in front of the database first, because a queue your dashboard hides is still a queue.',
   },
   {
     id: 'backpressure',
@@ -157,12 +157,12 @@ export const TOYS: ToyEntry[] = [
     name: 'BACKPRESSURE',
     sub: 'drop, block, or blow up',
     oneLiner:
-      'When a producer outruns its consumer, the difference has to go somewhere: drop messages, force the producer to slow, or buffer without bound until memory runs out. This lets you set the rates, pick each policy, and watch exactly what it costs.',
+      'When a producer outpaces its consumer, the extra work has to go somewhere: drop messages, force the producer to slow down, or buffer without limit until memory runs out. Dial the rates, switch between the three policies, and see what each one costs.',
     ch: 'net',
     targetNumbers: ['queue-knee'],
     forgeUnlocks: null,
-    simplifies: 'One producer and one consumer with a single buffer; real systems chain many stages, and pressure propagates upstream hop by hop with its own dynamics.',
-    click: "It's clicked when an unbounded buffer reads as a decision someone refused to make — and \"when we overload, who do we say no to?\" becomes your design-review question.",
+    simplifies: 'Models one producer, one consumer, and a single buffer. Real pipelines chain many stages, and backpressure ripples upstream hop by hop with its own timing quirks.',
+    click: 'It\'s clicked when an unbounded buffer looks like a hard decision someone put off, and "when we overload, who do we tell no?" becomes your go-to design-review question.',
   },
   {
     id: 'stampede',
@@ -170,12 +170,12 @@ export const TOYS: ToyEntry[] = [
     name: 'TTL & STAMPEDE',
     sub: 'expiry synchronizes the misses',
     oneLiner:
-      'A cache TTL is a synchronized alarm: the instant a hot key expires, every request misses at once and goes to the database together. This shows the stampede forming against a database sized for the cached world — and the dogpile lock that breaks it up.',
+      'A cache TTL acts like a synchronized alarm. The moment a hot key expires, every incoming request misses together and rushes the database at once. Watch a stampede hit a database sized for cached traffic, then see how a dogpile lock breaks it up.',
     ch: 'mem',
     targetNumbers: ['redis-ops', 'pg-reads'],
     forgeUnlocks: 'cache',
-    simplifies: 'One key and one cache node; real stampedes multiply across keys expiring together, and real dogpile locks need their own timeout handling.',
-    click: "It's clicked when a pile of keys expiring at the same instant reads as a scheduled outage — and jitter, dogpile locks, or serving stale become the knobs you reach for first.",
+    simplifies: 'Models a single hot key and one cache node. Real stampedes compound when many keys expire together, and real dogpile locks have to handle timeouts if the chosen rebuilder stalls.',
+    click: "It's clicked when a batch of keys expiring at the same moment looks like a scheduled outage, and jitter, dogpile locks, or serving stale become the first tools you reach for.",
   },
   {
     id: 'cachecliff',
@@ -183,13 +183,13 @@ export const TOYS: ToyEntry[] = [
     name: 'THE CACHE CLIFF',
     sub: 'why the same loop is 50× slower',
     oneLiner:
-      'The same loop runs up to 100× slower depending on whether its data fits in a CPU cache and is walked in order. Grow the working set past L1, L2, and L3 and watch access time climb the memory ladder — then change the access pattern and watch the cliffs move.',
+      'The exact same loop can run up to 100× slower depending on whether its data fits in a CPU cache and whether you walk it in order. Grow the working set past L1, L2, and L3 to climb the memory ladder, then switch access patterns and watch the cliffs shift.',
     ch: 'mem',
     targetNumbers: ['l1-hit', 'l2-hit', 'l3-hit', 'dram-access', 'cache-line'],
     forgeUnlocks: null,
     simplifies:
-      'A clean four-level staircase with fixed capacities; real caches are set-associative with eviction policies, hardware prefetchers, and TLB effects, so the cliff is a slope with sub-steps — but the order-of-magnitude spread and the sequential-vs-random gap are real.',
-    click: "It's clicked when \"how big is the working set, and do we walk it in order?\" becomes your first performance question — before the profiler, before the algorithm.",
+      'Shows a clean four-level staircase with fixed capacities. Real caches are set-associative with eviction policies, hardware prefetchers, and TLB effects, turning sharp cliffs into stepped slopes while keeping the order-of-magnitude gap and the sequential-vs-random divide intact.',
+    click: 'It\'s clicked when "how big is the working set, and do we walk it in order?" comes out of your mouth before you open a profiler or rewrite the algorithm.',
   },
   {
     id: 'instruction-loop',
@@ -197,13 +197,13 @@ export const TOYS: ToyEntry[] = [
     name: 'THE INSTRUCTION LOOP',
     sub: 'one instruction per tick',
     oneLiner:
-      'Running code means every instruction is fetched, decoded, and executed in turn — and a pipelined core overlaps those stages like an assembly line instead of finishing one instruction before starting the next. Run the same six instructions both ways and watch overlap, not clock speed, deliver the speedup.',
+      'Running a program means fetching, decoding, and executing every instruction in sequence. A pipelined core overlaps those stages like an assembly line instead of finishing one instruction before starting the next. Run the same six instructions both ways to see overlap, not clock speed, deliver the gain.',
     ch: 'compute',
     targetNumbers: ['cpu-cycle'],
     forgeUnlocks: null,
     simplifies:
-      'A textbook 5-stage pipeline with no hazards, stalls, or forwarding; real cores are 15–20 stages with out-of-order, superscalar issue — the assembly-line idea survives, the tidy diagonal does not.',
-    click: "It's clicked when \"the computer runs my code\" stops being a black box and becomes a loop you can see — fetch, decode, execute — pipelined into one result per tick.",
+      'A textbook 5-stage pipeline with no hazards, stalls, or forwarding. Real cores run 15 to 20 stages with out-of-order, superscalar issue, so the assembly-line principle holds even though the neat diagonal does not.',
+    click: 'It\'s clicked when "the computer runs my code" stops being a black box and becomes a visible loop of fetch, decode, and execute, pipelined into one finished result per tick.',
   },
   {
     id: 'heat-wall',
@@ -211,13 +211,13 @@ export const TOYS: ToyEntry[] = [
     name: 'THE HEAT WALL',
     sub: 'why clocks stopped at ~4 GHz',
     oneLiner:
-      'A faster clock needs disproportionately more power, but a chip package can only shed a fixed amount of heat. Drag the clock up, watch power hit that ceiling — and see why the multicore era was a thermal decision, not an architectural one.',
+      'Pushing a clock higher demands disproportionately more power, while a chip package can only carry away so much heat. Slide the clock upward until power hits that thermal ceiling and see why the multicore era was forced by heat, not fashion.',
     ch: 'compute',
     targetNumbers: ['clock-ceiling', 'cpu-cycle'],
     forgeUnlocks: null,
     simplifies:
-      'Pure dynamic power (P ∝ f³) against a fixed budget; ignores leakage, turbo/boost, undervolting, and process shrinks — all of which nudge the wall without moving it.',
-    click: "It's clicked when \"just clock it faster\" makes you think of heat first — and \"why do we have so many cores?\" answers itself: heat, cubed.",
+      'Models pure dynamic power (P ∝ f³) against a fixed thermal budget. Real chips also deal with leakage, turbo boost, undervolting, and process shrinks, which nudge the wall without moving it.',
+    click: 'It\'s clicked when "just clock it faster" makes you think of heat first, and "why do we have so many cores?" answers itself: power grows with frequency cubed.',
   },
   {
     id: 'branch-predictor',
@@ -225,13 +225,13 @@ export const TOYS: ToyEntry[] = [
     name: 'THE BRANCH PREDICTOR',
     sub: 'the CPU guesses the future',
     oneLiner:
-      'A pipelined CPU must guess which way every branch goes and start executing the guess; a wrong guess throws that work away. This runs one loop over sorted data, then the same data shuffled — so you can watch predictability, not the code, decide the speed.',
+      'To keep its pipeline busy, a CPU guesses which way each branch will go and runs ahead speculatively. A wrong guess throws that work away. Run the same loop on sorted data and then on shuffled data to watch predictability, not the code itself, set the speed.',
     ch: 'compute',
     targetNumbers: ['mispredict-penalty', 'cpu-cycle'],
     forgeUnlocks: null,
     simplifies:
-      'A two-state caricature (right ~always vs coin-flip); real predictors are history-based and ~95%+ accurate — the toy shows the penalty of the branches they still miss, the data-dependent ones.',
-    click: "It's clicked when a mysterious speedup from sorting an array makes total sense — a predictable branch is a guess the CPU wins, and a wrong guess flushes the pipeline.",
+      'Uses a two-state contrast (almost always right vs. a coin flip). Real predictors track branch history and hit ~95%+ accuracy; this toy isolates the cost of the data-dependent branches they still miss.',
+    click: "It's clicked when a surprise speedup from sorting an array makes immediate sense: a predictable branch is a guess the CPU wins, while a wrong guess flushes the pipeline.",
   },
   {
     id: 'tlb-toll',
@@ -239,13 +239,13 @@ export const TOYS: ToyEntry[] = [
     name: 'THE TLB TOLL',
     sub: 'RAM has a second cliff',
     oneLiner:
-      'Every memory access first translates a virtual address to a physical one; the TLB is the small cache that makes translation feel free, and its reach is finite. Grow the working set past it and pay a page walk on nearly every access — past RAM itself, fall into swap.',
+      'Every memory access first translates a virtual address into a physical one. The TLB is the tiny cache that makes translation feel free, and it only reaches so far. Push the working set past that reach to pay a page walk on nearly every access, and push past RAM to drop straight into swap.',
     ch: 'mem',
     targetNumbers: ['page-size', 'dram-access', 'hdd-seek'],
     forgeUnlocks: null,
     simplifies:
-      'One-level TLB and a single page-walk cost; real CPUs have multi-level TLBs, cached page-table walks, and huge pages — the toll is softer and stepped, but the reach ceiling and the swap cliff are real.',
-    click: "It's clicked when \"it fits in RAM\" stops feeling sufficient — you also ask whether it fits in the TLB's reach, and \"the box is swapping\" reads as \"the box is dead.\"",
+      'Models a one-level TLB and a single page-walk cost. Real CPUs use multi-level TLBs, cached page-table walks, and huge pages, making the toll softer and stepped, while the reach ceiling and swap cliff remain real.',
+    click: 'It\'s clicked when "it fits in RAM" stops feeling like the whole story: you also ask if it fits in the TLB\'s reach, and "the box is swapping" immediately reads as "the box is dead."',
   },
   {
     id: 'false-sharing',
@@ -253,13 +253,13 @@ export const TOYS: ToyEntry[] = [
     name: 'FALSE SHARING',
     sub: 'adding a thread made it slower',
     oneLiner:
-      'Parallel code can get slower as cores are added when threads\' private variables happen to share a 64-byte cache line, because cores exchange memory a whole line at a time. This measures that collision — and the one line of padding that fixes it.',
+      "Adding cores can actually slow parallel code down when two threads' private variables happen to sit in the same 64-byte cache line, because cores trade memory a full line at a time. Measure that collision here, then add the single line of padding that clears it.",
     ch: 'compute',
     targetNumbers: ['cache-line', 'l1-hit'],
     forgeUnlocks: null,
     simplifies:
-      'Idealized coherence (a flat serialize on the shared line); real MESI traffic, store buffers, and NUMA distance make it messier — but the "different variables ≠ different lines" trap is exactly this.',
-    click: "It's clicked when a scaling mystery makes you check whether two hot variables share a 64-byte line — and per-core state or padding becomes a reflex.",
+      'Models idealized coherence as a flat serialization on the shared line. Real MESI traffic, store buffers, and NUMA distance make the timing messier, yet the "different variables ≠ different lines" trap works the exact same way.',
+    click: "It's clicked when a stubborn scaling mystery makes you check whether two hot variables share a 64-byte cache line, and padding or per-core state becomes second nature.",
   },
 ]
 

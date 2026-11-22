@@ -117,7 +117,7 @@ test('review: the "actually fine" puzzle rewards shipping it, and grades judgmen
   await page.goto('/#/review/flaw/boring')
   await expect(page.getByText('The Boring Monolith')).toBeVisible()
   await page.getByRole('button', { name: /declare it sound/ }).click()
-  await expect(page.getByText(/CORRECT — the honest call was/)).toBeVisible({ timeout: 25_000 })
+  await expect(page.getByText(/CORRECT: the honest call was/)).toBeVisible({ timeout: 25_000 })
   // aggregate judgment surfaces after a graded attempt
   await expect(page.getByText('JUDGMENT', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /Teach it back/ })).toBeVisible()

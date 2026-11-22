@@ -75,9 +75,9 @@ const RAW: Puzzle[] = [
     title: 'The Sawtooth Scheduler',
     tier: 'obvious',
     par: 40,
-    reqs: 'Job scheduler · 10k jobs/sec · NFR: execute within 2s of scheduled time',
+    reqs: 'Job scheduler · 10k jobs/sec · NFR: run within 2s of scheduled time',
     brief:
-      'A teammate proposes this: jobs land in DynamoDB; a Watcher wakes every 5 minutes, queries everything due, and pushes it all to SQS for workers. It demos beautifully. One piece of this design cannot survive the requirements — click your suspect.',
+      'A teammate sketches this out: jobs land in DynamoDB, and a Watcher wakes every 5 minutes, queries everything due, and pushes the batch to SQS for workers. It demos like a dream. One piece of this architecture cannot survive the requirements. Click the weak point.',
     nodes: [
       { id: 'api', x: 10, y: 100, label: 'API Gateway' },
       { id: 'svc', x: 160, y: 100, label: 'Jobs Service' },
@@ -97,7 +97,7 @@ const RAW: Puzzle[] = [
     flaw: 'watch',
     frames: [
       {
-        cap: '12:00:00 — the Watcher wakes and queries every job due in the window…',
+        cap: '12:00:00. The Watcher wakes up and queries every job due in this window.',
         bars: [
           { label: 'DynamoDB reads', u: 0.2, col: STORAGE },
           { label: 'SQS enqueue', u: 0.1, col: NET },
@@ -105,7 +105,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: '10k jobs/sec × 300s = THREE MILLION rows in one query burst.',
+        cap: '10k jobs/sec × 300s adds up to 3 million rows in a single bursty query.',
         bars: [
           { label: 'DynamoDB reads', u: 1.35, col: STORAGE },
           { label: 'SQS enqueue', u: 0.95, col: NET },
@@ -113,15 +113,15 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: "12:00:31 — a job's scheduled moment arrives. The Watcher is asleep for 4½ more minutes.",
+        cap: '12:00:31. A job hits its scheduled time while the Watcher sleeps for 4½ more minutes.',
         bars: [
           { label: 'DynamoDB reads', u: 0.05, col: STORAGE },
           { label: 'SQS enqueue', u: 0.05, col: NET },
-          { label: 'Job scheduled 12:00:31', u: 0.3, txt: '0:00 late…', col: COMPUTE },
+          { label: 'Job scheduled 12:00:31', u: 0.3, txt: '0:00 late...', col: COMPUTE },
         ],
       },
       {
-        cap: '12:05:00 — finally picked up. Executed 4 minutes 29 seconds late. The SLA said two SECONDS.',
+        cap: '12:05:00. Finally picked up, 4 minutes 29 seconds past due. The SLA promised 2 seconds.',
         bars: [
           { label: 'DynamoDB reads', u: 1.35, col: STORAGE },
           { label: 'SQS enqueue', u: 0.95, col: NET },
@@ -130,9 +130,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'The polling cadence is caught in an impossible squeeze: poll rarely → jobs run minutes late and each poll is a 3M-row avalanche; poll every 2 seconds → you hammer the database with huge scans all day. No polling frequency satisfies both the 2-second SLA and sane DB load.',
-    fix: "Break the tension by separating DISCOVERY from PRECISION: the Watcher polls ahead (every 5 min, fetch jobs due in the NEXT window) and enqueues them to SQS with per-job delayed delivery — the queue releases each message at its exact second. Jobs created inside the window skip the Watcher and go straight to the queue. DB is scanned once per window; precision is the queue's job.",
-    line: "“Polling frequency is a tradeoff between staleness and load — I'd rather move the precision requirement into the queue via delayed delivery than tighten the poll.”",
+      'No single polling cadence can meet both a 2-second SLA and sane database load. Poll every 5 minutes and jobs run minutes late while each sweep pulls a 3M-row avalanche from DynamoDB; poll every 2 seconds and you hammer the database with continuous scans all day.',
+    fix: 'Split discovery from timing precision. Have the Watcher poll ahead every 5 min for jobs due in the next window and enqueue them to SQS with per-job delayed delivery so the queue releases each message at its exact second. Jobs created inside the current window skip the Watcher and go straight to SQS. DynamoDB gets one calm scan per window, and the queue handles second-level precision.',
+    line: "“Polling frequency trades staleness against database load, so I move timing precision into the queue with delayed delivery instead of tightening the poll.”",
   },
   {
     id: 'hothour',
@@ -141,7 +141,7 @@ const RAW: Puzzle[] = [
     par: 50,
     reqs: 'Executions table · 10k writes/sec · partitioned key-value store (DynamoDB)',
     brief:
-      'The executions table uses time_bucket (the current hour, e.g. “2026-07-03T11”) as its partition key — “so the Watcher can query one bucket per window, super efficient!” Writes are timing out in production. Click the suspect.',
+      'The executions table partitions on time_bucket, the current hour (such as “2026-07-03T11”), so the Watcher can read one tidy bucket per window. In production, writes are timing out. Click the weak point.',
     nodes: [
       { id: 'svc', x: 10, y: 100, label: 'Jobs Service' },
       { id: 'pk', x: 175, y: 100, label: 'Partition key', sub: 'time_bucket (hour)', chip: true },
@@ -160,7 +160,7 @@ const RAW: Puzzle[] = [
     flaw: 'pk',
     frames: [
       {
-        cap: "It's 10:14. Every single write this hour computes the same partition key: “hour 10”.",
+        cap: 'It is 10:14. Every single write this hour hashes to the exact same partition key: “hour 10”.',
         bars: [
           { label: 'Partition A (hour 09)', u: 0.02, col: STORAGE },
           { label: 'Partition B (hour 10)', u: 0.6, col: STORAGE },
@@ -168,7 +168,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Dynamo scales by spreading KEYS across partitions. But right now there is only one key.',
+        cap: 'DynamoDB scales by spreading distinct keys across partitions, and right now there is only one active key.',
         bars: [
           { label: 'Partition A (hour 09)', u: 0.02, col: STORAGE },
           { label: 'Partition B (hour 10)', u: 1.1, col: STORAGE },
@@ -176,7 +176,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'One partition sustains ~1k writes/sec. 10k/sec are arriving. Nine of ten writes are throttled.',
+        cap: 'One partition sustains ~1k writes/sec while 10k/sec pile in. Nine out of ten writes get throttled.',
         bars: [
           { label: 'Partition A (hour 09)', u: 0.02, col: STORAGE },
           { label: 'Partition B (hour 10)', u: 3.0, txt: 'THROTTLING', col: ALERT },
@@ -184,7 +184,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: "At 11:00 the pain doesn't end — it just moves to Partition C. A hot partition on wheels.",
+        cap: 'At 11:00 the bottleneck just rolls over to Partition C. A hot partition on wheels.',
         bars: [
           { label: 'Partition A (hour 09)', u: 0.02, col: STORAGE },
           { label: 'Partition B (hour 10)', u: 0.05, col: STORAGE },
@@ -193,18 +193,18 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "A partitioned store's whole superpower is spreading load across keys — and this schema funnels 100% of current writes into one key. Any key derived from “now” (hour buckets, today's date) or from popularity (a viral post's ID) creates the same rolling hot spot. The cluster is huge and 97% of it is idle.",
-    fix: "Salt the key: time_bucket#shard_N with N random in 0..9 spreads the hour across 10 partitions. Readers query all suffixes for the bucket and merge — a small, bounded read cost buying 10× write headroom. Alternative: partition by job_id and use a GSI on (time_bucket, next_execution_time) for the Watcher's query.",
-    line: "“Before I commit a partition key I ask: will many concurrent writers compute the same value? Timestamps and 'today' are the classic trap — I'd salt with a suffix and fan-in on read.”",
+      'A partitioned key-value store only scales when writes fan across many keys, and this schema funnels 100% of current traffic into one. Any key built from “now” (hour buckets, today\'s date) or from popularity (a viral post\'s ID) creates the same rolling hot spot while 97% of the cluster sits idle.',
+    fix: 'Salt the partition key into time_bucket#shard_N with N chosen randomly from 0 to 9, spreading the current hour across 10 partitions. Readers query all 10 suffixes and merge them, paying a small bounded read cost for 10× write headroom. Alternatively, partition by job_id and add a GSI on (time_bucket, next_execution_time) for the Watcher\'s query.',
+    line: "“Before I pick a partition key, I check whether concurrent writers will compute the same value; timestamps and 'today' are classic traps, so I salt with a suffix and fan-in on read.”",
   },
   {
     id: 'vanish',
     title: 'The Vanishing Job',
     tier: 'subtle',
     par: 45,
-    reqs: 'NFR: every job runs AT LEAST once · workers are ordinary machines (they crash)',
+    reqs: 'NFR: every job runs at least once · workers are ordinary machines (they crash)',
     brief:
-      'Worker logic: (1) receive message from SQS, (2) delete the message — “so no one else grabs it”, (3) execute the job, (4) write COMPLETED to the DB. Tidy. Occasionally a job silently never happens. Click the suspect.',
+      'The worker loop looks clean: receive a message from SQS, delete it right away so nobody else grabs it, run the job, and write COMPLETED to DynamoDB. Every so often, a job quietly disappears without ever running. Click the weak point.',
     nodes: [
       { id: 'sqs', x: 10, y: 100, label: 'SQS' },
       { id: 'ack', x: 175, y: 100, label: 'Ack policy', sub: 'delete on receive', chip: true },
@@ -222,15 +222,15 @@ const RAW: Puzzle[] = [
     flaw: 'ack',
     frames: [
       {
-        cap: 'Worker A receives job #4411 and immediately deletes the message. The queue forgets it existed.',
+        cap: 'Worker A pulls job #4411 and deletes the message immediately. SQS forgets it ever existed.',
         bars: [
           { label: 'Job #4411 in queue', u: 0, txt: 'DELETED', col: NET },
-          { label: 'Worker A', u: 0.5, txt: 'executing…', col: COMPUTE },
+          { label: 'Worker A', u: 0.5, txt: 'executing...', col: COMPUTE },
           { label: 'Status in DB', u: 0.3, txt: 'IN_PROGRESS', col: MEM },
         ],
       },
       {
-        cap: "Mid-execution, Worker A's instance dies. Hardware does that. It's Tuesday.",
+        cap: 'Halfway through, Worker A crashes. Ordinary machines do that on a regular Tuesday.',
         bars: [
           { label: 'Job #4411 in queue', u: 0, txt: 'DELETED', col: NET },
           { label: 'Worker A', u: 1, txt: '💀 CRASHED', col: ALERT },
@@ -238,7 +238,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Job #4411 now exists NOWHERE. Not in the queue, not on a worker, not done.',
+        cap: 'Job #4411 now lives nowhere: gone from the queue, gone from every worker, never finished.',
         bars: [
           { label: 'Job #4411 in queue', u: 0, txt: 'gone', col: NET },
           { label: 'Worker B', u: 0.05, txt: 'sees nothing to do', col: COMPUTE },
@@ -246,7 +246,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: '“At least once” just became “maybe zero times.” The deletion was the moment of no return.',
+        cap: '“At least once” just turned into “maybe zero times.” Deleting on receive was the point of no return.',
         bars: [
           { label: 'Job #4411 in queue', u: 0, txt: 'gone', col: NET },
           { label: 'Worker B', u: 0.05, txt: 'idle', col: COMPUTE },
@@ -255,9 +255,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Deleting on receive hands the job's only copy to a machine that's allowed to die. The guarantee you're paid for — at-least-once — lives or dies on when you acknowledge. Ack-before-work means crashes lose work; that's at-MOST-once.",
-    fix: "Use the queue's visibility timeout: receiving a message hides it instead of deleting it; the worker deletes it only after writing COMPLETED. If the worker crashes, the timeout expires and the message reappears for Worker B. Crash insurance, built into the queue.",
-    line: "“I ack only after the side effect is durable. The visibility timeout means a dead worker's jobs automatically return to the pool — the queue is my crash recovery.”",
+      'Deleting a message on receive hands the only durable copy of the job to a machine that is allowed to die. At-least-once delivery depends on when you acknowledge: ack before the work finishes and crashes drop jobs, leaving you with at-most-once delivery.',
+    fix: 'Rely on the queue\'s visibility timeout instead. Receiving a message hides it from other workers without deleting it, and the worker sends the delete only after writing COMPLETED to DynamoDB. If Worker A crashes mid-run, the timeout expires and the message reappears for Worker B.',
+    line: "“I acknowledge a queue message only after the side effect is durable, so the visibility timeout turns the queue itself into crash recovery.”",
   },
   {
     id: 'double',
@@ -266,13 +266,13 @@ const RAW: Puzzle[] = [
     par: 50,
     reqs: 'Jobs have real side effects (send email, charge card) · retries with exponential backoff on failure',
     brief:
-      'Failure handling looks solid: on timeout or error, re-enqueue with exponential backoff, mark RETRYING, cap attempts. Customers start reporting duplicate emails — and one duplicate charge. Click the suspect.',
+      'Failure handling looks thorough: on timeout or error, re-enqueue with exponential backoff, mark the job RETRYING, and cap the attempts. Then customers start reporting duplicate emails, plus one duplicate charge. Click the weak point.',
     nodes: [
       { id: 'sqs', x: 10, y: 100, label: 'SQS' },
       { id: 'work', x: 165, y: 100, label: 'Worker' },
       { id: 'retry', x: 165, y: 12, label: 'Retry policy', sub: 'exp backoff ×3', chip: true },
       { id: 'eff', x: 340, y: 100, label: 'Email API', sub: 'the side effect' },
-      { id: 'idem', x: 340, y: 188, label: 'Request identity', sub: 'none — each retry is new', chip: true },
+      { id: 'idem', x: 340, y: 188, label: 'Request identity', sub: 'none, each retry is new', chip: true },
       { id: 'db', x: 515, y: 100, label: 'DB status' },
     ],
     edges: [
@@ -285,23 +285,23 @@ const RAW: Puzzle[] = [
     flaw: 'idem',
     frames: [
       {
-        cap: 'Worker sends the email. The email GOES OUT… but the response times out on the way back.',
+        cap: 'The worker calls the Email API. The email goes out, then the response times out on the return trip.',
         bars: [
           { label: 'Email actually sent', u: 1, txt: '1 sent ✓', col: MEM },
-          { label: "Worker's view", u: 0.5, txt: 'timeout — failed?', col: COMPUTE },
+          { label: "Worker's view", u: 0.5, txt: 'timeout, failed?', col: COMPUTE },
           { label: 'Customer inbox', u: 0.2, txt: '1 email', col: NET },
         ],
       },
       {
-        cap: 'The worker cannot distinguish “failed” from “succeeded, reply lost.” It does the safe-looking thing: retry.',
+        cap: 'The worker cannot tell “failed” from “succeeded, reply lost.” It does the sensible thing and retries.',
         bars: [
           { label: 'Email actually sent', u: 1, txt: '2 sent', col: COMPUTE },
-          { label: "Worker's view", u: 0.5, txt: 'retrying…', col: COMPUTE },
+          { label: "Worker's view", u: 0.5, txt: 'retrying...', col: COMPUTE },
           { label: 'Customer inbox', u: 0.5, txt: '2 emails', col: COMPUTE },
         ],
       },
       {
-        cap: 'Backoff, retry, backoff, retry. Each attempt is a brand-new request with no identity.',
+        cap: 'Backoff, retry, backoff, retry. Without an operation ID, every attempt looks brand new to the API.',
         bars: [
           { label: 'Email actually sent', u: 1, txt: '4 sent', col: ALERT },
           { label: "Worker's view", u: 0.5, txt: "still 'failing'", col: COMPUTE },
@@ -309,7 +309,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: "The retry policy isn't the bug — retries are correct! The bug: nothing lets the API say “seen this one already.”",
+        cap: 'Retries are not the bug here. The bug is that the API has no way to recognize a request it already ran.',
         bars: [
           { label: 'Email actually sent', u: 1, txt: '4 sent', col: ALERT },
           { label: "Worker's view", u: 0.5, txt: 'gives up', col: COMPUTE },
@@ -318,9 +318,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "At-least-once delivery GUARANTEES occasional duplicates — that's the 'at least'. Retries are the immune system of distributed systems; they're only safe when operations are idempotent. The missing piece isn't fewer retries, it's giving each logical operation a stable identity.",
-    fix: "Attach an idempotency key (the job_execution_id you already have!) to every side-effecting call; the receiving API stores processed keys and turns duplicates into no-ops. Same pattern behind Stripe's idempotency keys and exactly-once-looking payment flows.",
-    line: '“At-least-once plus non-idempotent side effects equals duplicates — so I make every side effect idempotent with an operation ID, and then retries become free.”',
+      'At-least-once delivery guarantees occasional duplicates because a caller cannot tell a lost response from a failed request. Retries are essential in distributed systems, but they are safe only when side effects are idempotent and every logical operation carries a stable identity.',
+    fix: 'Attach an idempotency key (such as the job_execution_id you already track) to every side-effecting call. The receiving API records processed keys and turns repeats into harmless no-ops, the same mechanism behind Stripe\'s idempotency keys and safe payment retries.',
+    line: '“At-least-once delivery plus non-idempotent side effects guarantees duplicates, so I attach a stable operation ID to every side effect and make retries safe.”',
   },
 
   {
@@ -330,7 +330,7 @@ const RAW: Puzzle[] = [
     par: 30,
     reqs: 'URL shortener · 100k redirects/sec · 99% reads · p99 < 50ms · code→URL mapping is immutable',
     brief:
-      'The read path is three lines: GET /:code → SELECT the long URL from Postgres → 301 redirect. Creating a link is rare, so nobody worried about reads. Traffic ramps and redirects start timing out. Click the suspect.',
+      'The read path is three lines of code: handle GET /:code, SELECT the long URL from Postgres, and return a 301 redirect. Link creation is rare, so nobody worried much about reads. Traffic climbs and redirects start timing out. Click the weak point.',
     nodes: [
       { id: 'cli', x: 10, y: 100, label: 'Browser' },
       { id: 'app', x: 165, y: 100, label: 'App server' },
@@ -347,7 +347,7 @@ const RAW: Puzzle[] = [
     flaw: 'nocache',
     frames: [
       {
-        cap: 'Launch traffic: a few thousand redirects/sec. Postgres shrugs.',
+        cap: 'Launch day: a few thousand redirects/sec, and Postgres barely notices.',
         bars: [
           { label: 'Redirects/sec', u: 0.05, col: NET },
           { label: 'Postgres reads', u: 0.1, col: STORAGE },
@@ -355,7 +355,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'It gets shared. 100k redirects/sec — and every one is a disk-backed SELECT.',
+        cap: 'A link takes off: 100k redirects/sec, and every single one triggers a disk-backed SELECT.',
         bars: [
           { label: 'Redirects/sec', u: 1, txt: '100k/s', col: NET },
           { label: 'Postgres reads', u: 5, txt: '5× cap', col: ALERT },
@@ -363,7 +363,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'A single primary sustains ~20k reads/sec. You are asking for five times that.',
+        cap: 'One Postgres primary sustains roughly 20k reads/sec, and traffic is demanding 5× that ceiling.',
         bars: [
           { label: 'Redirects served', u: 0.2, txt: '20k of 100k', col: NET },
           { label: 'Postgres reads', u: 1, txt: 'MAXED', col: ALERT },
@@ -371,7 +371,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Four of five redirects fail — waiting on a DB read for data that never changes.',
+        cap: 'Four out of five redirects fail while waiting on database reads for values that never change.',
         bars: [
           { label: 'Redirects served', u: 0.2, txt: '80% dropped', col: ALERT },
           { label: 'Postgres reads', u: 1, txt: 'MAXED', col: ALERT },
@@ -380,9 +380,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'The mapping code→URL is immutable and tiny — the single most cacheable thing in computing — yet every one of 100k redirects/sec pays a disk-backed round trip to a database that tops out near 20k reads/sec. When reads dwarf writes and the data never changes, the database should be the cold path, not the hot one.',
-    fix: "Put a cache in front (Redis, an in-process LRU, or a CDN edge). Because the mapping is immutable, cache invalidation — the genuinely hard part of caching — doesn't even apply: set it and forget it. Now 100k/s are 1ms memory reads and the DB only sees the rare cold miss.",
-    line: '“When reads dwarf writes and the value is immutable, the DB is the cold path — a cache turns 100k DB reads/sec into 100k memory reads/sec with no invalidation headache.”',
+      'An immutable, tiny code→URL lookup is about as cacheable as data gets, yet every one of 100k redirects/sec hits a Postgres primary that tops out around 20k reads/sec. When reads dwarf writes and the mapping never mutates, the database belongs on the cold path, not the hot one.',
+    fix: 'Put a cache in front using Redis, an in-process LRU, or a CDN edge. Because the code→URL mapping is immutable, cache invalidation does not even enter the picture. Now 100k/s resolve as 1ms memory reads and Postgres only serves the rare cold miss.',
+    line: '“When reads dwarf writes and the value is immutable, the database is the cold path; a cache turns 100k DB reads/sec into 100k memory reads/sec with zero invalidation headache.”',
   },
 
   {
@@ -392,7 +392,7 @@ const RAW: Puzzle[] = [
     par: 45,
     reqs: 'Social feed · fan-out-on-write · post must appear in follower feeds within seconds · some accounts have 40M followers',
     brief:
-      "On every post, a fan-out worker writes the post's id into each follower's precomputed feed list — so reads are dirt cheap O(1) lookups. Beautiful for the timeline. Then a celebrity posts and the whole pipeline backs up. Click the suspect.",
+      'Whenever someone posts, a fan-out worker writes the post ID into each follower\'s precomputed feed list so reads stay fast O(1) lookups. The timeline flies until a celebrity posts and the entire pipeline stalls. Click the weak point.',
     nodes: [
       { id: 'post', x: 10, y: 100, label: 'Post Service' },
       { id: 'graph', x: 175, y: 14, label: 'Follow graph', sub: '40M followers', chip: true },
@@ -409,7 +409,7 @@ const RAW: Puzzle[] = [
     flaw: 'fan',
     frames: [
       {
-        cap: 'A normal user (200 followers) posts. Fan-out writes 200 rows. Instant.',
+        cap: 'A typical user with 200 followers posts. The worker writes 200 rows and finishes almost instantly.',
         bars: [
           { label: 'Writes this post', u: 0.02, txt: '200', col: STORAGE },
           { label: 'Fan-out worker', u: 0.1, col: COMPUTE },
@@ -417,7 +417,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'A celebrity posts. One post = 40 MILLION writes, all queued behind it.',
+        cap: 'A celebrity posts. One action expands into 40 million writes, all stacked behind it.',
         bars: [
           { label: 'Writes this post', u: 1, txt: '40M', col: ALERT },
           { label: 'Fan-out worker', u: 1, txt: 'saturated', col: ALERT },
@@ -425,7 +425,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'The worker grinds through 40M inserts while every OTHER post waits behind it.',
+        cap: 'The worker chews through 40M inserts while every other post on the platform waits in line.',
         bars: [
           { label: 'Backlog', u: 1, txt: 'all posts stalled', col: ALERT },
           { label: 'Fan-out worker', u: 1, txt: '100%', col: ALERT },
@@ -433,7 +433,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'The read side was never the problem. A skewed follower count made writes unbounded.',
+        cap: 'Reads were never the problem. Extreme follower skew turned write amplification into an unbounded queue.',
         bars: [
           { label: 'Backlog', u: 0.8, txt: 'draining slowly', col: COMPUTE },
           { label: 'Fan-out worker', u: 1, txt: 'still catching up', col: ALERT },
@@ -442,9 +442,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Fan-out-on-write buys cheap reads by paying at write time, and that cost scales with follower count. For the median user (a few hundred followers) it's a cheap trade; for a celebrity a single post is tens of millions of writes — an unbounded, highly-skewed write amplification that head-of-line-blocks everyone else. The read path is innocent.",
-    fix: 'Go hybrid: fan-out-on-WRITE for ordinary accounts, fan-out-on-READ for the handful of huge accounts (their posts are pulled and merged in at read time). The 0.001% of accounts with enormous follower counts get the opposite strategy — the design real feeds converged on.',
-    line: '“Fan-out-on-write dies on skew. I split by follower count: push for the many, pull for the celebrity few, so no single post is 40M writes.”',
+      'Fan-out-on-write buys cheap reads by paying at write time, so every post costs as many writes as the author has followers. That works cleanly for a median user with a few hundred followers, but a celebrity post triggers tens of millions of writes and head-of-line-blocks everyone else while the read path sits innocent.',
+    fix: 'Use a hybrid strategy: keep fan-out-on-write for ordinary accounts, and switch to fan-out-on-read for the 0.001% of accounts with massive follower counts by pulling and merging their posts at read time. That split is where real production feeds converge.',
+    line: '“Fan-out-on-write breaks under follower skew, so I split by follower count: push for ordinary accounts and pull at read time for the celebrity few so one post never explodes into 40M writes.”',
   },
 
   {
@@ -454,7 +454,7 @@ const RAW: Puzzle[] = [
     par: 55,
     reqs: 'Global API rate limiter · 500k requests/sec across the fleet · one enforced limit',
     brief:
-      "Every request runs INCR ratelimit:global in Redis and compares the count to the cap — atomic, correct, one source of truth. Redis is famously fast. Yet latency on that INCR keeps climbing and one Redis core is pinned at 100%. Click the suspect.",
+      'Every incoming request runs INCR ratelimit:global in Redis and checks the total against the cap. It is atomic, accurate, and backed by one source of truth. Redis is famously fast, yet INCR latency keeps climbing and one Redis core is pinned at 100%. Click the weak point.',
     nodes: [
       { id: 'edge', x: 10, y: 100, label: 'Edge servers ×200' },
       { id: 'key', x: 190, y: 100, label: 'ratelimit:global', sub: 'one Redis key', chip: true },
@@ -467,28 +467,28 @@ const RAW: Puzzle[] = [
     flaw: 'key',
     frames: [
       {
-        cap: 'Low traffic: a few thousand INCRs/sec to the key. Sub-millisecond, correct.',
+        cap: 'Under light load, a few thousand INCRs/sec hit the key. Sub-millisecond and exact.',
         bars: [
           { label: 'INCR ratelimit:global', u: 0.05, col: MEM },
           { label: 'Redis core serving the key', u: 0.1, col: COMPUTE },
         ],
       },
       {
-        cap: '500k INCRs/sec — all to the same key. One key lives on one shard, served by one core.',
+        cap: 'At 500k INCRs/sec, every request lands on the same key, which lives on one shard and runs on one core.',
         bars: [
           { label: 'INCR ratelimit:global', u: 1, txt: '500k/s', col: NET },
-          { label: 'Redis core serving the key', u: 1, txt: '100% — one core', col: ALERT },
+          { label: 'Redis core serving the key', u: 1, txt: '100%, one core', col: ALERT },
         ],
       },
       {
-        cap: 'A core does ~100k ops/sec. Five cores of work funnel through one. It serializes.',
+        cap: 'One core handles ~100k ops/sec, so five cores of traffic funnel into one and wait in line.',
         bars: [
           { label: 'Effective throughput', u: 0.2, txt: '100k of 500k', col: ALERT },
           { label: 'INCR latency', u: 1, txt: 'queuing', col: ALERT },
         ],
       },
       {
-        cap: 'Adding Redis nodes does nothing — you cannot shard a key whose whole point is to be global.',
+        cap: 'Adding more Redis nodes changes nothing because a single global key cannot be split across them.',
         bars: [
           { label: 'Extra Redis nodes', u: 0.05, txt: 'idle', col: STORAGE },
           { label: 'The hot core', u: 1, txt: 'still 100%', col: ALERT },
@@ -496,9 +496,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'Atomicity is fine — correctness was never the issue. The issue is that a single logical counter is a single physical hot spot: one key lives on one shard, served by one CPU core (~100k ops/sec). Routing 500k/sec at one key serializes them on that core, and you cannot shard it away because being global is the counter\'s entire purpose.',
-    fix: 'Approximate: split into N sub-counters (ratelimit:global:{0..15}); each edge INCRs a random shard and the limiter sums them — or, better, give each edge a LOCAL token bucket that reconciles with the global count every few hundred ms. You trade exact-at-the-millisecond precision for N× throughput, which a rate limit can easily afford.',
-    line: '“A global counter is a global hot key. I shard it into N counters (or local token buckets that sync) — trading millisecond-exactness for N× throughput, which a rate limit tolerates.”',
+      'A single logical counter becomes a single physical hot spot because one key lives on one shard and serializes on one CPU core (~100k ops/sec). Atomicity and correctness were never broken, but aiming 500k/sec at one key leaves no room to shard it away.',
+    fix: 'Accept slight approximation for scale: split the counter into N sub-counters (such as ratelimit:global:{0..15}) where each edge increments a random shard and sums them, or give each edge a local token bucket that reconciles with the global count every few hundred ms. You trade millisecond-exactness for N× throughput, a bargain any rate limiter can afford.',
+    line: '“A global counter is a global hot key, so I shard it into N sub-counters or sync local token buckets, trading millisecond-exactness for N× throughput.”',
   },
 
   {
@@ -508,10 +508,10 @@ const RAW: Puzzle[] = [
     par: 55,
     reqs: 'Payment workers ×5000 · downstream gateway occasionally blips for ~1s · retry with exponential backoff',
     brief:
-      "Resilience looks textbook: on failure retry after 1s, then 2s, then 4s — exponential backoff, capped at 5 tries. Then the gateway blips for a single second and the fleet knocks it flat, again and again. Click the suspect.",
+      'The retry logic reads like a textbook: on failure, wait 1s, then 2s, then 4s, with exponential backoff capped at 5 attempts. Then the payment gateway blips for a single second, and your own fleet knocks it flat over and over. Click the weak point.',
     nodes: [
       { id: 'workers', x: 10, y: 100, label: 'Workers ×5000' },
-      { id: 'backoff', x: 185, y: 100, label: 'Backoff policy', sub: '1s · 2s · 4s — no jitter', chip: true },
+      { id: 'backoff', x: 185, y: 100, label: 'Backoff policy', sub: '1s · 2s · 4s, no jitter', chip: true },
       { id: 'gw', x: 375, y: 100, label: 'Payment gateway' },
     ],
     edges: [
@@ -521,28 +521,28 @@ const RAW: Puzzle[] = [
     flaw: 'backoff',
     frames: [
       {
-        cap: 'Steady state: requests trickle to the gateway, well under its ceiling.',
+        cap: 'Steady state: traffic flows to the gateway comfortably below its ceiling.',
         bars: [
           { label: 'Gateway load', u: 0.3, col: NET },
           { label: 'In-flight failures', u: 0, col: COMPUTE },
         ],
       },
       {
-        cap: 'The gateway blips for 1s. All ~5000 in-flight requests fail at nearly the same instant.',
+        cap: 'The gateway blips for 1s. Roughly 5000 in-flight requests fail at almost the exact same moment.',
         bars: [
           { label: 'Gateway load', u: 0, txt: 'blip', col: ALERT },
           { label: 'In-flight failures', u: 1, txt: '5000 at once', col: ALERT },
         ],
       },
       {
-        cap: 'Exactly 1s later — no jitter — all 5000 retry simultaneously. A coordinated spike.',
+        cap: 'Exactly 1s later, with no jitter, all 5000 workers retry in lockstep and flatten the recovering gateway.',
         bars: [
           { label: 'Gateway load', u: 3, txt: '5000 in one tick', col: ALERT },
           { label: 'Gateway (just recovered)', u: 1, txt: 'knocked over', col: ALERT },
         ],
       },
       {
-        cap: 'It re-synchronizes: +2s they all hit again. The retries are worse than the outage.',
+        cap: 'Two seconds later they strike in unison again. The retries now hurt far more than the 1s blip.',
         bars: [
           { label: 'Gateway load', u: 3, txt: 'spike, spike, spike', col: ALERT },
           { label: 'Steady demand', u: 0.3, txt: 'would have been fine', col: MEM },
@@ -550,9 +550,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'Exponential backoff without JITTER makes every client retry on the same schedule. A shared trigger (the blip) synchronizes them and the deterministic delays keep them synchronized, so retries arrive as one coordinated thundering herd — worse than the original blip — and re-synchronize on every wave. The retry policy is right in spirit and wrong in timing.',
-    fix: 'Add jitter: wait a RANDOM duration in [0, backoff] instead of exactly backoff. The 5000 retries then smear across the window rather than stacking on one instant. “Exponential backoff and jitter” is a single idea — it is the canonical retry recipe for a reason.',
-    line: '“Backoff without jitter just reschedules the stampede. I pair exponential backoff with randomized jitter so retries spread out instead of resonating into a self-inflicted DDoS.”',
+      'Exponential backoff without jitter puts every worker on the exact same metronome. The shared 1s blip synchronizes the fleet, and deterministic delays keep those 5000 retries crashing into the gateway together as a thundering herd on every wave.',
+    fix: 'Add jitter so each worker waits a random duration in [0, backoff] instead of the exact backoff interval. That spreads the 5000 retries across the window instead of stacking them on one tick. Exponential backoff and jitter belong together as one retry pattern.',
+    line: '“Backoff without jitter just reschedules the stampede, so I pair exponential backoff with randomized jitter to spread retries out instead of triggering a self-inflicted DDoS.”',
     happened: 'slack-2021',
   },
 
@@ -563,7 +563,7 @@ const RAW: Puzzle[] = [
     par: 50,
     reqs: 'Product catalog · read-through cache, TTL 1h · prices change during flash sales · NFR: price shown = price charged',
     brief:
-      'Reads go through a cache (miss → DB → fill, TTL 1 hour) and hit rates are gorgeous. Writes go straight to the database. During a flash sale, customers see — and get charged — the OLD price for up to an hour. Click the suspect.',
+      'Reads flow through a read-through cache (miss, query DB, fill with a 1 hour TTL) and hit rates look great. Writes go straight to the database. During a flash sale, shoppers see and get charged the old price for up to an hour. Click the weak point.',
     nodes: [
       { id: 'read', x: 10, y: 40, label: 'Read path' },
       { id: 'cache', x: 185, y: 40, label: 'Cache', sub: 'TTL 1h' },
@@ -580,28 +580,28 @@ const RAW: Puzzle[] = [
     flaw: 'noinval',
     frames: [
       {
-        cap: 'Steady state: cache and DB agree. Reads are fast, everyone is happy.',
+        cap: 'Steady state: cache and database both hold $40. Reads are fast and accurate.',
         bars: [
           { label: 'Cache value', u: 0.5, txt: '$40 ✓', col: MEM },
           { label: 'DB value', u: 0.5, txt: '$40', col: STORAGE },
         ],
       },
       {
-        cap: 'Flash sale: price update writes $25 to the DB. The cache is never told.',
+        cap: 'A flash sale starts and the write path updates the database to $25. Nobody tells the cache.',
         bars: [
           { label: 'Cache value', u: 0.5, txt: '$40 (stale)', col: COMPUTE },
           { label: 'DB value', u: 0.5, txt: '$25', col: STORAGE },
         ],
       },
       {
-        cap: 'Every read hits the cache: customers see $40 and the checkout charges $40.',
+        cap: 'Every read hits the cache, so customers see $40 on the page and checkout charges $40.',
         bars: [
           { label: 'Price shown', u: 1, txt: '$40 wrong', col: ALERT },
           { label: 'Price in DB', u: 0.5, txt: '$25', col: STORAGE },
         ],
       },
       {
-        cap: 'For up to a full hour, until the TTL happens to expire. Support lights up.',
+        cap: 'That stale price sticks around for up to 1h until the TTL runs out, and support tickets flood in.',
         bars: [
           { label: 'Mischarged customers', u: 1, txt: 'up to 1h', col: ALERT },
           { label: 'Cache confidence', u: 0.5, txt: '"still fresh!"', col: COMPUTE },
@@ -609,9 +609,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      'The write path and the read path disagree about who owns the truth. Writing only to the DB leaves the cache confidently serving a value it believes is fresh — stale until the TTL happens to lapse. A TTL bounds staleness by time; a correctness requirement ("price shown = price charged") needs staleness bounded by EVENT.',
-    fix: 'Make writes invalidate the cache: on a price change, delete the key (or write through to update it). The next read re-fills from the DB. Reserve pure-TTL caching for data where bounded staleness is genuinely acceptable; invalidate-on-write for anything a customer is charged against.',
-    line: '“A TTL bounds staleness by time, but a correctness field needs invalidation by event — I delete the cache key on every write so the next read can\'t serve a lie.”',
+      'The read path and write path disagree on who owns the truth because DB-only writes leave the cache serving stale prices until its 1h TTL expires. A TTL bounds staleness by time, while a correctness rule like “price shown = price charged” requires invalidation by event.',
+    fix: 'Have every price write invalidate the cache by deleting the key (or writing through to update it) so the next read refills from the database. Save pure-TTL caching for data that can safely lag, and invalidate on write for anything tied to billing.',
+    line: '“A TTL bounds staleness by time, while a correctness field needs invalidation by event, so I delete the cache key on every write rather than letting it serve a stale price.”',
   },
 
   {
@@ -621,7 +621,7 @@ const RAW: Puzzle[] = [
     par: 70,
     reqs: 'Image processing · bursty uploads · unbounded inbound queue · autoscaler adds workers when queue wait-time rises',
     brief:
-      "Two reasonable choices: an unbounded queue so no upload is ever rejected, and an autoscaler that adds workers when queue wait-time climbs. Each is defensible on its own. A burst hits, the bill explodes, and latency gets WORSE. Two pieces are conspiring — click the one that starts the spiral.",
+      'Two reasonable-looking choices sit side by side: an unbounded queue so no upload gets rejected, and an autoscaler that adds workers whenever queue wait-time rises. Each sounds sensible in isolation. Then a burst hits, the bill spikes, and latency gets worse. Click the piece that starts the spiral.',
     nodes: [
       { id: 'up', x: 10, y: 100, label: 'Uploads', sub: 'bursty' },
       { id: 'queue', x: 165, y: 100, label: 'Inbound queue', sub: 'unbounded', chip: true },
@@ -638,7 +638,7 @@ const RAW: Puzzle[] = [
     flaw: 'queue',
     frames: [
       {
-        cap: 'Normal load: queue near empty, a handful of workers, wait-time low.',
+        cap: 'Normal load: the queue stays nearly empty, 8 workers keep up, and wait-time is low.',
         bars: [
           { label: 'Queue backlog', u: 0.1, col: NET },
           { label: 'Workers', u: 0.2, txt: '×8', col: COMPUTE },
@@ -646,7 +646,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'A burst arrives. The unbounded queue happily accepts all of it. Backlog balloons.',
+        cap: 'An upload burst arrives. The unbounded queue accepts every request and the backlog balloons.',
         bars: [
           { label: 'Queue backlog', u: 1, txt: 'unbounded ↑', col: ALERT },
           { label: 'Workers', u: 0.4, txt: '×16', col: COMPUTE },
@@ -654,7 +654,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Autoscaler sees high wait-time and adds workers — but wait-time = age of the OLDEST message.',
+        cap: 'The autoscaler sees high wait-time and spins up workers, missing that wait-time measures the age of the oldest message.',
         bars: [
           { label: 'Queue backlog', u: 1, txt: 'still huge', col: ALERT },
           { label: 'Workers', u: 1, txt: '×200 and climbing', col: ALERT },
@@ -662,7 +662,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'That age stays high until the whole backlog drains, so it keeps scaling — chasing a number it can\'t move.',
+        cap: 'Oldest-message age stays high until the entire backlog drains, so the scaler keeps piling on workers while chasing a lagging metric.',
         bars: [
           { label: 'Queue backlog', u: 0.8, txt: 'draining', col: COMPUTE },
           { label: 'Workers', u: 1, txt: 'over-provisioned', col: ALERT },
@@ -671,9 +671,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Neither piece is wrong alone — together they form a feedback loop with a lagging signal. The unbounded queue lets backlog grow without limit; the autoscaler reacts to queue WAIT-TIME (the age of the oldest message), which stays high until the entire backlog drains — so it keeps adding workers long after throughput is already sufficient. Two locally-sensible decisions, one emergent death spiral.",
-    fix: 'Break the loop on both sides: bound the queue with backpressure (shed or reject past a depth) so backlog can\'t run away, and scale on a LEADING, rate-based signal — arrival rate or queue-depth trend — not the age of the oldest item. Backpressure plus a stable control signal turns the spiral into a settle.',
-    line: '“An autoscaler chasing a lagging metric behind an unbounded queue is a death spiral. I bound the queue with backpressure and scale on arrival rate, not on a signal that only falls after the backlog clears.”',
+      'Neither choice breaks on its own, yet together they create a runaway feedback loop on a lagging signal. The unbounded queue lets backlog grow without limit while queue wait-time (the age of the oldest message) stays elevated until the whole backlog clears, pushing the autoscaler to add workers long after throughput is already enough.',
+    fix: 'Break both halves of the loop: cap the queue with backpressure (shed or reject past a set depth) so backlog cannot run away, and scale on a leading, rate-based signal like arrival rate or queue-depth trend instead of oldest-item age. Backpressure plus a responsive signal lets the system settle cleanly.',
+    line: '“An autoscaler chasing a lagging wait-time metric behind an unbounded queue spirals out of control, so I bound the queue with backpressure and scale on arrival rate instead.”',
   },
 
   {
@@ -683,7 +683,7 @@ const RAW: Puzzle[] = [
     par: 65,
     reqs: 'Primary + replica DB · automatic failover on primary timeout · clients retry failed writes · NFR: no conflicting writes',
     brief:
-      "Failover is automated: if the replica can't reach the primary for 5s it promotes ITSELF. Clients retry writes that error. A brief network blip between the two nodes — not a real crash — and suddenly both think they're primary. Click the piece that lets it happen.",
+      'Failover is automated: if the replica cannot reach the primary for 5s, it promotes itself. Meanwhile, clients retry failed writes. A brief network blip hits between the two nodes, not an actual crash, and suddenly both believe they are primary. Click the piece that lets this happen.',
     nodes: [
       { id: 'cli', x: 10, y: 100, label: 'Clients', sub: 'retry on error' },
       { id: 'part', x: 150, y: 100, label: 'Network blip', sub: 'A↔B link, 3s', chip: true },
@@ -701,28 +701,28 @@ const RAW: Puzzle[] = [
     flaw: 'promo',
     frames: [
       {
-        cap: 'Healthy: A is primary, B replicates. One writer, one truth.',
+        cap: 'Healthy state: Primary A takes writes and Replica B follows along. One writer, one history.',
         bars: [
           { label: 'Primaries accepting writes', u: 0.3, txt: '1 (A)', col: STORAGE },
           { label: 'Write conflicts', u: 0, col: MEM },
         ],
       },
       {
-        cap: 'A 3s blip: B can\'t reach A. A timeout can\'t tell "A is dead" from "I can\'t see A".',
+        cap: 'A 3s network blip cuts B off from A. A timeout cannot tell “A is dead” from “I cannot reach A.”',
         bars: [
-          { label: 'B\'s belief', u: 0.6, txt: '"A is dead"', col: COMPUTE },
-          { label: 'A\'s reality', u: 0.6, txt: 'alive, serving', col: STORAGE },
+          { label: "B's belief", u: 0.6, txt: '"A is dead"', col: COMPUTE },
+          { label: "A's reality", u: 0.6, txt: 'alive, serving', col: STORAGE },
         ],
       },
       {
-        cap: 'B promotes itself. Now A and B BOTH accept writes — and retrying clients reach both.',
+        cap: 'B promotes itself anyway. Now both A and B accept writes, and retrying clients talk to both.',
         bars: [
-          { label: 'Primaries accepting writes', u: 1, txt: '2 — split brain', col: ALERT },
+          { label: 'Primaries accepting writes', u: 1, txt: '2, split brain', col: ALERT },
           { label: 'Write conflicts', u: 1, txt: 'same rows, both sides', col: ALERT },
         ],
       },
       {
-        cap: 'The blip heals into two divergent histories with no safe way to merge. Writes are lost.',
+        cap: 'When the link heals, you are stuck with two divergent histories and no safe merge. Writes are lost.',
         bars: [
           { label: 'Divergent copies', u: 1, txt: '2 truths', col: ALERT },
           { label: 'Reconcilable?', u: 1, txt: 'no', col: ALERT },
@@ -730,9 +730,9 @@ const RAW: Puzzle[] = [
       },
     ],
     explain:
-      "Two decisions collide: a node promotes itself on a TIMEOUT (which cannot distinguish a dead peer from an unreachable one), and clients retry to whichever node answers. A mere partition then yields two primaries — split brain — each taking conflicting writes. The timeout is a liveness guess; acting on it unilaterally is the bug.",
-    fix: 'Require a QUORUM (a majority of voters, or an external witness/arbiter) to elect a primary. With an odd number of voters a minority partition can never promote itself, so at most one primary exists at a time. Consensus — Raft/Paxos, or Patroni + etcd — decides leadership, not a local timeout.',
-    line: '“Never let a node promote itself on a timeout — a timeout can\'t tell dead from unreachable. Leadership needs a quorum so a partition yields zero or one primary, never two.”',
+      'Two choices collide here: a replica promotes itself on a local timeout (which cannot distinguish a dead peer from an unreachable one), and clients retry against whichever node responds. A simple network partition then produces two primaries in split brain, each accepting conflicting writes.',
+    fix: 'Require a quorum (a majority of voters, or an external witness/arbiter) to elect a primary. With an odd number of voters, a minority partition can never promote itself, so at most one primary exists at a time. Let consensus (Raft, Paxos, or Patroni with etcd) decide leadership instead of a local timeout.',
+    line: '“Never let a node promote itself on a timeout because a timeout cannot tell dead from unreachable; require a quorum so a partition yields zero or one primary, never two.”',
     happened: 'github-2018',
   },
 
@@ -744,7 +744,7 @@ const RAW: Puzzle[] = [
     fine: true,
     reqs: 'Internal admin tool · 500 employees · ~50 req/s peak · a few GB of data · read-heavy',
     brief:
-      "A teammate sketches: one app server, one Postgres, one small Redis cache. No shards, no queue, no replicas. The room is itching to “harden” it — someone wants Kafka and a sharded DB. Before you accuse anything: does this actually violate the requirements? Accuse a component — or declare it sound.",
+      'A teammate puts a plain box-and-arrows sketch on the board: one app server, one Postgres primary, and one small Redis cache. No shards, no queue, no replicas. Half the room wants to “harden” it with Kafka and a sharded database. Before you point at anything, check the requirements: accuse a component, or declare the design sound.',
     nodes: [
       { id: 'users', x: 10, y: 100, label: '500 employees', sub: '~50 req/s' },
       { id: 'app', x: 185, y: 100, label: 'App server' },
@@ -758,7 +758,7 @@ const RAW: Puzzle[] = [
     ],
     frames: [
       {
-        cap: 'Peak load: 50 req/s against an app server rated for ~10,000.',
+        cap: 'Peak traffic hits 50 req/s on an app server comfortable near ~10,000 req/s.',
         bars: [
           { label: 'App server', u: 0.005, txt: '0.5%', col: COMPUTE },
           { label: 'Postgres', u: 0.01, txt: 'idle', col: STORAGE },
@@ -766,7 +766,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Reads: ~45/s against a primary that serves ~20,000/s. Rounding error.',
+        cap: 'Reads run ~45/s against a Postgres primary built to serve ~20,000/s. Practically a rounding error.',
         bars: [
           { label: 'Postgres reads', u: 0.01, txt: '45 of 20k', col: STORAGE },
           { label: 'Postgres writes', u: 0.005, col: STORAGE },
@@ -774,7 +774,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Everything green, with two-plus orders of magnitude of headroom. Nothing is near a wall.',
+        cap: 'Every box stays green with two-plus orders of magnitude to spare. Nothing is anywhere near a wall.',
         bars: [
           { label: 'App server', u: 0.005, col: COMPUTE },
           { label: 'Postgres', u: 0.01, col: STORAGE },
@@ -782,7 +782,7 @@ const RAW: Puzzle[] = [
         ],
       },
       {
-        cap: 'Shards, queues, replicas would each add failure modes and cost to solve problems this system does not have.',
+        cap: 'Shards, queues, and replicas would each bring new failure modes and cost to solve problems you do not have.',
         bars: [
           { label: 'Requirements met', u: 1, txt: 'all', col: MEM },
           { label: 'Complexity added', u: 0, txt: 'none needed', col: MEM },
@@ -791,9 +791,9 @@ const RAW: Puzzle[] = [
     ],
     flaw: 'db',
     explain:
-      'Nothing here violates the requirements — and that is the answer. At 50 req/s and a few GB, one Postgres runs near 0.5% of its ceiling, the app server idles, the cache is almost decorative. Sharding, queues, and replicas would each solve a problem this system does not have, buying operational complexity, new failure modes, and a bigger bill for zero requirement met. The most expensive failure in a design review is fixing what isn\'t broken.',
-    fix: 'Ship it. Add a nightly backup and a health check, then revisit only when a real number moves — data outgrows one box, reads outgrow one primary, or an SLA tightens. The honest review question is “what would have to change for this to break?”, not “what can I add?”',
-    line: '“The requirements decide the architecture — at 50 req/s a single Postgres is the right call, not a risk. I add complexity when a number demands it, not before.”',
+      'Nothing in this sketch violates the requirements, and recognizing that is the real test. At 50 req/s and a few GB of data, one Postgres primary sits near 0.5% of its ceiling, the app server idles, and Redis is barely needed. Adding sharding, queues, or replicas buys operational complexity, new failure modes, and a higher bill without serving a single requirement.',
+    fix: 'Ship it as drawn. Add a nightly backup and a health check, then revisit only when a real number moves: data outgrows one box, reads outgrow one primary, or an SLA tightens. The useful review question is “what would have to change for this to break?”, not “what else can I add?”',
+    line: '“The requirements decide the architecture: at 50 req/s, a single Postgres is the right call, not a risk, and I add complexity only when a real number demands it.”',
   },
 ]
 

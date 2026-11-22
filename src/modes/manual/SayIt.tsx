@@ -15,9 +15,9 @@ import { sayItCardsForSection, type SayItCard } from '../../content/sayit'
 import { orderDeck, useSayItProgress, type SayItGrade } from '../../state/sayitProgress'
 
 const GRADE_META: { grade: SayItGrade; label: string; sub: string; key: string; col: string }[] = [
-  { grade: 'blanked', label: 'blanked', sub: 'demote · 1', key: '1', col: C.alert },
+  { grade: 'blanked', label: 'blanked', sub: 'repeat · 1', key: '1', col: C.alert },
   { grade: 'partial', label: 'partial', sub: 'hold · 2', key: '2', col: C.compute },
-  { grade: 'nailed', label: 'nailed it', sub: 'promote · 3', key: '3', col: C.mem },
+  { grade: 'nailed', label: 'nailed it', sub: 'advance · 3', key: '3', col: C.mem },
 ]
 
 const GRADE_COL: Record<SayItGrade, string> = { blanked: C.alert, partial: C.compute, nailed: C.mem }
@@ -71,8 +71,8 @@ function CardFront({ card, onFlip }: { card: SayItCard; onFlip: () => void }) {
         <Eyebrow color={C.dim}>INTERVIEWER</Eyebrow>
         <p style={{ fontSize: 18.5, lineHeight: 1.5, margin: '10px 0 0' }}>{card.cue}</p>
         <p style={{ marginTop: 'auto', paddingTop: 20, color: C.dim, fontSize: 13.5, lineHeight: 1.5 }}>
-          <span style={{ color: C.text, fontWeight: 600 }}>Say your answer out loud.</span> Full sentences, like you're in
-          the room. Then flip.
+          <span style={{ color: C.text, fontWeight: 600 }}>Say your answer out loud.</span> Speak in full sentences, as if you
+          are standing at the whiteboard, then flip the card.
         </p>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
@@ -95,7 +95,7 @@ function CardFront({ card, onFlip }: { card: SayItCard; onFlip: () => void }) {
         </button>
       </div>
       <div className="mono" style={{ marginTop: 8, fontSize: 11, color: C.faint }}>
-        space to flip · then 1 / 2 / 3 to grade
+        press space to flip · then 1, 2, or 3 to grade
       </div>
     </>
   )
@@ -158,8 +158,8 @@ function CardBack({ card, onGrade }: { card: SayItCard; onGrade: (g: SayItGrade)
           <MetaRow tag="NUMBER" col={C.gold}>
             <span className="mono" style={{ color: C.text, fontSize: 12.5 }}>
               {card.number.val}
-            </span>{' '}
-            — {card.number.body}
+            </span>
+            : {card.number.body}
           </MetaRow>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
@@ -203,7 +203,7 @@ function CardBack({ card, onGrade }: { card: SayItCard; onGrade: (g: SayItGrade)
         ))}
       </div>
       <div className="mono" style={{ marginTop: 8, fontSize: 11, color: C.faint }}>
-        grade against the checklist, not the vibe
+        grade yourself against the checklist, not a rough feeling
       </div>
     </>
   )
@@ -220,12 +220,15 @@ function EndScreen({ s, grades, onAgain }: { s: ManualSection; grades: (SayItGra
         <span style={{ color: C.alert }}>{n('blanked')} blanked</span>
       </div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.6, margin: 0 }}>
-        Grades move each card through the same Leitner boxes as the numeric drills: nailed waits longer, blanked comes back
-        daily. Shaky on one? <Link to={`/manual/briefings/${s.id}`} style={{ color: C.net }}>Re-read the briefing</Link> —
-        its terms panel carries every say-it sentence.
+        Your grades move each card through the same Leitner boxes used for numeric drills: cards you nail wait longer between
+        reviews, and cards you blank on return tomorrow. Still shaky on one?{' '}
+        <Link to={`/manual/briefings/${s.id}`} style={{ color: C.net }}>
+          Re-read the briefing
+        </Link>
+        , where the terms panel keeps every spoken sentence ready.
       </p>
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-        <GhostButton onClick={onAgain}>run it again</GhostButton>
+        <GhostButton onClick={onAgain}>practice again</GhostButton>
       </div>
     </div>
   )
@@ -272,12 +275,12 @@ export default function SayItDeck({ s }: { s: ManualSection }) {
   return (
     <div style={{ maxWidth: 640 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <GhostButton onClick={() => navigate(`/manual/briefings/${s.id}`)}>← the briefing</GhostButton>
+        <GhostButton onClick={() => navigate(`/manual/briefings/${s.id}`)}>← back to briefing</GhostButton>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>SAY IT</h1>
         <span className="mono" style={{ fontSize: 11.5, color: C.dim }}>{s.title.toLowerCase()}</span>
       </div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.6, margin: '0 0 16px', maxWidth: 560 }}>
-        Questions an interviewer would actually ask. Answer out loud before you flip — there's nowhere to type, on purpose.
+        Real questions an interviewer could ask you. Answer out loud before you flip the card. There is nowhere to type, by design.
       </p>
       <ProgressDots total={deck.length} at={at} grades={grades} />
       {done ? (

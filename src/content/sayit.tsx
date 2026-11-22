@@ -2,8 +2,7 @@
 // retrieval cards, each deck LOCAL to one briefing. The cue is a question an
 // interviewer would realistically ask; the model is ONE speakable answer
 // (a breath, max) in the player's first person. ids are stable — the Leitner
-// scheduler keys on them; never reuse or rename. The networking deck's copy
-// was approved in design review (spec 066 appendix) — ported verbatim.
+// scheduler keys on them; never reuse or rename.
 
 import type { ReactNode } from 'react'
 import { C } from '../theme'
@@ -33,120 +32,121 @@ export const SAYIT_CARDS: SayItCard[] = [
   {
     id: 'sayit-net-udp',
     section: 'networking',
-    cue: 'Would you ever pick UDP over TCP here? What would have to be true?',
+    cue: 'When would you actually reach for UDP over TCP here? What has to be true for that trade to pay off?',
     model: (
       <>
-        Yes — UDP trades delivery guarantees for latency: no handshake, no retransmits, no ordering. It wins exactly when
-        a {em('late packet is worse than a lost one')} — live voice, video, game state — and my users aren't stuck in a
-        browser without WebRTC.
+        Yes. UDP trades guaranteed delivery for lower latency, skipping the handshake, retransmits, and strict ordering. It wins
+        whenever a {em('late packet is worse than a lost one')}, like live voice, video, or game state, as long as my
+        clients are not locked inside a browser without WebRTC.
       </>
     ),
     checks: [
-      'Named what’s traded away: delivery, ordering, connection setup',
-      'Gave the decision rule — late worse than lost — with an example',
-      'Caught the browser caveat: raw UDP needs WebRTC or a fallback',
+      'Named what you trade away: guaranteed delivery, strict ordering, and connection setup',
+      'Gave the decision rule (late is worse than lost) with a concrete example',
+      'Flagged the browser constraint: raw UDP requires WebRTC or a fallback',
     ],
-    trap: '"UDP is unreliable" is a shrug, not an answer. Say what the unreliability buys you.',
-    number: { val: '8 B vs 20–60 B', body: 'UDP header vs TCP — and zero round trips of setup.', refs: ['udp-vs-tcp-header'] },
+    trap: '"UDP is unreliable" is a shrug, not an answer. Say what giving up reliability actually buys you in latency.',
+    number: { val: '8 B vs 20 to 60 B', body: 'UDP header compared to TCP, with zero round trips of setup.', refs: ['udp-vs-tcp-header'] },
     terms: ['udp', 'tcp', 'handshake'],
   },
   {
     id: 'sayit-net-hol',
     section: 'networking',
-    cue: 'Users on hotel wifi report that live video freezes, then fast-forwards to catch up. What’s going on?',
+    cue: 'Users on hotel wifi say their live video freezes, then fast-forwards to catch up. What is happening on the wire?',
     model: (
       <>
-        That's TCP doing its job: it retransmits lost packets and won't deliver anything out of order, so one lost packet
-        blocks everything behind it — {em('head-of-line blocking')}. The stream is reliable but late, and for live media,
-        late is worse than lost.
+        That is TCP doing exactly what it promises. It retransmits lost packets and refuses to deliver anything out of
+        order, so one dropped packet stalls everything behind it: {em('head-of-line blocking')}. The stream arrives intact
+        but late, and for live media, late is worse than lost.
       </>
     ),
     checks: [
-      'Named the guarantees doing the damage: retransmission + strict ordering',
-      'Said "head-of-line blocking" out loud',
-      'Concluded the fix: switch transports (WebRTC/UDP), don’t tune TCP',
+      'Named the two guarantees causing the stall: retransmission and strict ordering',
+      'Named "head-of-line blocking" clearly out loud',
+      'Proposed the right fix: switch transports (WebRTC/UDP) instead of trying to tune TCP',
     ],
-    trap: 'Don’t say "TCP is slow." TCP isn’t slow — it’s strict. Name the guarantee causing the wait.',
-    number: { val: '≥ 1 RTT', body: 'per retransmit — 100+ ms on a cross-country path, felt as a freeze.', refs: ['retransmit-rtt'] },
+    trap: 'Avoid saying "TCP is slow." TCP is not slow; it is strict. Name the guarantee that forces the wait.',
+    number: { val: '≥ 1 RTT', body: 'the cost of each retransmit, which means 100+ ms on a cross-country path and a visible freeze.', refs: ['retransmit-rtt'] },
     terms: ['tcp', 'headofline', 'webrtc'],
   },
   {
     id: 'sayit-net-ws',
     section: 'networking',
-    cue: 'You drew WebSockets for live comments. Defend that — or back off.',
+    cue: 'You put WebSockets on the board for live comments. Can you defend that choice, or would you simplify it?',
     model: (
       <>
-        I'd back off. Comments are one-way push — users post over plain HTTP — so {em('SSE gives me push without the duplex')}{' '}
-        I'm not using. WebSockets earn their stateful cost only when traffic is genuinely bidirectional and high-frequency:
-        chat, multiplayer, presence.
+        I would pull it back. Comments are a one-way push while users post over plain HTTP, so{' '}
+        {em('SSE gives me live push without the full duplex')} I am not using. WebSockets earn their stateful overhead only
+        when traffic is genuinely bidirectional and high-frequency, like chat, multiplayer, or presence.
       </>
     ),
     checks: [
-      'Applied the test: is the traffic truly bidirectional + high-frequency?',
-      'Named the cost of stateful connections: memory, sticky routing, harder deploys',
-      'Offered the cheaper alternative instead of defending the wrong pick',
+      'Applied the test: is traffic genuinely bidirectional and high-frequency?',
+      'Named the cost of stateful sockets: server memory, sticky routing, and harder deploys',
+      'Suggested the simpler alternative instead of defending overkill',
     ],
-    trap: 'Backing off gracefully scores higher than a confident defense of overkill. Retreat is a move.',
-    number: { val: '1 conn = RAM + a slot', body: 'every open socket is server memory the LB must pin somewhere.', refs: [] },
+    trap: 'Defending stateful sockets for one-way traffic only shows you missed the cost. Backing off to SSE when the workload does not need duplex is the stronger move.',
+    number: { val: '1 conn = RAM + a slot', body: 'every open socket holds server memory that the LB has to pin to a specific host.', refs: [] },
     terms: ['websocket', 'sse', 'lb'],
   },
   {
     id: 'sayit-net-idem',
     section: 'networking',
-    cue: 'A timeout triggered a client retry and a customer got charged twice. How do you make retries safe?',
+    cue: 'A timeout triggered a client retry and a customer got billed twice. How do you make retries safe?',
     model: (
       <>
-        With an {em('idempotency key')}: the client attaches a unique id per logical operation, the server records it and
-        processes each key once — so a retry returns the first result instead of charging again. That's what makes "retry
-        with backoff" safe to say.
+        With an {em('idempotency key')}. The client sends a unique id per logical operation, and the server stores it so
+        each key runs once and any retry gets the original result instead of a second charge. That is what makes "retry
+        with backoff" safe to put in a design.
       </>
     ),
     checks: [
-      'Named the mechanism: idempotency key, dedup on the server',
-      'Explained the ambiguity: a timeout means the write may have succeeded',
-      'Tied it back: retries are only safe on idempotent APIs',
+      'Named the mechanism: an idempotency key deduplicated on the server',
+      'Explained the ambiguity: a timeout might mean the write already landed',
+      'Connected it back: retries are only safe on idempotent endpoints',
     ],
-    trap: '"GETs are idempotent" dodges the question — the interviewer is always asking about writes.',
-    number: { val: 'timeout ≠ failure', body: 'the request may have landed; ambiguity is the default, not the edge case.', refs: [] },
+    trap: 'Saying "GETs are idempotent" dodges the real problem. The interviewer is asking how you protect writes from double execution.',
+    number: { val: 'timeout ≠ failure', body: 'the write may already have committed, so ambiguity is the normal case rather than a rare edge case.', refs: [] },
     terms: ['idempotent', 'retry', 'timeout'],
   },
   {
     id: 'sayit-net-sse',
     section: 'networking',
-    cue: 'Your SSE connection gets killed by a proxy after 60 seconds. What do your users see?',
+    cue: 'A proxy drops your SSE connection after 60 seconds. What do your users notice?',
     model: (
       <>
-        Ideally nothing: EventSource auto-reconnects and sends {em('Last-Event-ID')}, and my server replays what they missed
-        from a short buffer. If I don't keep that buffer, every proxy timeout silently drops events — so reconnect-and-replay
-        is part of the design, not an edge case.
+        With a proper setup, nothing. EventSource reconnects automatically and sends {em('Last-Event-ID')}, so my server
+        replays whatever they missed from a short buffer. Without that buffer, every proxy timeout silently loses events,
+        so reconnect-and-replay has to be part of the core design.
       </>
     ),
     checks: [
-      'Named the built-in: auto-reconnect with Last-Event-ID',
-      'Named your obligation: a server-side replay buffer',
-      'Framed disconnects as routine, not exceptional',
+      'Named the built-in behavior: automatic reconnect carrying Last-Event-ID',
+      'Named your side of the contract: keeping a server-side replay buffer',
+      'Treated disconnects as routine behavior rather than rare failures',
     ],
-    trap: 'Interviewers probe SSE limits to find out if you’ve actually shipped it. This card is that probe.',
-    number: { val: '~30–90 s', body: 'typical middlebox idle timeout — your connection’s real life expectancy.', refs: ['middlebox-idle-timeout'] },
+    trap: 'Treating SSE as a connection that stays open forever is the classic mistake. Proxies drop idle streams routinely, so skipping the replay buffer guarantees silent data loss.',
+    number: { val: '~30 to 90 s', body: 'the typical middlebox idle timeout, which sets your connection’s real lifespan.', refs: ['middlebox-idle-timeout'] },
     terms: ['sse', 'lasteventid', 'timeout'],
   },
   {
     id: 'sayit-net-grpc',
     section: 'networking',
-    cue: 'Your public API is REST but services talk gRPC internally. Isn’t that inconsistent?',
+    cue: 'Your public API uses REST, while internal services talk gRPC. Is that split worth the complexity?',
     model: (
       <>
-        It's deliberate. gRPC's binary protobuf over HTTP/2 is fast and typed, but it assumes {em('you control both ends')} —
-        browsers and third parties don't speak it well. So REST at the boundary, gRPC inside where I own every client.
+        Yes, and it is intentional. gRPC gives me compact binary protobuf over HTTP/2 with strict typing, but it assumes{' '}
+        {em('I control both ends')} because browsers and third parties do not speak it cleanly. So I keep REST at the
+        public edge and use gRPC internally where I own every client.
       </>
     ),
     checks: [
-      'Named what gRPC buys: binary encoding, HTTP/2, generated typed stubs',
-      'Named the constraint: poor browser/third-party support at the edge',
-      'Stated the rule: REST at the boundary, gRPC service-to-service',
+      'Named what gRPC gives you: binary encoding, HTTP/2, and generated typed stubs',
+      'Named the edge constraint: limited browser and third-party support',
+      'Stated the clean boundary: REST at the edge, gRPC service-to-service',
     ],
-    trap: 'If probed past your experience, say where it ends — "I’ve seen it run, not operated it" is a strong answer.',
-    number: { val: '15 B vs 40 B', body: 'the same User object in protobuf vs JSON — less space, less CPU to parse.', refs: ['protobuf-vs-json-size'] },
+    trap: 'Bluffing past your hands-on depth falls apart on the next follow-up. Saying "I have seen gRPC run, not operated it myself" keeps your credibility intact.',
+    number: { val: '15 B vs 40 B', body: 'the same User object in protobuf versus JSON, meaning less wire space and less CPU spent parsing.', refs: ['protobuf-vs-json-size'] },
     terms: ['grpc', 'rest', 'protobuf'],
   },
 
@@ -156,141 +156,141 @@ export const SAYIT_CARDS: SayItCard[] = [
   {
     id: 'sayit-idx-scan',
     section: 'indexing',
-    cue: 'This query sequentially scans 200 million rows and takes 40 seconds. Walk me through what is actually happening.',
+    cue: 'This query sequentially scans 200 million rows and takes 40 seconds. Walk me through what the database is actually doing.',
     model: (
       <>
-        The table is a {em('heap file')} — rows stored in no order — so without an index the engine reads every page and
-        tests every row. It reads 8 KB whether I wanted one column or forty, so the cost is the table's size in pages,
-        not in rows.
+        The table lives in a {em('heap file')} with rows stored in no order, so without an index the engine has to read
+        every page and check every row. It pulls full 8 KB pages whether I asked for one column or forty, so the cost
+        tracks the table’s size in pages rather than its row count.
       </>
     ),
     checks: [
-      'Named the layout: a heap file, with rows in no order at all',
-      'Said the PAGE, not the row, is the unit of I/O',
-      'Priced the scan in pages read rather than rows examined',
+      'Named the storage layout: a heap file where rows sit in no order',
+      'Identified the page, not the individual row, as the unit of I/O',
+      'Priced the scan by pages read instead of rows examined',
     ],
-    trap: 'Don’t say "it’s a big table." Size is not the problem — the absence of any ordering is. Name the heap file.',
-    number: { val: '8 KB per page', body: 'the unit of I/O — a 200-byte row still costs a full page transfer.', refs: ['disk-page-size'] },
+    trap: 'Avoid saying "it is just a huge table." Size alone is not what makes it slow; the lack of any ordering is. Name the heap file.',
+    number: { val: '8 KB per page', body: 'the real unit of disk I/O, so even a 200-byte row triggers a full page transfer.', refs: ['disk-page-size'] },
     terms: ['heapfile', 'index'],
   },
   {
     id: 'sayit-idx-depth',
     section: 'indexing',
-    cue: 'This table is about to grow ten times. How much slower do the point lookups get?',
+    cue: 'This table is about to grow ten times larger. How much slower will our point lookups get?',
     model: (
       <>
-        Barely at all — a B-tree node holds a few hundred children, so depth is a logarithm in the hundreds and ten
-        times the rows costs {em('at most one extra page read')}. What degrades at that size is the cache hit rate and
-        the maintenance window, not the lookup.
+        Hardly at all. A B-tree node holds a few hundred children, so tree depth grows with a high-base logarithm and ten
+        times the rows adds {em('at most one extra page read')}. What actually feels the growth is your cache hit rate and
+        maintenance windows, not the lookup itself.
       </>
     ),
     checks: [
-      'Named fan-out as the reason depth barely moves with size',
-      'Gave the order of magnitude: hundreds of children per node',
-      'Redirected to what does degrade — cache hit rate and maintenance',
+      'Credited high fan-out for keeping tree depth nearly flat as the table grows',
+      'Gave the right scale: hundreds of children per B-tree node',
+      'Pointed to what actually degrades: cache hit rate and maintenance work',
     ],
-    trap: '"Bigger table, slower index" is the intuition to unlearn. The lookup is logarithmic; the vacuum is not.',
-    number: { val: '~4 page reads', body: '100M rows at a fan-out near 340 — and the top levels are already in memory.', refs: ['btree-lookup-depth'] },
+    trap: '"Bigger table means slower index" is the reflex to unlearn. Point lookups scale logarithmically; vacuum and cache pressure do not.',
+    number: { val: '~4 page reads', body: 'enough to locate a key among 100M rows at a fan-out near 340, with the top levels already warm in memory.', refs: ['btree-lookup-depth'] },
     terms: ['btree', 'index'],
   },
   {
     id: 'sayit-idx-cost',
     section: 'indexing',
-    cue: 'Someone added six indexes to the orders table and writes have slowed right down. What happened?',
+    cue: 'Someone added six indexes to the orders table and write latency jumped. What changed under the hood?',
     model: (
       <>
-        Every write maintains every index, so one row write became {em('seven physical writes')}. Each index is a bet
-        that its column is read more often than the table is written, and six of those bets is a permanent tax on every
-        insert, update and delete.
+        Every write has to keep every index in sync, so a single row change just turned into {em('seven physical writes')}.
+        Each index is a wager that its column gets read more than the table gets written, and six of them add a permanent
+        tax to every insert, update, and delete.
       </>
     ),
     checks: [
-      'Named the mechanism: every index maintained on every write',
-      'Quantified it — one row write becomes 1 + n physical writes',
-      'Framed an index as a read/write bet rather than a free win',
+      'Explained the mechanism: every index must be updated on every write',
+      'Quantified the multiplier: one row change becomes 1 + n physical writes',
+      'Framed each index as a read/write bet rather than a free speedup',
     ],
-    trap: 'Don’t offer to "optimize the queries." The queries got faster — that is what was paid for. Name the write path.',
-    number: { val: '1 + n writes', body: 'per row change — and the read you bought was already a sub-millisecond lookup.', refs: ['pg-indexed-lookup-rate'] },
+    trap: 'Do not jump to "optimize the queries." The reads already got faster; that speedup is what the writes are paying for. Point straight at the write path.',
+    number: { val: '1 + n writes', body: 'the work triggered by each row change, paid to keep reads at sub-millisecond lookups.', refs: ['pg-indexed-lookup-rate'] },
     terms: ['index', 'write'],
   },
   {
     id: 'sayit-idx-lsm',
     section: 'indexing',
-    cue: 'You are taking 50,000 writes a second and the B-tree cannot keep up. What do you change?',
+    cue: 'You are ingesting 50,000 writes a second and the B-tree cannot keep up. What do you switch to?',
     model: (
       <>
-        I'd move to a log-structured engine: writes append to a fsynced log and an in-memory table, then flush
-        sequentially, so {em('random page writes become one sequential stream')}. I pay on reads, where a lookup may
-        check several files — bloom filters are what make that survivable.
+        I would move to a log-structured engine. Writes append to an fsynced log and an in-memory table, then flush
+        sequentially so {em('random page writes become one sequential stream')}. The tradeoff lands on reads, which may
+        check multiple files, and bloom filters are what keep that affordable.
       </>
     ),
     checks: [
-      'Named the write path: log plus memtable, flushed sequentially',
-      'Named the cost honestly — reads check several files, plus compaction I/O',
-      'Gave the crossover: it is an engine choice above ~10k writes/s',
+      'Described the write path: append-only log plus memtable, flushed sequentially',
+      'Named the real cost: reads check multiple files, plus background compaction I/O',
+      'Gave the rough crossover: an engine-level shift past ~10k writes/s',
     ],
-    trap: 'Don’t call it "an LSM index." It is the storage format of the whole table, and saying index gives you away.',
-    number: { val: '~10,000 writes/s', body: 'the band where a log-structured engine starts beating a B-tree outright.', refs: ['lsm-write-crossover'] },
+    trap: 'Never call it "an LSM index." It is the storage format for the whole table, and calling it an index tells the room you are guessing.',
+    number: { val: '~10,000 writes/s', body: 'the threshold where a log-structured engine starts pulling cleanly ahead of a B-tree.', refs: ['lsm-write-crossover'] },
     terms: ['lsm', 'memtable', 'bloomfilter'],
   },
   {
     id: 'sayit-idx-composite',
     section: 'indexing',
-    cue: 'The query filters on tenant and sorts by created_at. What index would you build?',
+    cue: 'Your query filters by tenant and sorts by created_at. What index do you create?',
     model: (
       <>
-        One composite index on {em('(tenant, created_at)')}, in that order. It is entered by tenant, and because rows
-        are already ordered by date inside each tenant, the same traversal answers the sort — no sort step in the plan
-        at all.
+        One composite index on {em('(tenant, created_at)')}, strictly in that order. The engine jumps straight to the
+        tenant, and because rows inside each tenant are already sorted by date, the same scan satisfies both the filter
+        and the sort with no extra sort step in the plan.
       </>
     ),
     checks: [
-      'Chose one composite index rather than two single-column ones',
-      'Named the leading-prefix rule as why the column order matters',
-      'Said what it buys: filter and sort in a single traversal',
+      'Picked a single composite index instead of two separate single-column indexes',
+      'Cited the leading-prefix rule to explain why column order matters',
+      'Named the payoff: one traversal handles both filtering and sorting',
     ],
-    trap: '"I’d index both columns" is the common miss — two indexes are not a composite one, and the planner cannot glue them together.',
-    number: { val: '1 traversal', body: 'the right column order answers filter and sort together; the wrong one sorts the whole result set.', refs: [] },
+    trap: 'Saying "I would index both columns" misses the point. Two separate indexes are not a composite one, and the planner cannot stitch them together to skip the sort.',
+    number: { val: '1 traversal', body: 'the right column order answers both filter and sort together, while the reversed order forces a full sort.', refs: [] },
     terms: ['compositeindex', 'btree'],
   },
   {
     id: 'sayit-idx-small',
     section: 'indexing',
-    cue: 'Would you index the status column on a table with 800 rows in it?',
+    cue: 'Would you put an index on the status column of a table with 800 rows?',
     model: (
       <>
-        No. The whole table is a couple of hundred kilobytes, so a sequential read beats a tree walk plus a random fetch
-        per row — and the {em('planner will measure exactly that')} and ignore the index. All I would have bought is
+        No. The entire table is only a couple of hundred kilobytes, so a sequential scan beats walking a tree and chasing
+        random row fetches. The {em('query planner measures that')} and ignores the index anyway, leaving me with pure
         write amplification.
       </>
     ),
     checks: [
-      'Said no, with the reason: sequential beats random at this size',
-      'Named who decides — the planner measures and picks the scan',
-      'Named the cost of adding it anyway: pure write amplification',
+      'Said no and gave the physics: sequential reads beat random fetches at small size',
+      'Named who makes the call: the query planner compares costs and picks the scan',
+      'Pointed out the downside of adding it anyway: wasted write amplification',
     ],
-    trap: 'People add an index, see nothing improve, and conclude it is broken. It was not used — and not using it was correct.',
-    number: { val: '~1,000 rows', body: 'the rough floor below which an index is pure cost and the scan wins outright.', refs: ['index-table-threshold'] },
+    trap: 'Engineers often add an index, see zero speedup, and assume something is broken. The planner skipped it because skipping it was faster.',
+    number: { val: '~1,000 rows', body: 'the rough floor below which an index adds pure overhead and a sequential scan wins outright.', refs: ['index-table-threshold'] },
     terms: ['queryplanner', 'index'],
   },
   {
     id: 'sayit-idx-geo',
     section: 'indexing',
-    cue: 'You have latitude and longitude columns and a "restaurants near me" query. Two indexes, right?',
+    cue: 'You have latitude and longitude columns for a "restaurants near me" query. Just index both columns, right?',
     model: (
       <>
-        No — {em('sorted order is one-dimensional')}, so the planner takes one of them and hand-filters a stripe of the
-        planet. I'd flatten the plane into something sortable with a geohash, or use a tree built around the data — a
-        quadtree for points, an R-tree if I need shapes.
+        No, because {em('sorted order is one-dimensional')}. The planner uses one index and then hand-filters a whole
+        stripe of the planet. I would map the 2-D plane into a sortable geohash, or use a spatial tree like a quadtree for
+        points or an R-tree when I need shapes.
       </>
     ),
     checks: [
-      'Named the failure: two 1-D indexes cannot serve a 2-D query',
-      'Named a real structure and what it actually does',
-      'Picked one and justified it instead of listing all three',
+      'Identified the geometry mismatch: two 1-D indexes cannot serve a 2-D box',
+      'Named a real spatial structure and explained how it partitions space',
+      'Committed to one choice and its tradeoff instead of reciting a list',
     ],
-    trap: 'Listing geohash, quadtree and R-tree without choosing reads as recall. Pick one and say what it costs you.',
-    number: { val: '~100 points', body: 'a quadtree splits a node past roughly this, so cities go deep and ocean stays shallow.', refs: ['quadtree-split-threshold'] },
+    trap: 'Rattling off geohash, quadtree, and R-tree without picking one sounds like flashcard recall. Choose one and state what it costs.',
+    number: { val: '~100 points', body: 'roughly when a quadtree splits a cell, keeping cities deep and empty ocean shallow.', refs: ['quadtree-split-threshold'] },
     terms: ['geohash', 'quadtree', 'rtree'],
   },
 
@@ -298,141 +298,141 @@ export const SAYIT_CARDS: SayItCard[] = [
   {
     id: 'sayit-search-builtin',
     section: 'search-db',
-    cue: 'You reached for a search cluster on slide two. Why not just use the database’s built-in full-text search?',
+    cue: 'You put a dedicated search cluster in your diagram right away. Why not start with the database’s built-in full-text search?',
     model: (
       <>
-        Often I would — it stems, it ranks, and it is one system to operate. I'd add a dedicated engine for something
-        specific: {em('tunable relevance')}, typo tolerance, multi-language analysis, or faceting at a scale that would
-        compete with my write traffic.
+        Most of the time I would start there, because it stems, ranks, and leaves me with one system to run. I bring in a
+        dedicated search engine only for a specific need like {em('tunable relevance')}, typo tolerance, multi-language
+        analysis, or heavy faceting that would crowd my write traffic.
       </>
     ),
     checks: [
-      'Started from the cheaper option instead of defending the cluster',
-      'Named a specific capability the built-in does not cover',
-      'Named the operational cost of running a second system',
+      'Started from the simpler database option instead of defending the cluster',
+      'Named a concrete capability that built-in full-text search lacks',
+      'Acknowledged the operational overhead of running a second datastore',
     ],
-    trap: '"Elasticsearch is for search" is a category, not a reason. Name the one capability that made you leave the database.',
-    number: { val: '~0.3 ms', body: 'an indexed lookup in the primary is already this fast — slowness alone is not the argument.', refs: ['pg-indexed-lookup-rate'] },
+    trap: '"Elasticsearch is for search" names a category, not a justification. Call out the exact requirement that forced you out of the primary database.',
+    number: { val: '~0.3 ms', body: 'how fast an indexed lookup in the primary database already is, so raw speed alone rarely justifies a new cluster.', refs: ['pg-indexed-lookup-rate'] },
     terms: ['invertedindex', 'index'],
   },
   {
     id: 'sayit-search-inverted',
     section: 'search-db',
-    cue: 'Walk me through what happens between a document being saved and it being findable by one of its words.',
+    cue: 'Walk me through what happens from the moment a document is saved until a search for one of its words finds it.',
     model: (
       <>
-        It goes through an analyzer — tokenize, lowercase, drop stop words, stem — and each resulting term gets that
-        document's id appended to its postings list. The query runs through {em('the same analyzer')}, which is why
-        searching "Running" finds a document that said "ran".
+        The text runs through an analyzer that tokenizes, lowercases, strips stop words, and stems each word, appending
+        the document’s id to each term’s postings list. At query time, search input passes through{' '}
+        {em('the exact same analyzer')}, which is why searching "Running" still matches a document containing "ran".
       </>
     ),
     checks: [
-      'Named the analysis pipeline and at least two of its stages',
-      'Described the structure: term to a sorted list of document ids',
-      'Caught the key detail — the same pipeline runs over the query',
+      'Named the analysis pipeline and at least two stages inside it',
+      'Described the inverted index: each term maps to a sorted list of document ids',
+      'Caught the crucial symmetry: the same analyzer runs on both writes and queries',
     ],
-    trap: 'Saying it "indexes the words" skips the whole mechanism. The stored terms are analyzed, and that is what makes matching forgiving.',
-    number: { val: 'O(matches)', body: 'a lookup and a merge of postings lists, instead of a scan linear in the corpus.', refs: [] },
+    trap: 'Saying the engine "indexes the words" glosses over the whole mechanism. Analyzing terms before storing them is what makes matching forgiving.',
+    number: { val: 'O(matches)', body: 'looking up and merging postings lists instead of scanning linearly across the whole corpus.', refs: [] },
     terms: ['analyzer', 'invertedindex', 'relevance'],
   },
   {
     id: 'sayit-search-updates',
     section: 'search-db',
-    cue: 'Our catalogue reprices every few minutes and search has got slow. Any idea why?',
+    cue: 'Our product catalog reprices every few minutes and search latency has been creeping up. What is causing that?',
     model: (
       <>
-        Segments are immutable, so an update is {em('a tombstone plus a whole new copy')}. Repricing constantly means
-        dead documents piling up in every segment and merges running flat out to reclaim them — this is precisely the
-        workload the design is worst at.
+        Search segments are immutable, so every update writes {em('a tombstone plus a brand-new copy')} of the document.
+        Constant repricing piles dead documents into every segment and forces merges to run flat out reclaiming space,
+        which is the exact workload this engine handles worst.
       </>
     ),
     checks: [
-      'Named immutability: nothing in a segment is edited in place',
-      'Named the cost — an update is a delete marker plus an insert',
-      'Connected it to merge pressure and dead space, not raw write volume',
+      'Called out segment immutability: documents are never edited in place',
+      'Spelled out the update cost: a delete marker plus a full re-insert',
+      'Tied the slowdown to merge pressure and dead space rather than raw write volume',
     ],
-    trap: 'Don’t reach for more nodes first. This is a fit problem — index the stable fields and leave the volatile price in the database.',
-    number: { val: 'update > insert', body: 'strictly and permanently — the old copy holds space and read work until a merge.', refs: [] },
+    trap: 'Throwing more nodes at the cluster misses the real issue. This is a workload mismatch: index the stable catalog fields and keep volatile prices in the database.',
+    number: { val: 'update > insert', body: 'strictly and permanently, because the stale copy burns space and read work until a merge clears it.', refs: [] },
     terms: ['segment', 'tombstone'],
   },
   {
     id: 'sayit-search-truth',
     section: 'search-db',
-    cue: 'Where does the search cluster sit relative to your database in this design?',
+    cue: 'Where does the search cluster sit relative to your primary database in this architecture?',
     model: (
       <>
-        Downstream of it. The database holds the truth and a change stream feeds the index, so it is a{' '}
-        {em('derived read model')}, eventually consistent by construction — I'd quote the lag as a design parameter
-        rather than pretend it is zero.
+        Strictly downstream. The database holds the source of truth and a change stream feeds the search index, making it
+        a {em('derived read model')} that is eventually consistent by design. I would state the sync lag explicitly as a
+        system parameter instead of pretending it is zero.
       </>
     ),
     checks: [
-      'Placed it downstream: a derived read model, never the source of truth',
-      'Named the sync mechanism — a change stream out of the database',
-      'Owned the consistency story and quoted a lag out loud',
+      'Placed search downstream as a derived read model, never the source of truth',
+      'Named the sync path: a change stream flowing out of the database',
+      'Owned eventual consistency and named an expected lag out loud',
     ],
-    trap: '"We write to both" invites the dual-write question, and there is no good follow-up to it. Say what feeds the index.',
-    number: { val: 'seconds of lag', body: 'the gap between a committed write and a searchable document — say the number.', refs: [] },
+    trap: 'Saying "the app writes to both" immediately invites the dual-write failure question, and there is no clean rescue from it. Name the stream that feeds the index.',
+    number: { val: 'seconds of lag', body: 'the real window between a committed database write and a searchable result, so put a number on it.', refs: [] },
     terms: ['cdc', 'consistency'],
   },
   {
     id: 'sayit-search-page',
     section: 'search-db',
-    cue: 'A user pages through to result 9,000 and the request suddenly fails. What is going on?',
+    cue: 'A user clicks all the way to result 9,000 and the search request suddenly fails. Why?',
     model: (
       <>
-        Deep pagination. To order results globally every shard has to return offset-plus-page-size documents for the
-        coordinator to merge, so page 900 means {em('each shard shipping 9,000 candidates')}. The engine caps that
-        rather than let it grow, and the fix is a cursor, not a bigger limit.
+        Deep pagination. To build a globally sorted page, every shard has to return offset-plus-page-size hits for the
+        coordinator to merge, so page 900 means {em('each shard ships 9,000 candidates')}. The engine caps that before
+        memory blows up, and the real fix is a cursor rather than a higher limit.
       </>
     ),
     checks: [
-      'Located the cost in the coordinator’s merge, not in the page size',
-      'Explained why it grows with the OFFSET rather than the page',
-      'Gave the fix: a cursor keyed on the last sort value',
+      'Pinned the bottleneck on the coordinator merge rather than the page size',
+      'Explained why cost scales with OFFSET instead of the number of displayed rows',
+      'Gave the right fix: cursor pagination anchored on the last sort value',
     ],
-    trap: 'Raising the limit is the trap — it moves the cliff and buries it deeper in the product.',
-    number: { val: '10,000 deep', body: 'the default cap on offset plus page size, past which the request is refused.', refs: ['es-deep-pagination-cliff'] },
+    trap: 'Bumping the max-result limit is the classic trap. It just moves the cliff further back while letting memory pressure grow silently.',
+    number: { val: '10,000 deep', body: 'the default cap on offset plus page size, after which the cluster refuses the query.', refs: ['es-deep-pagination-cliff'] },
     terms: ['cursor', 'pagination'],
   },
   {
     id: 'sayit-search-facet',
     section: 'search-db',
-    cue: 'You want to facet these hits by brand and sort them by price. Does the inverted index do that?',
+    cue: 'We need to facet these search results by brand and sort them by price. Does the inverted index handle that?',
     model: (
       <>
-        No — it maps terms to documents, which is the wrong direction for "what is this document's price?". That comes
-        from {em('doc values')}: a column-oriented copy of each field in document order, which is also how the engine
-        aggregates without exhausting the heap.
+        No. An inverted index maps terms to documents, which is backwards for asking "what is this document’s price?"
+        Sorting and faceting come from {em('doc values')}, a column-oriented copy stored in document order that lets the
+        engine aggregate without blowing out heap memory.
       </>
     ),
     checks: [
-      'Named the direction problem: term-to-document versus document-to-value',
-      'Named doc values and their column-oriented layout',
-      'Connected it to why aggregation works on this system at all',
+      'Named the lookup direction mismatch: term-to-document versus document-to-value',
+      'Named doc values and their column-oriented on-disk layout',
+      'Explained why that second structure is what makes fast aggregations possible',
     ],
-    trap: 'Saying "the index handles sorting too" collapses two structures into one — and the second is why this thing does analytics.',
-    number: { val: '2 layouts', body: 'the same field stored twice, one per direction of access — which is why the index outgrows the data.', refs: [] },
+    trap: 'Saying "the inverted index handles sorting too" blurs two distinct structures together, and doc values are the exact reason search engines can run analytics.',
+    number: { val: '2 layouts', body: 'the same field stored twice for opposite access directions, which is why search indexes often outweigh the raw data.', refs: [] },
     terms: ['docvalues', 'invertedindex'],
   },
   {
     id: 'sayit-search-shards',
     section: 'search-db',
-    cue: 'How many shards would you give this index, and can you change that number later?',
+    cue: 'How many shards would you give this search index, and can you change that count later?',
     model: (
       <>
-        I'd size it by data volume — tens of gigabytes per shard — and then say plainly that the count is{' '}
-        {em('fixed at creation')}. Changing it means building a new index and swapping an alias over, so I would rather
-        over-provision slightly than plan a reindex I cannot schedule.
+        I would size the shard count by data volume, targeting tens of gigabytes per shard, and be upfront that the count
+        is {em('fixed at creation')}. Changing it later requires building a new index and swapping an alias, so I would
+        leave modest headroom rather than rely on an unscheduled reindex.
       </>
     ),
     checks: [
-      'Sized shards by data volume instead of guessing a round number',
-      'Knew the count is fixed once the index holds documents',
-      'Named the migration: a reindex behind an alias swap',
+      'Sized shards from data volume instead of picking an arbitrary round number',
+      'Stated clearly that the primary shard count is locked once data lands',
+      'Named the real migration path: reindex into a new index behind an alias swap',
     ],
-    trap: 'Over-sharding is the more common mistake — hundreds of tiny shards make every query a fan-out with none of the parallelism.',
-    number: { val: '10–50 GB', body: 'the target size per shard, which is what sets the count you can never change.', refs: ['es-doc-threshold'] },
+    trap: 'Over-sharding is the more common pitfall. Hundreds of tiny shards turn every query into heavy fan-out overhead without buying real parallelism.',
+    number: { val: '10 to 50 GB', body: 'the healthy target size per shard, which determines the count you have to live with.', refs: ['es-doc-threshold'] },
     terms: ['shard', 'replica'],
   },
 ]

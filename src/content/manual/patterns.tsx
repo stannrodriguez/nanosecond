@@ -18,29 +18,32 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     id: 'realtime-updates',
     shelf: 'patterns',
     title: 'Pushing realtime updates',
-    thesis: 'How does the server tell the client "something changed" without being asked?',
+    thesis: 'How does a server tell the client something changed without waiting to be asked?',
     body: (
       <>
         <p>
-          HTTP is client-pull: the server can't speak first. To show live data you pick a technique on a spectrum of freshness
-          vs cost. Toggle them below. <T k="polling">Polling</T> asks on a timer (simple, but most requests find nothing);
-          long-polling holds the request open; <T k="sse">server-sent events</T> stream one-way; a <T k="websocket">WebSocket</T>{' '}
-          is a full duplex pipe.
+          Plain HTTP is client-pull: the server only speaks when spoken to. Showing live data means choosing a point on
+          the spectrum between freshness and server cost. Compare the four options below. <T k="polling">Polling</T>{' '}
+          checks in on a timer, which is simple to build, though most trips come back empty. Long-polling holds each
+          request open until news arrives. <T k="sse">Server-sent events</T> keep a one-way stream open from server to
+          client. A <T k="websocket">WebSocket</T> upgrades the connection into a full-duplex pipe where either side can
+          talk at any time.
         </p>
         <p style={{ color: C.dim }}>
-          The trap is <T k="fanout">fan-out</T>: one event pushed to a million connected clients is a million sends, and every
-          open connection is memory on a server that can't be stateless. Polling wins when updates are rare and clients are
-          many; push wins when updates are frequent and latency matters (chat, trading, presence). A dropped stream is
-          the other cost: SSE replays the gap through <T k="lasteventid">Last-Event-ID</T> only if you buffered recent
-          events server-side. When the payload is live media rather than events, <T k="webrtc">WebRTC</T> moves it
-          peer-to-peer and off your servers entirely.
+          The catch is <T k="fanout">fan-out</T>: pushing a single event to a million connected clients means a million
+          outbound sends, and every open socket claims memory on a server that can no longer stay stateless. Polling
+          wins when updates are rare across a big crowd; push wins when updates arrive fast and latency matters, as in
+          chat, trading, or presence. Dropped connections are the second bill you pay. SSE can replay what a client
+          missed through <T k="lasteventid">Last-Event-ID</T>, but only if the server kept a buffer of recent events.
+          When you are moving live audio or video instead of small events, <T k="webrtc">WebRTC</T> shifts the media
+          peer-to-peer so it stays off your servers.
         </p>
         <p>
-          "Off your servers entirely" needs one correction. Both peers usually sit behind <T k="nat">NAT</T>, sharing a
-          public address with no inbound mapping, so neither can be dialed until it has sent something outward first. They
-          therefore meet on a <T k="signaling">signaling</T> server — an ordinary WebSocket — to trade addresses and codecs
-          before any direct link exists, and a relay still carries the peers whose NAT refuses to cooperate. Only the media
-          is peer-to-peer; the introduction never is.
+          "Off your servers" comes with one big footnote. Both peers usually sit behind <T k="nat">NAT</T>, sharing a
+          public address with no open inbound mapping, so neither side can be reached until it sends traffic outward
+          first. They meet on a <T k="signaling">signaling</T> server (typically an ordinary WebSocket) to swap
+          addresses and codecs before a direct link exists, and a relay server still bridges peers whose NAT refuses to
+          cooperate. Only the media travels peer-to-peer; the introduction still goes through you.
         </p>
       </>
     ),
@@ -58,26 +61,26 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
             {id === 'poll' && (
               <>
-                {line('Poll every 10s:', 'dead simple, works everywhere. But ~5s average staleness and mostly-empty requests.', C.compute)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>1M clients × 6/min = 100k req/s of mostly "nothing new".</p>
+                {line('Poll every 10s:', 'dead simple and works everywhere, at the cost of ~5s average staleness and mostly empty replies.', C.compute)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>1M clients × 6/min = 100k req/s just to hear "nothing new" most of the time.</p>
               </>
             )}
             {id === 'long' && (
               <>
-                {line('Long-poll:', 'hold the request open until there’s news, then reconnect. Near-realtime over plain HTTP.', C.gold)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Fewer empty responses, but a held connection per waiting client.</p>
+                {line('Long-poll:', 'hold the request open until an update lands, then reconnect right away. Near-realtime over plain HTTP.', C.gold)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>Far fewer empty responses, though every waiting client still holds an open connection.</p>
               </>
             )}
             {id === 'sse' && (
               <>
-                {line('Server-sent events:', 'one long-lived stream, server → client only. Auto-reconnect built in.', C.net)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Perfect for feeds and notifications; can’t send client → server on the same pipe.</p>
+                {line('Server-sent events:', 'one long-lived stream, server → client only, with automatic reconnect built into the browser.', C.net)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>A clean fit for feeds, tickers, and notifications. Client → server messages still go over separate requests.</p>
               </>
             )}
             {id === 'ws' && (
               <>
-                {line('WebSocket:', 'full-duplex, lowest latency. The right tool for chat and multiplayer.', C.mem)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Every connection is server memory and state — fan-out and scale get real.</p>
+                {line('WebSocket:', 'full-duplex with the lowest latency. Built for chat, collaboration, and multiplayer state.', C.mem)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>Every live socket holds server memory and state, so fan-out and horizontal scaling take real architecture.</p>
               </>
             )}
           </div>
@@ -85,28 +88,30 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
       </Toggler>
     ),
     simplifies:
-      'Omits the connection-management tier (a pub/sub layer routing events to the right sockets), which is where realtime systems actually get hard.',
+      'Leaves out the connection-management tier (a pub/sub layer that routes each event to the server holding the right socket), which is where realtime systems get genuinely tricky.',
     related: { toys: [], terms: ['polling', 'sse', 'websocket', 'fanout', 'lasteventid', 'webrtc'] },
-    feltIn: { note: <>Taste tests weigh polling vs push under stated update rates.</>, to: '/review/taste', cta: 'try a Taste Test' },
+    feltIn: { note: <>Taste Tests put polling and push head-to-head under specific update rates.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {
     id: 'long-running-tasks',
     shelf: 'patterns',
     title: 'Managing long-running tasks',
-    thesis: 'Should the user wait for the work, or a receipt for it?',
+    thesis: 'Should the user wait for the finished work, or take a receipt and check back?',
     body: (
       <>
         <p>
-          If a request triggers slow work (transcode a video, generate a report), doing it synchronously holds a connection
-          and a thread hostage — and a <T k="burst">burst</T> exhausts the pool. The pattern: accept the job, return a
-          receipt (202 + a status URL), and let a <T k="worker">worker</T> pull it off a <T k="queue">queue</T>. Toggle the
-          two below.
+          When a request kicks off slow work, like transcoding a video or building a heavy report, running it
+          synchronously ties up a connection and a worker thread from start to finish. Under a <T k="burst">burst</T>,
+          those slow jobs fill the whole pool and even quick requests start timing out. The fix is to decouple
+          acceptance from execution: validate the job, hand back a receipt (HTTP 202 plus a status URL), and let a{' '}
+          <T k="worker">worker</T> pull it off a <T k="queue">queue</T> in the background. Compare both paths below.
         </p>
         <p style={{ color: C.dim }}>
-          Async buys you <T k="backpressure">backpressure</T> (the queue absorbs the spike) and retries — but because
-          delivery is <T k="atleastonce">at-least-once</T>, the work must be <T k="idempotent">idempotent</T> so a redelivered
-          job doesn't run twice. Stay synchronous when the result is needed <i>now</i> and is fast (a login); go async when
-          it's slow or bursty.
+          Going async gives you <T k="backpressure">backpressure</T> (the queue absorbs the spike instead of your web
+          tier) along with clean retries. The tradeoff is <T k="atleastonce">at-least-once</T> delivery: a job can be
+          handed to a worker more than once, so the work must be <T k="idempotent">idempotent</T> to avoid double-running
+          side effects. Stay synchronous when the work is fast and the user needs the answer <i>now</i>, like a login;
+          move to a queue whenever the work is slow or arrives in bursts.
         </p>
       </>
     ),
@@ -121,51 +126,54 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         {(id) =>
           id === 'sync' ? (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Client waits 40s:', 'a thread and connection held the whole time. 200 slow jobs exhaust the pool.', C.alert)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>A traffic burst becomes timeouts for everyone, including fast requests.</p>
+              {line('Client waits 40s:', 'one thread and one connection stay pinned for the entire run. 200 slow jobs exhaust the pool.', C.alert)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Once the pool fills, a traffic burst turns into timeouts for everyone, fast requests included.</p>
             </div>
           ) : (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Accept in ~5ms:', 'return 202 + status URL; a worker does the 40s job off the queue.', C.mem)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Bursts fill the queue, not the app. Retries are safe because the job is idempotent.</p>
+              {line('Accept in ~5ms:', 'return 202 plus a status URL; a background worker pulls the 40s job off the queue.', C.mem)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Spikes pile up in the queue instead of starving the app, and retries stay safe because the job is idempotent.</p>
             </div>
           )
         }
       </Toggler>
     ),
     simplifies:
-      'Skips the status-polling / webhook mechanics the client needs to learn the result, and assumes the worker pool can eventually drain the queue.',
+      'Leaves out how the client learns the job finished (status polling or webhooks), and assumes the worker fleet can eventually drain the queue.',
     related: { toys: ['backpressure', 'queue'], terms: ['queue', 'worker', 'backpressure', 'atleastonce', 'idempotent', 'burst'] },
-    feltIn: { note: <>Feel a bounded buffer choose to drop, block, or blow up.</>, to: '/lab/backpressure', cta: 'play BACKPRESSURE' },
+    feltIn: { note: <>Watch a bounded buffer decide whether to drop, block, or blow up under load.</>, to: '/lab/backpressure', cta: 'play BACKPRESSURE' },
   },
   {
     id: 'contention',
     shelf: 'patterns',
     title: 'Dealing with contention',
-    thesis: 'Two requests want the same row at once — who wins, and how?',
+    thesis: 'Two requests want the same row at the same instant. Who wins, and how?',
     body: (
       <>
         <p>
-          Contention is many writers racing for one thing: the last concert seat, a counter, an account balance. You have
-          three moves, toggled below. <T k="pessimistic">Pessimistic locking</T> makes writers wait in line; optimistic
-          concurrency lets them race and rejects the loser via a version check —{' '}
-          <T k="compareandset">compare-and-set</T>, the single atomic move underneath every conditional write, ETag, and
-          version column; serializing through a single owner (a queue or one partition) sidesteps the race entirely.
+          Contention happens when many writers chase the same piece of state: the last concert seat, a shared counter,
+          an account balance. You have three main moves, toggled below. <T k="pessimistic">Pessimistic locking</T>{' '}
+          lines writers up behind a lock so only one touches the row at a time. Optimistic concurrency lets them race
+          and rejects the loser with a version check powered by <T k="compareandset">compare-and-set</T>, the single
+          atomic operation underneath conditional writes, ETags, and version columns. Serializing all writes for that
+          key through one owner (a queue or a single partition) removes the race altogether.
         </p>
         <p style={{ color: C.dim }}>
-          Which wins depends on contention: under low contention <T k="optimistic">optimistic</T> is fastest (retries are
-          rare); under high contention it thrashes on retries and a lock or a serialized owner wins. Every choice needs an{' '}
-          <T k="idempotent">idempotent</T> retry path, and a <T k="distlock">distributed lock</T> when the contenders span
-          machines.
+          Traffic shape picks the winner. Under low contention, <T k="optimistic">optimistic</T> concurrency is fastest
+          because conflicts are rare and nobody waits on a lock. Under heavy contention, optimistic writers burn CPU
+          retrying over and over, so a lock or a serialized owner pulls ahead. Whichever route you choose, retries must
+          be <T k="idempotent">idempotent</T>, and contenders spread across separate machines need a{' '}
+          <T k="distlock">distributed lock</T>.
         </p>
         <p>
-          Two ways the version check quietly fails. If the compared value can return to an earlier state while you were
-          deciding — the <T k="aba">ABA problem</T> — your compare-and-set succeeds over changes you never saw, which is
-          why you compare a monotonically increasing version rather than the value itself. And if the writers touch{' '}
-          <i>different</i> rows after reading the same ones, nothing conflicts row-by-row at all while the invariant
-          across them breaks: <T k="writeskew">write skew</T>, invisible to every tool on this toggle, because there is
-          no shared row to lock or version. That one needs <T k="serializable">serializable</T> isolation or a lock on
-          the predicate.
+          Watch out for two quiet failure modes in version checks. First, if the field you compare can change and then
+          return to its old value while you were deciding (the <T k="aba">ABA problem</T>), compare-and-set will succeed
+          right over updates you never saw. That is why you check a monotonically increasing version number rather than
+          the business value itself. Second, if two writers read the same set of rows and each updates a{' '}
+          <i>different</i> row, nothing collides row-by-row even though the invariant across those rows breaks. That is{' '}
+          <T k="writeskew">write skew</T>, and none of the three row-level moves below can catch it because there is no
+          shared row to lock or version. Closing that gap takes <T k="serializable">serializable</T> isolation or a lock
+          on the predicate itself.
         </p>
       </>
     ),
@@ -182,20 +190,20 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
             {id === 'pess' && (
               <>
-                {line('Lock the row:', 'writer B waits for A to commit. No wasted work, but throughput is one-at-a-time.', C.storage)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Best under heavy contention. Risk: held locks and deadlocks.</p>
+                {line('Lock the row:', 'writer B waits for A to commit. Zero wasted work, but updates proceed one at a time.', C.storage)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>Strong under heavy contention. Watch out for long-held locks and deadlocks.</p>
               </>
             )}
             {id === 'opt' && (
               <>
-                {line('Read version, write if unchanged:', 'both race; the loser sees a version mismatch and retries.', C.net)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Fastest when conflicts are rare. Thrashes on retries when they aren’t.</p>
+                {line('Read version, write if unchanged:', 'both writers race; the loser hits a version mismatch and retries.', C.net)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>Fastest when collisions are rare. Thrashes in retry loops once a row gets hot.</p>
               </>
             )}
             {id === 'serial' && (
               <>
-                {line('One owner:', 'route all writes for the key through one queue/partition. The race can’t happen.', C.mem)}
-                <p style={{ color: C.dim, margin: '4px 0' }}>Clean and correct, but that key’s throughput is now one worker’s.</p>
+                {line('One owner:', 'funnel every write for that key through a single queue or partition so no two writes collide.', C.mem)}
+                <p style={{ color: C.dim, margin: '4px 0' }}>Simple to reason about and strictly ordered, capped at one worker’s throughput for that key.</p>
               </>
             )}
           </div>
@@ -203,28 +211,29 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
       </Toggler>
     ),
     simplifies:
-      'Presents three pure strategies; production code blends them (a fast optimistic path with a pessimistic fallback) and must bound retry storms.',
+      'Shows three pure strategies; real services often combine them (an optimistic fast path with a pessimistic fallback) and cap retries to stop retry storms.',
     related: { toys: ['hotpartition'], terms: ['optimistic', 'distlock', 'idempotent', 'consistency', 'readpct'] },
-    feltIn: { note: <>A hot key is contention at the storage layer — watch it saturate one node.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
+    feltIn: { note: <>A hot key is contention at the storage tier. Watch it pin a single node to the wall.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
     id: 'scaling-reads',
     shelf: 'patterns',
     title: 'Scaling reads',
-    thesis: 'A million reads a second — how much can you keep off the database?',
+    thesis: 'At a million reads a second, how much of that traffic can you keep off the database?',
     body: (
       <>
         <p>
-          Reads are the easy kind: the answer can be <i>copied</i>. So scaling reads is a funnel — stop each read as early
-          and cheaply as possible. Drag the target read rate: the layered defense is <T k="cdn">CDN</T> edge → <T k="cache">cache</T>
-          → <T k="replica">read replicas</T> → primary, each absorbing an order of magnitude so almost nothing reaches the
-          truth.
+          Reads are the forgiving half of scale because an answer can be <i>copied</i>. Scaling reads is really
+          building a funnel that stops each request as early and cheaply as possible. Drag the target read rate below
+          to see the layered defense at work: <T k="cdn">CDN</T> edge → <T k="cache">cache</T> →{' '}
+          <T k="replica">read replicas</T> → primary. Each layer sheds roughly an order of magnitude so the source of
+          truth sees only a trickle.
         </p>
         <p style={{ color: C.dim }}>
-          The metric that governs it all is the <T k="hitrate">hit rate</T>: a 90% cache hit rate turns 1M reads/s into 100k
-          at the database. The cost is staleness — a cached or replica <T k="read">read</T> is a read of the recent past — so
-          you decide per query which reads tolerate it (almost all) and which need the primary (
-          <T k="readyourwrites">read-your-own-writes</T>).
+          The lever that drives the math is <T k="hitrate">hit rate</T>: a 90% cache hit rate turns 1M reads/s into
+          100k at the database. What you pay in exchange is freshness. A cached or replica <T k="read">read</T> is
+          always a snapshot of the recent past, so you choose per query which reads can live with slight lag (almost
+          all of them) and which must go straight to the primary for <T k="readyourwrites">read-your-own-writes</T>.
         </p>
       </>
     ),
@@ -249,7 +258,7 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
               </>
             ),
             caption:
-              'CDN absorbs ~80%, the cache ~90% of the rest. Each replica serves ~20k QPS, so the truth stays boring even at internet scale.',
+              'The CDN absorbs ~80%, and the cache catches ~90% of what gets through. At ~20k QPS per replica, the database tier stays calm even at internet scale.',
             bars: [
               { label: 'CDN edge', frac: 0.8, col: C.net, tag: '~80%' },
               { label: 'cache', frac: 0.18, col: C.mem, tag: '~18%' },
@@ -260,36 +269,38 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
       />
     ),
     simplifies:
-      'Uses fixed 80%/90% absorption rates; real hit rates depend on content and personalization, and write-heavy reads (dashboards) don’t cache well.',
+      'Holds absorption fixed at 80% and 90%; real hit rates shift with content and personalization, and write-heavy views like live dashboards barely cache at all.',
     related: { toys: ['stampede', 'replag'], terms: ['cdn', 'cache', 'replica', 'hitrate', 'read'] },
-    feltIn: { note: <>Order-of-magnitude drills make the reads-per-second math stick.</>, to: '/drills/session', cta: 'run some drills' },
+    feltIn: { note: <>Order-of-magnitude drills make reads-per-second math second nature.</>, to: '/drills/session', cta: 'run some drills' },
   },
   {
     id: 'scaling-writes',
     shelf: 'patterns',
     title: 'Scaling writes',
-    thesis: 'Copies don’t help writes — so what does?',
+    thesis: 'Extra copies cannot scale writes, so what actually can?',
     body: (
       <>
         <p>
-          First, translate the story into a number: <span className="mono">(actors) × (actions each) ÷ time</span>. 10M users
-          × 50 <T k="write">writes</T>/day ÷ 86,400s ≈ 5,800 <T k="rps">writes/s</T> average, then ×3 for <T k="burst">peak</T>
-          {' '}— while machine (<T k="iot">IoT</T>) fleets that <T k="phonehome">phone home</T> on a timer produce a flatter but
-          relentless stream. Now the hard truth: a <T k="replica">replica</T> can't help, because every copy must apply every
-          write. Your only moves are to <T k="shard">shard</T> (split the data) or <T k="queue">queue</T> (buffer the burst).
+          Start by turning the product story into a rate: <span className="mono">(actors) × (actions each) ÷ time</span>.
+          Take 10M users × 50 <T k="write">writes</T>/day ÷ 86,400s ≈ 5,800 <T k="rps">writes/s</T> on average, then
+          multiply by 3 for <T k="burst">peak</T>. Machine (<T k="iot">IoT</T>) fleets that{' '}
+          <T k="phonehome">phone home</T> on a fixed timer behave differently: flatter across the clock, yet relentless.
+          Now comes the hard constraint: adding a <T k="replica">replica</T> does not help write throughput, because
+          every copy still has to apply every write. Your real levers are to <T k="shard">shard</T> (split the data
+          across primaries) or <T k="queue">queue</T> (smooth out a temporary burst).
         </p>
         <p style={{ color: C.dim }}>
-          Drag the write rate: at ~1,000 writes/s per partition, the shard count is just division — <i>if</i> the key spreads
-          (a <T k="hotpartition">hot key</T> gets exactly one partition, so salt it). A queue smooths a spike but a
-          permanent <T k="backlog">backlog</T> means your steady rate exceeds drain capacity — the queue is only delaying the
-          funeral.
+          Drag the write rate below. At ~1,000 writes/s per partition, sizing shards is plain division, <i>provided</i>{' '}
+          your key spreads traffic evenly. A <T k="hotpartition">hot key</T> still lands on one partition unless you
+          salt it. A queue can absorb a short spike, but a permanent <T k="backlog">backlog</T> means steady arrivals
+          outpace what your workers can drain. At that point the queue is only postponing the outage.
         </p>
         <p>
-          Which leaves the move nobody volunteers: <T k="loadshedding">load shedding</T>. Once arrivals exceed what you
-          can drain, the alternative to failing some requests fast is failing all of them slowly, because the queue grows
-          until everything times out at once. Shedding turns a total outage into a chosen one — reject cheaply, by
-          priority, with a retry-after — and saying which traffic you would drop first is a design decision, not an
-          admission of defeat.
+          That brings you to the move few people think to name out loud: <T k="loadshedding">load shedding</T>. Once
+          incoming writes exceed your drain rate, the only alternative to failing some requests quickly is failing all
+          of them slowly, as the queue swells until everything times out together. Shedding turns an accidental total
+          outage into a deliberate partial one: reject cheaply, drop lower-priority traffic first, and return a
+          retry-after hint. Choosing which traffic gives way first is a design decision, not an admission of defeat.
         </p>
       </>
     ),
@@ -308,13 +319,13 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
           return {
             headline: (
               <>
-                {shards} partition{shards === 1 ? '' : 's'} · past {(8000).toLocaleString()}/s one primary can’t cope
+                {shards} partition{shards === 1 ? '' : 's'} · past {(8000).toLocaleString()}/s one primary can’t keep up
               </>
             ),
             caption:
               v > 8000
-                ? `Above a single primary’s ~8k durable TPS — you must shard (${shards} partitions at ~1k/s each) or buffer through a queue.`
-                : 'A single primary still handles this — but design the partition key now, before the key that doesn’t spread finds you.',
+                ? `Past a single primary’s ~8k durable TPS: time to shard (${shards} partitions at ~1k/s each) or buffer bursts through a queue.`
+                : 'One primary still handles this rate, though you want to pick a clean partition key now before an uneven key finds you.',
             bars: [
               { label: 'partitions', frac: Math.min(shards / 50, 1), col: C.storage, tag: String(shards) },
               { label: 'vs 1 primary', frac: Math.min(primaries / 7, 1), col: C.alert, tag: `${primaries}×` },
@@ -324,33 +335,34 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
       />
     ),
     simplifies:
-      'Assumes keys spread perfectly and every write is equal; real write cost varies with indexes and row size, and cross-shard transactions are the tax this omits.',
+      'Assumes keys spread evenly and every write costs the same; real write cost changes with secondary indexes and row size, and this skips the tax of cross-shard transactions.',
     related: { toys: ['hotpartition', 'replag'], terms: ['write', 'shard', 'queue', 'hotpartition', 'backlog', 'burst', 'replica', 'durable'] },
-    feltIn: { note: <>Watch a hot partition key pin one node at its write ceiling.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
+    feltIn: { note: <>Watch a single hot partition key pin one node against its write ceiling.</>, to: '/lab/hotpartition', cta: 'play HOT PARTITION' },
   },
   {
     id: 'large-blobs',
     shelf: 'patterns',
     title: 'Handling large blobs',
-    thesis: 'A user uploads a 2 GB video — where do those bytes go?',
+    thesis: 'A user uploads a 2 GB video. Where should all those bytes actually go?',
     body: (
       <>
         <p>
-          Never route big bytes through your app servers — a 2 GB upload would tie up a request thread for minutes and
-          exhaust memory. Scrub the flow: the client asks your API for a <T k="presigned">presigned URL</T>, uploads the{' '}
-          <T k="blob">blob</T> <i>directly</i> to object storage, and your database stores only the key. Downloads serve
-          through a <T k="cdn">CDN</T>.
+          Keep big payloads off your app servers. Streaming a 2 GB upload through an API process holds a request thread
+          hostage for minutes and chews through memory. Step through the flow below: the client asks your API for a{' '}
+          <T k="presigned">presigned URL</T>, sends the <T k="blob">blob</T> <i>directly</i> to object storage, and
+          lets your database store only the object key and metadata. Downloads flow out through a <T k="cdn">CDN</T>.
         </p>
         <p style={{ color: C.dim }}>
-          The app server only ever handles tiny metadata; the heavy <T k="throughput">throughput</T> is between the client
-          and the storage/CDN edge, which are built for exactly that. For huge files, multipart upload splits the blob into
-          parts uploaded in parallel and retried independently.
+          Your app tier only ever handles tiny metadata, while heavy <T k="throughput">throughput</T> stays between
+          the client and the object store or CDN edge, which are built for bulk transfer. For huge files, multipart
+          upload slices the blob into chunks that upload in parallel and retry independently if one chunk drops.
         </p>
         <p>
-          Downloads get the same treatment in reverse, through the <T k="rangerequest">range request</T>: the client asks
-          for bytes 5,000,000 through 6,000,000 rather than the whole object. That one header is why seeking inside a video
-          works without fetching the file first, and why a connection dropping at 90% resumes from byte 1.8 GB instead of
-          starting over — which on a flaky link is the difference between finishing and never finishing.
+          Downloads use the same idea in reverse via a <T k="rangerequest">range request</T>: the client asks for bytes
+          5,000,000 through 6,000,000 instead of pulling the entire object. That single HTTP header is why you can scrub
+          ahead in a video without downloading the whole file first, and why a connection that drops at 90% can pick up
+          at byte 1.8 GB rather than starting from zero. On a flaky network, resumability is the difference between
+          finishing a download and never finishing it at all.
         </p>
       </>
     ),
@@ -359,16 +371,16 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         accent={C.storage}
         nodes={['client', 'API', 'object store', 'DB', 'CDN']}
         steps={[
-          { active: [0, 1], edge: [0, 1], cap: <>Client asks the API to start an upload. The API never touches the bytes.</> },
-          { active: [1, 0], edge: [1, 0], cap: <>API returns a presigned URL — a time-limited, scoped permission to write one object.</> },
-          { active: [0, 2], edge: [0, 2], cap: <>Client uploads the 2 GB blob straight to object storage. No app thread held.</> },
-          { active: [0, 3], edge: [0, 3], cap: <>Client tells the API "done"; the DB stores just the object key + metadata.</> },
-          { active: [4, 2], edge: [4, 2], cap: <>Downloads serve from the CDN, cached near the user — origin bytes stay put.</> },
+          { active: [0, 1], edge: [0, 1], cap: <>Client asks the API for permission to upload. The API never touches the video bytes.</> },
+          { active: [1, 0], edge: [1, 0], cap: <>API returns a presigned URL: a time-limited, tightly scoped pass to write one object.</> },
+          { active: [0, 2], edge: [0, 2], cap: <>Client streams the 2 GB blob straight to object storage. Zero app threads tied up.</> },
+          { active: [0, 3], edge: [0, 3], cap: <>Client notifies the API that the upload finished; the DB stores just the object key and metadata.</> },
+          { active: [4, 2], edge: [4, 2], cap: <>Downloads serve from the CDN close to the viewer, so origin bytes barely have to move.</> },
         ]}
       />
     ),
     simplifies:
-      'Omits virus scanning, thumbnail/transcode pipelines (triggered async off the upload), and presigned-URL expiry/permission scoping details.',
+      'Skips malware scanning, async thumbnail and transcode pipelines triggered after upload, and the fine print of presigned-URL expiry and permission scoping.',
     related: { toys: ['pipe'], terms: ['presigned', 'blob', 'cdn', 'throughput'] },
     feltIn: { note: <>The Builder prices storage, egress, and transfer for a media workload.</>, to: '/builder', cta: 'open the Builder' },
   },
@@ -376,30 +388,36 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
     id: 'multi-step',
     shelf: 'patterns',
     title: 'Multi-step processes',
-    thesis: 'Book a flight and a hotel and a car — all or nothing, across services?',
+    thesis: 'Book a flight, a hotel, and a car across separate services. Can it still be all or nothing?',
     body: (
       <>
         <p>
-          When one operation spans several services (each with its own database), you can't wrap them in a single
-          transaction. Two shapes, toggled below. Two-phase commit (<T k="2pc">2PC</T>) makes a coordinator lock all
-          participants and commit together — strongly consistent, but it blocks and the coordinator is a failure point. A{' '}
-          <T k="saga">saga</T> runs the steps as a sequence, each with a compensating undo if a later step fails.
+          Once a workflow crosses several services, each with its own database, you cannot wrap the whole trip in one
+          local transaction. Toggle between the two main approaches below. Two-phase commit (<T k="2pc">2PC</T>) uses a
+          coordinator to lock every participant and commit them together. It delivers strong consistency, at the cost
+          of blocking participants while the coordinator decides and turning that coordinator into a failure point. A{' '}
+          <T k="saga">saga</T> runs the steps one by one, pairing each step with a compensating undo in case a later
+          step fails.
         </p>
         <p style={{ color: C.dim }}>
-          Sagas trade atomicity for availability: there's a window where the flight is booked but the hotel isn't, resolved
-          by a <T k="compensation">compensating transaction</T> (cancel the flight) rather than a rollback — the booking
-          really happened and someone may have seen it, so the undo is itself a visible business event. Because steps
-          retry, each must be <T k="idempotent">idempotent</T>, and failures that can't compensate land in a{' '}
-          <T k="dlq">dead-letter queue</T> for a human. 2PC wins only when steps are few, fast, and truly must be atomic.
+          Sagas trade strict atomicity for availability. There is a brief window where the flight is booked and the
+          hotel is not yet confirmed, and any failure unwinds through a{' '}
+          <T k="compensation">compensating transaction</T> (canceling the flight) rather than a database rollback. The
+          first booking genuinely happened and someone may already have seen it, so the undo has to be a visible
+          business event of its own. Because network calls retry, every forward step and undo must be{' '}
+          <T k="idempotent">idempotent</T>, and failures that still cannot compensate land in a{' '}
+          <T k="dlq">dead-letter queue</T> for human cleanup. Reach for 2PC only when the steps are few, fast, and
+          genuinely must be atomic.
         </p>
         <p>
-          Who drives the sequence is a second decision. With <T k="choreography">choreography</T> each service reacts to
-          the others' events and no coordinator exists — decoupled, and the workflow is written down nowhere, so nobody
-          can answer where an order got stuck. With <T k="orchestration">orchestration</T> one coordinator holds the
-          definition and every instance's position is a query. The usual objection is that the coordinator becomes a
-          single point of failure, which is exactly what <T k="durableexecution">durable execution</T> engines remove:
-          they record each step's result and resume a crashed workflow by replaying that history to the first unfinished
-          step — replay, not retry, so a completed charge never runs twice.
+          Who drives those steps is a second design choice. Under <T k="choreography">choreography</T>, each service
+          listens for events from the others with no central coordinator. Services stay decoupled, yet the full
+          workflow is not written down in any one place, so figuring out where an order stalled takes detective work.
+          Under <T k="orchestration">orchestration</T>, a single coordinator owns the workflow definition, and any
+          in-flight order’s position is a direct query. The usual worry is making that coordinator a single point of
+          failure, which is the exact problem <T k="durableexecution">durable execution</T> engines solve: they persist
+          each step’s result and recover from a crash by replaying that history up to the first unfinished step. It is
+          replay rather than retry, so an already-completed charge never runs twice.
         </p>
       </>
     ),
@@ -414,40 +432,42 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         {(id) =>
           id === '2pc' ? (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Prepare → commit:', 'coordinator asks all to prepare, then all to commit. Atomic across services.', C.net)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Participants hold locks while waiting; a coordinator crash can leave them stuck. Doesn’t scale wide.</p>
+              {line('Prepare → commit:', 'the coordinator asks every participant to prepare, then tells all of them to commit. Atomic across services.', C.net)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Participants hold locks while waiting, and a coordinator crash can leave them stuck. Hard to scale across many services.</p>
             </div>
           ) : (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Step, step, step (+ undo):', 'book flight → book hotel → book car; any failure fires compensations backward.', C.mem)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Available and scalable, but eventually consistent — and every step needs an idempotent undo.</p>
+              {line('Step, step, step (+ undo):', 'book flight → book hotel → book car; if a step fails, compensations run backward.', C.mem)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Stays available and scales cleanly, at the price of eventual consistency and an idempotent undo for every step.</p>
             </div>
           )
         }
       </Toggler>
     ),
     simplifies:
-      'Ignores orchestration-vs-choreography (a central coordinator vs events), and that designing correct compensations is the genuinely hard part.',
+      'The toggle skips orchestration vs. choreography (a central coordinator vs. independent events) and leaves out how hard it is to design airtight compensations.',
     related: { toys: ['consensus'], terms: ['saga', '2pc', 'idempotent', 'dlq', 'consensus'] },
-    feltIn: { note: <>Flaw puzzles hide missing compensations and non-idempotent steps.</>, to: '/review/flaw', cta: 'find the flaw' },
+    feltIn: { note: <>Flaw Puzzles hide missing compensations and steps that break on retry.</>, to: '/review/flaw', cta: 'find the flaw' },
   },
   {
     id: 'proximity',
     shelf: 'patterns',
     title: 'Proximity-based services',
-    thesis: '"Find drivers within 2 km" — why is that hard for a normal index?',
+    thesis: '"Find drivers within 2 km." Why does a standard database index struggle with that?',
     body: (
       <>
         <p>
-          A <T k="btree">B-tree index</T> sorts one dimension; "near me" is two (lat and lng), so a naive query scans a
-          bounding box and filters — slow, and it re-scans as everything moves. The fix is to turn 2D space into a 1D key an
-          index can handle. Toggle the two schemes below.
+          A <T k="btree">B-tree index</T> sorts along one dimension, while "near me" lives in two (latitude and
+          longitude). Sorting by latitude still scatters longitude, so a naive query scans a wide bounding box and
+          filters every row, then has to do it all over again as objects move. The trick is to fold 2D space into a 1D
+          key that a normal index can navigate. Compare the two main schemes below.
         </p>
         <p style={{ color: C.dim }}>
-          A <T k="geohash">geohash</T> interleaves lat/lng bits so nearby points share a key prefix — a range scan on the
-          prefix returns a neighborhood. A <T k="quadtree">quadtree</T> recursively splits space into quadrants, staying
-          dense where points cluster. Both let you <T k="shard">shard</T> by region and index the hot cell — the same
-          hot-key care applies where everyone crowds one area.
+          A <T k="geohash">geohash</T> interleaves latitude and longitude bits so nearby points share a key prefix; a
+          simple prefix range scan pulls back a whole neighborhood. A <T k="quadtree">quadtree</T> recursively splits
+          crowded regions into four quadrants while leaving sparse areas in one big cell. Both schemes let you{' '}
+          <T k="shard">shard</T> by region and index busy cells, though the same hot-key lessons still apply whenever
+          half a city crowds into one neighborhood.
         </p>
       </>
     ),
@@ -462,21 +482,21 @@ export const PATTERNS_SECTIONS: ManualSection[] = [
         {(id) =>
           id === 'geohash' ? (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Interleave bits → prefix:', '"dr5ru" ≈ a ~150 m cell. Nearby points share the prefix; a range scan finds them.', C.net)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Fixed grid: simple and index-friendly, but edge cases at cell borders need neighbor checks.</p>
+              {line('Interleave bits → prefix:', '"dr5ru" covers a ~150 m cell. Nearby points share the prefix, so a range scan finds them fast.', C.net)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Fixed grid: simple and index-friendly, though points near a cell edge need neighbor checks too.</p>
             </div>
           ) : (
             <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              {line('Recursive quadrants:', 'split a cell into four whenever it gets crowded; sparse areas stay one big cell.', C.compute)}
-              <p style={{ color: C.dim, margin: '4px 0' }}>Adapts to density (great for cities), but the structure is heavier to maintain as points move.</p>
+              {line('Recursive quadrants:', 'split a cell into four whenever it fills up; quiet areas stay in a single wide cell.', C.compute)}
+              <p style={{ color: C.dim, margin: '4px 0' }}>Adapts cleanly to uneven density (great for cities), at the cost of a heavier tree to update as points move.</p>
             </div>
           )
         }
       </Toggler>
     ),
     simplifies:
-      'Skips the border-neighbor query (a point near a cell edge needs adjacent cells) and the write cost of re-indexing constantly-moving objects.',
+      'Leaves out border-neighbor queries (a point near a cell edge has to check adjacent cells) and the write overhead of re-indexing objects that never stop moving.',
     related: { toys: ['hotpartition'], terms: ['geohash', 'quadtree', 'btree', 'shard'] },
-    feltIn: { note: <>Estimation drills size "riders per city cell" from a fleet story.</>, to: '/drills/session', cta: 'run some drills' },
+    feltIn: { note: <>Estimation drills size "riders per city cell" straight from a fleet story.</>, to: '/drills/session', cta: 'run some drills' },
   },
 ]

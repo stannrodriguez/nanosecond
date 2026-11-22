@@ -183,7 +183,7 @@ export function LeakyBits({ onComplete }: { onComplete: () => void }) {
         a long wire, waits for a sense amplifier to call 0 or 1, and immediately rewrites the charge because the read itself{' '}
         <i>drained</i> the bit (click any cell to watch that white flash: drain → sense → rewrite).{' '}
         <b>Why is RAM cheap and dense?</b> Each bit takes one transistor and one capacitor, compared to six transistors for cache
-        SRAM. <b>Why does RAM go blank when the power cuts?</b> Without refresh, the charge leaks away in milliseconds. Every
+        SRAM. <b>Why does RAM go blank when the power cuts?</b> You just watched why. Every
         database durability mechanism, from WAL and fsync to replication, exists because the fastest memory in the machine is
         built out of leaking buckets.
       </Punchline>

@@ -202,7 +202,7 @@ export function TheDisk({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Two identical 7200 RPM hard drives, slowed 120× so you can see the mechanics. The left drive handles random reads: swing
+        Two identical 7200 RPM hard drives, slowed 120× so you can see the mechanics. The left drive does what a database without an index, or a badly designed one, asks: swing
         the actuator arm to a new track (~4 ms), then <i>wait for the spinning platter to carry the sector underneath it</i> (~4
         ms on average). The right drive parks the head on one track and streams continuously. Same hardware, opposite access
         patterns. Watch the gap open up.

@@ -13,7 +13,7 @@ const LIGHT_OPS = [
     ns: 0.3,
     ch: C.compute,
     punch:
-      'Light barely made it across the chip. One tick of a 3.3 GHz clock is only enough time for light to cross 9 cm. That is why a processor die stays around 2 cm wide and why you cannot just scale up one giant chip: signals have to cross it before the next tick arrives.',
+      'Light barely made it across the chip. One tick of a 3.3 GHz clock is only enough time for light to cross 9 cm. That is why a processor die stays around 2 cm wide and why clock speed stopped climbing: signals have to cross it before the next tick arrives.',
   },
   {
     name: 'L1 cache hit',

@@ -30,8 +30,7 @@ export function InstructionLoop({ onComplete }: { onComplete: () => void }) {
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
         Running code comes down to a five-step cycle for every instruction: <b>fetch, decode, execute</b>, touch memory, and
-        write back the result. Finish one completely before starting the next and four-fifths of the core sits idle at any
-        moment. Turn on the <b>pipeline</b> and those steps overlap like an assembly line: same clock speed, much more work
+        write back the result. Finish one completely before starting the next and the core mostly sits idle. Turn on the <b>pipeline</b> and those steps overlap like an assembly line: same clock speed, much more work
         completed.
       </p>
 

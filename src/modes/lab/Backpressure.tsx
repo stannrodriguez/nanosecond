@@ -68,9 +68,9 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        A producer emits messages; a consumer handles {fmtNum(CONSUME)}/s, full stop. Between them: a buffer. The moment the
-        producer runs hotter than the consumer, the buffer fills and the system must answer one question — who absorbs the
-        overload? There are only three answers, and "pretend it's fine" is secretly the third.
+        A producer pushes messages into a buffer, and a consumer drains it at {fmtNum(CONSUME)}/s, no faster. The instant
+        production outruns consumption, the buffer fills and forces one question: who absorbs the overload? There are only three
+        real answers, and "just keep buffering" is quietly the third.
       </p>
       <div style={{ margin: '14px 0' }}>
         <div className="mono" style={{ fontSize: 12.5, color: C.dim, marginBottom: 4 }}>
@@ -80,14 +80,14 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
         <input type="range" min={2000} max={20000} step={500} value={produce} onChange={(e) => setProduce(+e.target.value)} aria-label="producer rate" />
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        {policyBtn('drop', 'SHED (drop)', 'bounded buffer, overflow is discarded')}
-        {policyBtn('block', 'BLOCK', 'bounded buffer, producer forced to slow')}
-        {policyBtn('unbounded', 'UNBOUNDED', '"just buffer it" — what could go wrong')}
+        {policyBtn('drop', 'SHED (drop)', 'bounded buffer, drop the overflow')}
+        {policyBtn('block', 'BLOCK', 'bounded buffer, slow the producer down')}
+        {policyBtn('unbounded', 'UNBOUNDED', '"just buffer it" and hope memory holds')}
       </div>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         <Bar
-          label={policy === 'unbounded' ? 'Buffer (no limit — measured in RAM)' : `Buffer (cap ${fmtNum(BUFFER_CAP)} msgs)`}
+          label={policy === 'unbounded' ? 'Buffer (no cap, measured in RAM)' : `Buffer (cap ${fmtNum(BUFFER_CAP)} msgs)`}
           u={policy === 'unbounded' ? memMB / OOM_MB : s.buf / BUFFER_CAP}
           ch={C.net}
           txt={policy === 'unbounded' ? `${memMB.toFixed(0)} MB` : `${fmtNum(s.buf)} msgs`}
@@ -96,28 +96,29 @@ export function Backpressure({ onComplete }: { onComplete: () => void }) {
         <div className="mono" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, marginTop: 8 }}>
           {policy === 'drop' && (
             <span style={{ color: s.dropped > 0 ? C.alert : C.dim }}>
-              dropped: <b>{fmtNum(s.dropped)}</b> msgs — visible, countable, alarmable
+              dropped: <b>{fmtNum(s.dropped)}</b> msgs (visible, countable, easy to alert on)
             </span>
           )}
           {policy === 'block' && (
             <span style={{ color: blockedRate > 0 ? C.compute : C.dim }}>
-              producer slowed by <b>{fmtNum(blockedRate)}/s</b> — the pressure travels upstream
+              producer slowed by <b>{fmtNum(blockedRate)}/s</b> (pressure pushes back upstream)
             </span>
           )}
           {policy === 'unbounded' && (
             <span style={{ color: s.oomed > 0 ? C.alert : C.dim }}>
-              {s.oomed > 0 ? <b>💥 OOM-killed ×{s.oomed} — buffer and process gone, all at once</b> : 'memory climbing… latency climbing with it…'}
+              {s.oomed > 0 ? <b>💥 OOM-killed ×{s.oomed}: process and buffered messages wiped together</b> : 'RAM climbing, queue wait climbing with it…'}
             </span>
           )}
         </div>
       </div>
 
       <Punchline color={C.net}>
-        An unbounded buffer doesn't avoid the choice — it converts overload into memory growth, rising latency for everything
-        in line, and one deferred, bigger crash at the worst moment. Real systems choose on purpose: <b>shed</b> when freshness
-        beats completeness (metrics, live video), <b>block</b> when the producer can safely slow (batch jobs, TCP itself — its
-        window <i>is</i> blocking backpressure), and bound every queue so the failure is a number you alarm on, not a surprise. "Every
-        buffer bounded, every bound a decision" is a sentence that wins design reviews.
+        An unbounded buffer does not dodge the decision. It trades an immediate signal for growing RAM, longer waits for every
+        message in line, and a louder crash right when traffic peaks. Well-behaved systems pick a policy on purpose: <b>shed</b>{' '}
+        when freshness matters more than completeness (metrics, live video), <b>block</b> when the caller can safely slow down
+        (batch jobs, or TCP itself, whose receive window <i>is</i> blocking backpressure), and cap every queue so overload shows
+        up as a metric you alert on instead of an out-of-memory kill. Every buffer needs a bound, and every bound should be an
+        explicit choice about what gives first.
       </Punchline>
     </div>
   )

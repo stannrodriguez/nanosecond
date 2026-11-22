@@ -81,10 +81,10 @@ export function CacheCliff({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Below is the memory ladder as a chart: how long one access takes as your working set grows. Drag the set from a few KB
-        to 64 MB and the marker climbs L1 → L2 → L3 → DRAM — the same loop, up to <b>100× the wait</b>. Then flip between a
-        sequential walk and a random pointer-chase: order decides whether you ride the 64-byte{' '}
-        <T k="cacheline">cache line</T> or waste it.
+        Here is the memory hierarchy plotted as a staircase: how long a single read takes as your working set grows. Slide from
+        a few KB up to 64 MB and watch the dot climb L1 → L2 → L3 → DRAM. It is the exact same loop, taking up to{' '}
+        <b>100× longer</b>. Now toggle between a sequential scan and a random pointer-chase. Access order determines whether you
+        get the full value of each 64-byte <T k="cacheline">cache line</T> or throw most of it away.
       </p>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
@@ -131,7 +131,7 @@ export function CacheCliff({ onComplete }: { onComplete: () => void }) {
             </button>
           ))}
           <span className="mono" style={{ fontSize: 11, color: C.faint, alignSelf: 'center' }}>
-            same work, same bytes — only the access order changes
+            Same work, same bytes. Only the access order changes.
           </span>
         </div>
 
@@ -173,11 +173,12 @@ export function CacheCliff({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.mem}>
-        Same loop, same bytes, up to <b>100× the time</b> — the only thing that changed is whether the data fit in a cache and
-        whether you walked it in order. That's the whole reason an array of structs can crush a linked list of the identical
-        fields, why column stores like Parquet exist, and why "make it fit in <T k="cpucache">cache</T>" beats
-        almost every micro-optimization. Your Race Light ladder isn't trivia: L1, L2, L3, DRAM are the rungs your hottest code
-        hits millions of times a second — and <i>which</i> rung is a layout decision you make, not a constant you inherit.
+        Same loop, same bytes, up to <b>100× the wait</b>. The only differences are whether your working set fits in cache and
+        whether you walk it in order. That is why a flat array of structs routinely beats a linked list holding the exact same
+        fields, why columnar formats like Parquet pack one field tightly together, and why keeping hot data in{' '}
+        <T k="cpucache">cache</T> outperforms almost every clever micro-optimization. The ladder from Race Light is not trivia:
+        L1, L2, L3, and DRAM are the rungs your inner loops hit millions of times a second, and <i>which</i> rung you land on is
+        a data layout choice, not an act of fate.
       </Punchline>
     </div>
   )

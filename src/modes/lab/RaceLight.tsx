@@ -13,42 +13,42 @@ const LIGHT_OPS = [
     ns: 0.3,
     ch: C.compute,
     punch:
-      "Light barely crossed the chip. One tick of a 3.3 GHz clock is the time light needs to cross a die 9 cm wide — this is why chips are 2 cm across, and why clock speed stopped climbing. The chip can't be bigger than one tick of light.",
+      'Light barely made it across the chip. One tick of a 3.3 GHz clock is only enough time for light to cross 9 cm. That is why a processor die stays around 2 cm wide and why clock speed stopped climbing: signals have to cross it before the next tick arrives.',
   },
   {
     name: 'L1 cache hit',
     ns: 1,
     ch: C.mem,
     punch:
-      "30 cm — light crossed your keyboard. L1 is fast because it's physically millimetres from the ALU. 'Fast' and 'close' are the same word in hardware.",
+      '30 cm: light just crossed your keyboard. L1 cache hits in a nanosecond because it sits millimetres away from the ALU. In hardware, fast and close are almost the same word.',
   },
   {
     name: 'RAM fetch (DRAM)',
     ns: 100,
     ch: C.mem,
     punch:
-      "While your CPU fetched one value from RAM, light crossed a 30-metre building — and the CPU sat through ~300 cycles doing nothing. That idle gap is the entire reason caches, prefetching, and 'keep it in L1' engineering exist.",
+      'While the CPU waited on one value from RAM, light crossed a 30-metre building and the core sat idle for ~300 cycles. Closing that gap is the whole reason caches, hardware prefetchers, and data-locality engineering exist.',
   },
   {
     name: 'NVMe SSD read',
     ns: 80000,
     ch: C.storage,
     punch:
-      "24 kilometres — light crossed the whole city while the drive sensed trapped electrons in one flash page. Your CPU could have executed a quarter-million instructions. This is the wall between 'in memory' and 'on disk' — the line every cache, buffer, and batch exists to keep work on the right side of.",
+      '24 kilometres: light crossed an entire city while the SSD read trapped electrons out of one flash page. In that time, your CPU could have run roughly a quarter-million instructions. That divide between memory and disk is what every cache, buffer pool, and write batch is trying to keep you on the right side of.',
   },
   {
     name: 'HDD random read',
     ns: 8e6,
     ch: C.storage,
     punch:
-      '2,400 km — light crossed half the continent while a metal arm swung one centimetre and waited for a platter to spin. That one swing is the mechanical fee behind THE DISK\'s 1000× random-vs-sequential gap.',
+      '2,400 km: light crossed half a continent while a metal arm moved one centimetre and waited for a spinning platter. That mechanical delay is the tax behind the 1000× random-vs-sequential gap in The Disk.',
   },
   {
     name: 'Cross-region round trip',
     ns: 7e7,
     ch: C.net,
     punch:
-      "21,000 km — light went halfway around the planet, because that's literally what the round trip is. Nothing here is 'slow'; the request simply traveled the Earth, and no engineering shortens the Earth. That distance is the floor under every multi-region strongly-consistent write.",
+      '21,000 km: light traveled halfway around the planet, because the packet literally made that round trip. Nothing in the stack is broken or sluggish; the request just had to cross the Earth, and no software change shrinks the globe. That distance sets the hard floor under every strongly consistent multi-region write.',
   },
 ]
 
@@ -136,8 +136,8 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        Nothing outruns light — 30 cm per nanosecond, the universe's hard speed limit. Pick an operation and race it: the
-        photon stops where the operation finishes, and the landmarks below are your ruler.
+        Nothing outruns light: 30 cm per nanosecond, the hard speed limit of physics. Pick an operation below to race it. The
+        photon stops the instant the operation finishes, using the landmarks along the track as your ruler.
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {LIGHT_OPS.map((o, i) => (
@@ -149,16 +149,16 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
 
       <div className="mono" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13, margin: '16px 0 10px' }}>
         <span style={{ color: C.dim }}>
-          elapsed{' '}
+          Elapsed{' '}
           <b style={{ color: C.text, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtTimeNs(done ? op.ns : elapsedNs)}</b>
           {done ? '' : ` / ${fmtTimeNs(op.ns)}`}
         </span>
         <span style={{ color: C.dim }}>
-          light traveled{' '}
+          Light traveled{' '}
           <b style={{ color: op.ch, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtDist(done ? 0.2998 * op.ns : dist)}</b>
         </span>
         <span style={{ color: C.dim }}>
-          CPU cycles burned{' '}
+          CPU cycles spent{' '}
           <b style={{ color: C.compute, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{fmtBig(done ? op.ns / 0.3 : cycles)}</b>
         </span>
       </div>
@@ -216,11 +216,11 @@ export function RaceLight({ onComplete }: { onComplete: () => void }) {
       </div>
       {/* caption on its own line — never sharing a band with the tick labels */}
       <div className="mono" style={{ fontSize: 10.5, color: C.faint, textAlign: 'right', marginTop: 6, whiteSpace: 'nowrap' }}>
-        log scale — every gridline gap ≈ ×100
+        Log scale: each gridline gap is roughly ×100
       </div>
 
       {done && <Punchline color={op.ch}>{op.punch}</Punchline>}
-      {!running && !done && <div style={{ color: C.faint, fontSize: 13, marginTop: 12 }}>Click an operation to start the race.</div>}
+      {!running && !done && <div style={{ color: C.faint, fontSize: 13, marginTop: 12 }}>Pick an operation above to start the race.</div>}
     </div>
   )
 }

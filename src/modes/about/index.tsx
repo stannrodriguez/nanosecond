@@ -65,27 +65,28 @@ export default function About() {
     <div>
       <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, margin: 0 }}>WHAT IS THIS?</h1>
       <p style={{ color: C.text, fontSize: 16.5, lineHeight: 1.65, margin: '20px 0 0', maxWidth: 640, fontWeight: 500, textWrap: 'pretty' }}>
-        Nanosecond teaches the physical constraints behind systems design — not by memorizing latency numbers, but by operating
-        the mechanisms that produce them.
+        Nanosecond teaches the physical constraints behind systems design. Instead of asking you to memorize a table of
+        latency numbers, it puts the mechanisms that produce them in your hands.
       </p>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.7, margin: '16px 0 0', maxWidth: 640, textWrap: 'pretty' }}>
-        Every rule of thumb an engineer carries — "don't run servers past 80%", "random disk reads are 1000× slower",
-        "cross-region writes cost round trips" — is downstream of physics: the speed of light, moving metal, leaking charge,
-        heat. When you've dragged the variable yourself and watched the curve bend, the number stops being trivia. It becomes
-        something you can re-derive on a whiteboard, defend when challenged, and recognize in a system you've never seen
-        before.
+        Engineers carry a pocketful of rules of thumb: keep servers under 80%, treat random disk reads as 1000× slower,
+        expect cross-region writes to cost round trips. None of that is folklore. Every one of those numbers falls straight
+        out of physics: the speed of light, moving metal, leaking charge, and heat. Once you drag a variable yourself and
+        watch the curve bend, the number stops acting like trivia. It becomes something you can re-derive at a whiteboard,
+        stand behind when challenged, and recognize in a system you have never met before.
       </p>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.7, margin: '16px 0 0', maxWidth: 640, textWrap: 'pretty' }}>
-        Four walls recur behind everything here: memory is bounded by wire length and leaking charge, storage by sensing
-        physics and moving metal, networks by the speed of light, and compute by heat. Every architecture — in this game and
-        at work — is a negotiation between those walls, and every "best practice" is somebody's earlier settlement of the
-        same negotiation. Knowing which wall a number comes from is what separates reciting it from being able to explain it.
+        Four physical walls show up behind everything here. Memory runs into wire length and leaking charge. Storage runs
+        into sensing physics and moving metal. Networks run into the speed of light, and compute runs into heat. Every
+        architecture, whether you build it in this game or ship it at work, is a trade negotiated between those four walls,
+        and most "best practices" are simply an earlier team's settlement of the same trade. Knowing which wall a number
+        comes from is the difference between reciting an answer and explaining it.
       </p>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.7, margin: '16px 0 0', maxWidth: 640, textWrap: 'pretty' }}>
-        The vocabulary is built the same way. Every dotted term opens a definition with a fixed shape: what the thing is, the
-        property that makes it behave that way, and what that property forces a design to do. An explanation built like that
-        survives follow-up questions — each claim traces back to a mechanism, not to a phrase remembered from a blog post —
-        which is exactly what an interview, a design review, or a page at 3am demands.
+        The vocabulary follows the same discipline. Tap any dotted term to open a definition with three parts: what the
+        thing is, the underlying property that makes it behave that way, and what that property forces a design to do.
+        Explanations built from the bottom up hold together under follow-up questions because every claim traces back to a
+        mechanism rather than a slogan from a blog post. That is what survives an interview, a design review, or a 3am page.
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 36, maxWidth: 640 }}>
@@ -93,29 +94,29 @@ export default function About() {
           accent={C.net}
           label="LAB"
           to="/lab"
-          body='18 interactive mechanisms, arranged along the journey one tap of "Post" takes through a real system — the wire, the front door, the clock, the memory ladder, the database, the copies, the world. Each toy is one variable to drag until the shape of the curve is yours. Start here.'
+          body='18 interactive mechanisms arranged along the path a single tap of "Post" takes through a real system: the wire, the front door, the clock, the memory ladder, the database, the copies, and the world. Each toy hands you one variable to push around until the shape of the curve feels like second nature. Start here.'
         />
         <LoopRow
           accent={C.compute}
           label="LIBRARY"
-          body="The vocabulary — 27 briefings on concepts, technologies, and patterns, each led by a visualization you can poke, plus a Reference where every dotted term sits with its definition in the open. Reference it whenever a dotted word shows up, or read a shelf end to end."
+          body="27 briefings covering concepts, technologies, and patterns, each anchored by a visualization you can poke, alongside a Reference where every dotted term sits open on the page. Drop in whenever an unfamiliar word appears, or read a whole shelf from start to finish."
         />
         <LoopRow
           accent={C.storage}
           label="PRACTICE"
           to="/practice"
-          body="Prove it: estimate numbers under scoring, turn a story into a system on a workbench, find the flaw in someone else's design, survive on-call. Each mode grades the same judgment an interviewer grades — the number you commit to, the flaw you call, the trade you defend."
+          body="Put your intuition to the test: estimate numbers for a score, turn a story into a system on a workbench, spot the hidden flaw in someone else's design, and keep a service alive on-call. Every mode tests the same judgment an interviewer looks for: the number you commit to, the flaw you call out, and the trade you can defend."
         />
         <LoopRow
           accent={C.gold}
           label="◈ JOURNAL"
           last
-          body="Every miss, logged with its lesson: what you said, what was true, and the rule that separates them. Misses are the curriculum — the journal is what you review before an interview, and it exports a briefing your mock interviewer can run against you."
+          body="Every miss lands here with its lesson attached: what you called, what was true, and the rule separating the two. Your misses are the real curriculum. Review the journal before an interview, or export a briefing a mock interviewer can test you with."
         />
       </div>
 
       <p className="mono" style={{ fontSize: 11, color: C.faint, margin: '32px 0 0', lineHeight: 1.6 }}>
-        built for engineers learning systems design · numbers don't stick — mechanisms do
+        built for engineers learning systems design · numbers fade, mechanisms stick
       </p>
     </div>
   )

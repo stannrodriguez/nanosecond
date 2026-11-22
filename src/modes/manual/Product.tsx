@@ -36,7 +36,7 @@ function WhereItLives({ p }: { p: Product }) {
   const rows = p.liveIn.map((l) => ({ ...l, sec: sectionById(l.section) })).filter((l) => l.sec)
   return (
     <section aria-label="Where it lives">
-      <SectionHead label="WHERE IT LIVES IN THE LIBRARY" count={`${rows.length} briefings`} />
+      <SectionHead label="WHERE IT LIVES IN THE LIBRARY" count={`${rows.length} ${rows.length === 1 ? 'briefing' : 'briefings'}`} />
       <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'grid', gap: 10 }}>
         {rows.map((l, i) => (
           <li key={l.section}>
@@ -83,7 +83,7 @@ function InTheLab({ p }: { p: Product }) {
             <Link to={`/lab/${toy.id}`} className="mono" style={{ color: C.net, fontSize: 12.5, fontWeight: 600 }}>
               ▸ {toy.name.toLowerCase()}
             </Link>
-            <span style={{ fontSize: 13, color: C.dim, lineHeight: 1.5 }}> — {how}</span>
+            <span style={{ fontSize: 13, color: C.dim, lineHeight: 1.5 }}>: {how}</span>
           </li>
         ))}
       </ul>
@@ -235,7 +235,7 @@ function InTheReference({ p }: { p: Product }) {
   if (rows.length === 0) return null
   return (
     <section aria-label="In the reference">
-      <SectionHead label="IN THE REFERENCE" count={`${rows.length} entries name it`} />
+      <SectionHead label="IN THE REFERENCE" count={`${rows.length} ${rows.length === 1 ? 'entry names it' : 'entries name it'}`} />
       <div style={{ marginTop: 6 }}>
         {rows.map(({ key, entry }) => (
           <RefRow
@@ -266,12 +266,12 @@ export default function ProductPage({ p }: { p: Product }) {
           “{p.say}”
         </p>
         <div style={{ fontSize: 14, lineHeight: 1.65, maxWidth: 680 }}>{p.what}</div>
-        <FinePrint text={`A lens, not a briefing: this page collects what the library already teaches about ${p.name} — the briefings below do the teaching, and they update this page as they grow.`} />
+        <FinePrint text={`A lens, not a separate briefing. This page pulls together what the library already teaches about ${p.name}, and stays current as those briefings grow.`} />
 
         {home && (
           <LiftCard
             accent={ACCENT}
-            ariaLabel={`Its briefing — ${home.title}`}
+            ariaLabel={`Its briefing: ${home.title}`}
             onClick={() => navigate(`/manual/briefings/${home.id}`)}
             style={{ width: '100%', borderRadius: 10, padding: '14px 16px', marginTop: 20 }}
           >

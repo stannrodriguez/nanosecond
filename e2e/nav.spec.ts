@@ -16,14 +16,14 @@ test('lab index reads as a journey spine with a completion count', async ({ page
 
 test('a toy deep link renders the toy directly and back returns to the index', async ({ page }) => {
   await page.goto('/#/lab/queue')
-  await expect(page.getByText('80% — the knee')).toBeVisible()
+  await expect(page.getByText('80%: the knee')).toBeVisible()
   // the sim renders directly now (no forecast gate); reload keeps the page
   await page.reload()
-  await expect(page.getByText('80% — the knee')).toBeVisible()
+  await expect(page.getByText('80%: the knee')).toBeVisible()
   await page.getByRole('button', { name: '← the journey' }).click()
   await expect(page.getByText(/internalized/)).toBeVisible()
   await page.goBack()
-  await expect(page.getByText('80% — the knee')).toBeVisible()
+  await expect(page.getByText('80%: the knee')).toBeVisible()
 })
 
 test('toy detail prev/next walks the catalog', async ({ page }) => {

@@ -28,59 +28,69 @@ const FLOORS: Floor[] = [
     note: 'where you design',
     gives: (
       <>
-        The conversation gains <b>meaning</b>: verbs and URLs, names, subscriptions, calls — everything you can{' '}
+        The conversation gains <b>meaning</b>: verbs, URLs, hostnames, subscriptions, and RPC calls. Everything you can{' '}
         <span className="mono">curl</span> lives on this floor.
       </>
     ),
-    hides: <>That one “request” is really many packets on many routes — and that the connection under it has a lifespan and a price.</>,
+    hides: (
+      <>
+        A single “request” is really a stream of packets traveling across multiple hops, riding on a connection that has
+        its own setup cost and lifespan.
+      </>
+    ),
     lives: 'HTTP · DNS · WebSocket · SSE · gRPC · WebRTC',
     fork: (
       <>
-        REST at the public edge, gRPC where you own both ends, push protocols only for traffic that is genuinely
-        push-shaped — every API debate is an L7 debate.
+        REST at the public edge, gRPC where you control both sides, and push protocols only when the traffic actually
+        flows server-first. Every API debate happens at L7.
       </>
     ),
   },
-  { id: 'l56', label: 'L5–6 · Session · Presentation', note: 'absorbed by L7 in practice', dim: true },
+  { id: 'l56', label: 'L5-6 · Session · Presentation', note: 'folded into L7 in practice', dim: true },
   {
     id: 'l4',
     label: 'L4 · Transport',
-    note: 'the foundational trade',
+    note: 'the core delivery trade',
     gives: (
       <>
-        Loose packets become an <b>end-to-end conversation</b> — carrying exactly the guarantees you ordered, at exactly
-        their price.
+        Loose packets become an <b>end-to-end conversation</b>, delivering the exact guarantees you asked for at the
+        exact latency cost they require.
       </>
     ),
-    hides: <>Loss, duplication, reordering — repaired invisibly (TCP) or handed to you raw (UDP), which is precisely UDP's offer.</>,
+    hides: (
+      <>
+        Dropped, duplicated, and reordered packets. TCP repairs them quietly; UDP hands them straight to your app, which
+        is the whole point of choosing UDP.
+      </>
+    ),
     lives: 'TCP · UDP · QUIC',
     fork: (
       <>
-        TCP when completeness beats freshness; UDP when a late packet is worse than a lost one. The next block takes
-        this floor at full depth.
+        Pick TCP when completeness matters more than freshness, and UDP when a late packet hurts more than a lost one.
+        The next block zooms all the way into this floor.
       </>
     ),
   },
   {
     id: 'l3',
     label: 'L3 · Network',
-    note: 'you inherit its geography',
+    note: 'geography you inherit',
     gives: (
       <>
-        Every machine gets an <b>address</b>, plus best-effort delivery to any of them, worldwide. “Best effort” is
-        load-bearing: it promises to try, not to succeed.
+        Every machine gets an <b>address</b> and best-effort packet delivery to any other machine on Earth. “Best
+        effort” does real work here: the network promises to try, never to guarantee arrival.
       </>
     ),
-    hides: <>Routing, BGP, peering — the entire backbone of the internet is this floor's implementation detail.</>,
+    hides: <>Routing tables, BGP, and carrier peering. The entire internet backbone sits hidden underneath this single interface.</>,
     lives: 'IP',
     fork: (
       <>
-        You rarely choose anything here, but you always pay here: regions, availability zones, and the speed-of-light
-        round trip are L3 facts your design inherits.
+        You rarely pick a protocol on this floor, yet you pay its bill on every request. Regions, availability zones,
+        and speed-of-light round trips are L3 constraints your architecture inherits.
       </>
     ),
   },
-  { id: 'l12', label: 'L1–2 · Physical · Data link', note: 'bytes become light', dim: true },
+  { id: 'l12', label: 'L1-2 · Physical · Data link', note: 'bytes turn into light', dim: true },
 ]
 
 function DetailRow({ label, children, bright }: { label: string; children: ReactNode; bright?: boolean }) {
@@ -103,7 +113,7 @@ export function LayerStack({ accent = C.net }: { accent?: string }) {
   return (
     <VizFrame accent={accent}>
       <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: 0.5, marginBottom: 10 }}>
-        seven floors, top down — open the three that matter
+        seven layers, top down · open the three where design happens
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {FLOORS.map((f) => {

@@ -213,7 +213,7 @@ test('manual: the networking briefing is a four-block deep briefing (spec 069)',
   // LayerStack: L4 starts open (block 2 deepens it); dim floors are not buttons
   const l4 = page.getByRole('button', { name: /L4 · Transport/ })
   await expect(l4).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByRole('button', { name: /L5–6/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /L5-6/ })).toHaveCount(0)
   const l7 = page.getByRole('button', { name: /L7 · Application/ })
   await expect(l7).toHaveAttribute('aria-expanded', 'false')
   await l7.click()
@@ -224,8 +224,8 @@ test('manual: the networking briefing is a four-block deep briefing (spec 069)',
   await expect(page.getByText('2% of frames simply gone')).toBeVisible()
   // …and a clean wire makes both promises free
   await page.getByRole('slider', { name: 'packet loss' }).fill('0')
-  await expect(page.getByText('smooth — nothing to repair')).toBeVisible()
-  await expect(page.getByText('smooth — nothing to lose')).toBeVisible()
+  await expect(page.getByText('smooth, nothing to repair')).toBeVisible()
+  await expect(page.getByText('smooth, nothing to lose')).toBeVisible()
   // the worked example ends on the FIN/ACK teardown note
   const stepper = page.getByText('step 1 / 7')
   await expect(stepper).toBeVisible()
@@ -580,7 +580,7 @@ test('manual: the indexing briefing is a six-block deep briefing (spec 076)', as
   // BTreeWalk: the descent ends on the random heap fetch
   await expect(page.getByText('read 1 / 4')).toBeVisible()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next descent step' }).click()
-  await expect(page.getByText(/RANDOM read — the expensive half/)).toBeVisible()
+  await expect(page.getByText(/RANDOM read, the expensive half/)).toBeVisible()
   // …and fan-out is what sets the depth
   await page.getByRole('slider', { name: 'children per node' }).fill('16')
   await expect(page.getByText(/depth 7 for 100M rows/)).toBeVisible()

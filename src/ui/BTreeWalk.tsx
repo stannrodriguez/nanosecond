@@ -22,26 +22,26 @@ const STAGES: Stage[] = [
   {
     id: 'root',
     label: 'root',
-    cost: '1 page read — from memory, always',
-    note: 'One node, read by every query that ever runs. It is permanently in the buffer cache; nobody has ever waited on it.',
+    cost: '1 page read, always from memory',
+    note: 'Every lookup starts at this single node, so it stays pinned in the buffer cache. Nobody waits on disk for the root.',
   },
   {
     id: 'branch',
     label: 'branch',
-    cost: '1 page read — from memory, almost always',
-    note: 'Each level narrows the search by the fan-out factor. The top two or three levels are small enough to stay resident, so they are memory reads wearing the costume of disk reads.',
+    cost: '1 page read, almost always from memory',
+    note: 'Each branch level narrows the search by the fan-out factor. Because the top two or three levels stay compact, they sit in RAM most of the time, giving you memory-speed hops through a disk-backed structure.',
   },
   {
     id: 'leaf',
     label: 'leaf',
-    cost: '1 page read — the first that plausibly touches disk',
-    note: 'The leaf holds the indexed value and a pointer to where the row actually lives. Leaves are linked left-to-right, which is why a range scan is one descent plus a walk, and why ORDER BY on this column is free.',
+    cost: '1 page read, the first likely disk hit',
+    note: 'A leaf stores the indexed value alongside a pointer to the row. Leaves link to their neighbors left to right, so a range scan descends once and walks sideways, and ORDER BY on this column comes for free.',
   },
   {
     id: 'heap',
     label: 'heap fetch',
-    cost: '1 RANDOM read — the expensive half',
-    note: 'The row itself is in the heap file, wherever it happened to land. This jump is unordered and uncacheable in bulk — it is the cost a covering index removes by carrying the returned columns in the leaf.',
+    cost: '1 RANDOM read, the expensive half',
+    note: 'The full row lives in the heap file, wherever space happened to be free. Jumping out to fetch it is unordered and hard to cache in bulk. A covering index skips this step by carrying the needed columns right inside the leaf.',
   },
 ]
 
@@ -72,9 +72,9 @@ export function BTreeWalk({ accent = C.storage }: { accent?: string }) {
         depth {depth} for 100M rows · four levels reach {reach.toLocaleString('en-US', { maximumFractionDigits: 0 })} rows
       </div>
       <div style={{ fontSize: 12.5, color: C.dim, marginTop: 6, lineHeight: 1.5 }}>
-        Fan-out is set by how many keys fit in one page — around 340 for an 8&nbsp;KB node and short keys, far fewer for
-        wide text keys. Every extra level multiplies the reach by that factor, which is why a table growing tenfold
-        barely moves the depth.
+        Fan-out depends on how many keys fit on a single page: roughly 340 for an 8&nbsp;KB node with short keys, and
+        far fewer for wide text keys. Each new level multiplies total reach by that fan-out, so growing a table tenfold
+        barely nudges the tree's depth.
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>

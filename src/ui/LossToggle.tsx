@@ -15,22 +15,22 @@ const RTT = 0.08 // seconds
 const fmtPct = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
 
 function tcpFeel(loss: number): string {
-  if (loss === 0) return 'The guarantee is free on a clean network — which is why TCP is the right default.'
+  if (loss === 0) return 'On a clean network, reliability costs nothing extra. That is why TCP makes such a strong default.'
   if (loss <= 2) {
     const gap = (1 / (RATE * (loss / 100))).toFixed(1)
-    return `A freeze every ~${gap} s, each one ≥ 80 ms — the call stutters, then fast-forwards. Every byte still arrives; none of it on time.`
+    return `A freeze roughly every ${gap} s, each ≥ 80 ms. The call hitches, then rushes to catch up: every byte arrives, just not on time.`
   }
   if (loss <= 6)
-    return 'Stalls start to overlap: the buffer is perpetually waiting on some gap. Reliable and unwatchable — completeness, delivered too late to matter.'
-  return 'The stream is a slideshow. TCP is keeping its promise perfectly; the promise is simply wrong for live media.'
+    return 'Stalls begin stacking on top of each other, leaving the buffer perpetually waiting on a missing packet. The stream is completely reliable and completely unwatchable.'
+  return 'Now the video is a slideshow. TCP is keeping its promise to the letter, which is exactly why that promise fails live media.'
 }
 
 function udpFeel(loss: number): string {
-  if (loss === 0) return 'Identical to TCP here — minus a round trip of handshake you never paid.'
-  if (loss <= 2) return 'A blip you barely notice; the conversation never stops moving. The rule inverts: lost beats late.'
+  if (loss === 0) return 'Feels identical to TCP on a clean wire, minus the handshake round trip you never had to pay.'
+  if (loss <= 2) return 'A tiny glitch you barely register, and the conversation keeps flowing. In live media, lost beats late.'
   if (loss <= 6)
-    return 'Crackles and the odd dropped syllable — degraded, but live and intelligible. The app papers over gaps instead of waiting on them.'
-  return 'Rough — but still live. At loss this bad no transport saves you; UDP at least keeps the survivors current.'
+    return 'Audio crackles and drops the occasional syllable, yet the call stays live and understandable. The app smooths over missing pieces instead of pausing for them.'
+  return 'Rough, though still real-time. No transport protocol rescues loss this heavy, yet UDP keeps the packets that do arrive current.'
 }
 
 function Lane({
@@ -92,8 +92,8 @@ export function LossToggle({ accent = C.net }: { accent?: string }) {
         <Lane
           title="TCP · live video call"
           col={C.net}
-          promise="“every byte, in order” — losses repaired, stream stalls"
-          stat={loss === 0 ? 'smooth — nothing to repair' : `${fmtPct(stallPct)}% of each second spent frozen`}
+          promise="“every byte, in order”: repairs loss, pauses the stream"
+          stat={loss === 0 ? 'smooth, nothing to repair' : `${fmtPct(stallPct)}% of each second spent frozen`}
           barLabel="frozen"
           barFrac={stallPct / 100}
           barTag={`${fmtPct(stallPct)}%`}
@@ -102,8 +102,8 @@ export function LossToggle({ accent = C.net }: { accent?: string }) {
         <Lane
           title="UDP · the same call"
           col={C.mem}
-          promise="“whatever arrives, immediately” — losses shrugged off"
-          stat={loss === 0 ? 'smooth — nothing to lose' : `${fmtPct(loss)}% of frames simply gone`}
+          promise="“deliver on arrival”: skips lost frames, keeps moving"
+          stat={loss === 0 ? 'smooth, nothing to lose' : `${fmtPct(loss)}% of frames simply gone`}
           barLabel="lost"
           barFrac={loss / 100}
           barTag={`${fmtPct(loss)}%`}

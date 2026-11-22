@@ -25,38 +25,38 @@ const STAGES: Stage[] = [
   {
     id: 'wal',
     label: '1 · append to the write-ahead log, fsync',
-    durable: 'YES — the instant fsync returned',
-    memory: 'nothing yet',
+    durable: 'YES, the moment fsync returns',
+    memory: 'not in memory yet',
     disk: 'log + 6 SSTables',
     reads: (b) => (b ? 'memtable, then 1 of 6 SSTables' : 'memtable, then all 6 SSTables'),
-    note: 'One sequential append and one fsync. This is the entire durability story — every stage after this is about speed, and none of them is what makes the write safe.',
+    note: 'One sequential append followed by one fsync. That single step handles durability. Everything after this exists for speed, not safety.',
   },
   {
     id: 'memtable',
     label: '2 · insert into the in-memory table',
-    durable: 'YES — still the log',
-    memory: 'the new key, in sorted order',
+    durable: 'YES, still backed by the log',
+    memory: 'new key stored in sorted order',
     disk: 'log + 6 SSTables',
-    reads: () => 'the memtable — 0 disk reads',
-    note: 'RAM speed, and sorted on the way in so the eventual flush is one clean sequential write. A read of this key now stops at the memtable and never reaches the disk at all.',
+    reads: () => 'memtable hit (0 disk reads)',
+    note: 'Inserted at RAM speed and kept sorted so the later flush becomes one clean sequential write. Any read for this key now stops in the memtable and never touches disk.',
   },
   {
     id: 'flush',
     label: '3 · memtable fills → flush as an immutable SSTable',
-    durable: 'YES — now in the SSTable too',
-    memory: 'emptied, ready for the next 64 MB',
+    durable: 'YES, now in the SSTable too',
+    memory: 'cleared, ready for the next 64 MB',
     disk: '7 SSTables',
     reads: (b) => (b ? 'memtable (miss), then 1 of 7 SSTables' : 'memtable (miss), then all 7 SSTables'),
-    note: 'At roughly 64 MB the table is written out in one sequential burst as a file nothing will ever modify. File count just went up, and so did the cost of every read that misses memory.',
+    note: 'Around 64 MB, the memtable flushes out in one sequential burst as a file that will never be edited. The file count just climbed by one, raising the work for every read that misses RAM.',
   },
   {
     id: 'compaction',
     label: '4 · compaction merges files in the background',
     durable: 'YES',
-    memory: 'the live memtable only',
+    memory: 'live memtable only',
     disk: '2 SSTables',
     reads: (b) => (b ? 'memtable (miss), then 1 of 2 SSTables' : 'memtable (miss), then both SSTables'),
-    note: 'Merge the files, keep the newest version of each key, physically drop the tombstones. This is where an LSM actually pays for its cheap writes — the same data is rewritten several times over its life, in background I/O that competes with live traffic.',
+    note: 'Background workers merge older files, keep only the newest value for each key, and drop tombstones for good. Here is where an LSM pays for its fast writes: the same bytes get rewritten several times over their lifetime, using background I/O that shares bandwidth with live traffic.',
   },
 ]
 
@@ -81,7 +81,7 @@ export function LsmPath({ accent = C.storage }: { accent?: string }) {
   return (
     <VizFrame accent={accent}>
       <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: 0.5, marginBottom: 10 }}>
-        one write, four stages — watch what a READ costs at each
+        one write, four stages · watch what a READ costs at each step
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -127,8 +127,8 @@ export function LsmPath({ accent = C.storage }: { accent?: string }) {
       </label>
       <div style={{ fontSize: 12.5, color: C.dim, marginTop: 6, lineHeight: 1.5 }}>
         {bloom
-          ? 'A few bits per key rule most files OUT with certainty, so the read opens only the file that might hold the key.'
-          : 'Without it every read consults every file, because any of them could hold a newer version of the key.'}
+          ? 'A few bits per key let the engine rule most files OUT with certainty, so the read only opens the file that might hold your key.'
+          : 'Without bloom filters, a read has to check every file on disk, because any one of them could hold a newer version of the key.'}
       </div>
 
       <div style={{ fontSize: 13, color: C.text, marginTop: 12, lineHeight: 1.55, minHeight: 66 }}>{stage.note}</div>

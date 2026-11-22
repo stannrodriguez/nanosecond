@@ -65,15 +65,15 @@ export function InvertedIndexBuilder({ accent = C.storage }: { accent?: string }
 
   const toggle = (k: keyof Stages) => setS((prev) => ({ ...prev, [k]: !prev[k] }))
   const STAGE_COPY: { k: keyof Stages; label: string; off: string }[] = [
-    { k: 'fold', label: 'normalize case', off: 'Case now matters: “Running” and “running” become two unrelated terms.' },
-    { k: 'stop', label: 'drop stop words', off: '“the”, “of”, “a” are indexed too — high frequency, no discriminating power, pure weight.' },
-    { k: 'stem', label: 'stem', off: '“ran” and “running” stay separate words, so a search for one no longer finds the other.' },
+    { k: 'fold', label: 'normalize case', off: 'Case matters now: “Running” and “running” are indexed as two separate terms.' },
+    { k: 'stop', label: 'drop stop words', off: 'Words like “the”, “of”, and “a” enter the index too. They show up everywhere, narrow down nothing, and add pure bulk.' },
+    { k: 'stem', label: 'stem', off: 'Without stemming, “ran” and “running” stay separate entries, so searching for one misses the other.' },
   ]
 
   return (
     <VizFrame accent={accent}>
       <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: 0.5, marginBottom: 10 }}>
-        4 documents in · the pipeline runs on both sides · switch a stage off
+        4 documents indexed · same pipeline runs on docs and query · toggle a stage
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -123,24 +123,24 @@ export function InvertedIndexBuilder({ accent = C.storage }: { accent?: string }
 
       <div style={{ marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 10 }}>
         <div className="mono" style={{ fontSize: 12.5, color: C.dim }}>
-          search “{query}” → analyzed to{' '}
-          <b style={{ color: accent }}>[{qTerms.join(', ') || '—'}]</b>
+          query “{query}” → becomes{' '}
+          <b style={{ color: accent }}>[{qTerms.join(', ') || 'none'}]</b>
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 6 }}>
           {hits.length === 0 ? 'no documents match' : `${hits.length} of 4 documents match`}
         </div>
         <div style={{ fontSize: 12.5, color: C.dim, marginTop: 4, lineHeight: 1.5 }}>
-          {hits.length > 0 && <>hits: {hits.map((d) => `doc ${d}`).join(' · ')} — </>}
+          {hits.length > 0 && <>Matched {hits.map((d) => `doc ${d}`).join(' · ')}. </>}
           {s.stem
-            ? 'stemming is what lets the document that said “ran” answer a search for “Running”.'
-            : 'without stemming, the document that said “ran” is invisible to this search.'}
+            ? 'Stemming is why the document that said “ran” still answers a search for “Running”.'
+            : 'Without stemming, the document that said “ran” is invisible to this search.'}
         </div>
       </div>
 
       <div style={{ fontSize: 12.5, color: C.faint, marginTop: 10, lineHeight: 1.5 }}>
         {STAGE_COPY.filter((st) => !s[st.k])
           .map((st) => st.off)
-          .join(' ') || 'All three stages on: this is the default pipeline almost every text field runs through.'}
+          .join(' ') || 'All three stages active: this is the default analysis pipeline behind most full-text fields.'}
       </div>
     </VizFrame>
   )

@@ -326,7 +326,7 @@ export function HashRing() {
         </svg>
         <div style={{ flex: '1 1 150px', minWidth: 150 }}>
           <div className="mono" style={{ fontSize: 11, color: C.dim, marginBottom: 6 }}>
-            keys that move when node #{n} joins:
+            keys moved when node #{n} joins:
           </div>
           <Bars
             bars={[
@@ -337,9 +337,9 @@ export function HashRing() {
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: C.dim, marginTop: 10, lineHeight: 1.5 }}>
-        Squares are nodes, dots are keys (a key belongs to the next node clockwise). Add a node and only its new
-        clockwise slice re-homes — about <b style={{ color: C.mem }}>1/{n}</b> of the keys. A plain{' '}
-        <span className="mono">hash % N</span> would reshuffle nearly all of them.
+        Squares are nodes and dots are keys, each owned by the next node clockwise. Add a node and only its newly
+        claimed arc moves, roughly <b style={{ color: C.mem }}>1/{n}</b> of the keys. Plain{' '}
+        <span className="mono">hash % N</span> reshuffles almost the entire ring.
       </div>
     </VizFrame>
   )

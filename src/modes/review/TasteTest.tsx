@@ -46,9 +46,9 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.55 }}>
-        Two defensible designs, one set of requirements. Picking the right one is worth half; picking the right{' '}
-        <b style={{ color: C.text }}>reason</b> is worth the other half — because “correct answer, wrong reason” is the most
-        dangerous state in engineering: it works until it catastrophically doesn't.
+        Two defensible designs, one set of requirements. Picking the right design gets you halfway there, and picking the
+        right <b style={{ color: C.text }}>reason</b> gets you the rest. Getting the right answer for the wrong reason is
+        a quiet trap: it holds up right until the numbers shift.
       </p>
       <div
         className="mono"
@@ -78,7 +78,7 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
       </div>
       {pick && (
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Why? Choose the strongest justification:</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Why does it win here? Pick the strongest reason:</div>
           {q.whys.map((w, i) => (
             <button
               key={i}
@@ -106,7 +106,7 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
           ))}
           {!done ? (
             <Button variant="danger" disabled={why === null} onClick={submit} style={{ marginTop: 6, padding: '11px 24px' }}>
-              Defend it
+              Defend your pick
             </Button>
           ) : (
             <>

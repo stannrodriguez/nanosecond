@@ -117,9 +117,10 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 13.5, lineHeight: 1.55 }}>
-        Watching a simulation teaches a little. <b style={{ color: C.text }}>Forecasting one, then being wrong in public,</b>{' '}
-        teaches a lot — it's also literally what an interviewer asks: “where does this break first?” Commit before you see
-        anything.
+        Watching a simulation teaches you a little.{' '}
+        <b style={{ color: C.text }}>Calling the bottleneck first, then watching the bars prove you right or wrong,</b>{' '}
+        teaches much more. It is also the exact question interviewers ask: where does this stack break first? Lock in your
+        numbers before traffic starts.
       </p>
       <Panel style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
@@ -149,14 +150,14 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
             {r.ci ? (
               <>
                 <div className="mono" style={{ textAlign: 'center', fontSize: 22, fontWeight: 600, color: C.net, margin: '6px 0' }}>
-                  {fmtNum(ciLo)} – {fmtNum(ciHi)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
+                  {fmtNum(ciLo)} to {fmtNum(ciHi)} <span style={{ fontSize: 13, color: C.dim }}>req/s</span>
                 </div>
                 <label className="mono" style={{ fontSize: 10.5, color: C.faint }}>lower bound</label>
                 <input type="range" min={0} max={1000} value={posLo} onChange={(e) => setPosLo(+e.target.value)} aria-label="lower bound" />
                 <label className="mono" style={{ fontSize: 10.5, color: C.faint }}>upper bound</label>
                 <input type="range" min={0} max={1000} value={posHi} onChange={(e) => setPosHi(+e.target.value)} aria-label="upper bound" />
                 <div className="mono" style={{ fontSize: 10.5, color: C.dim, marginTop: 4 }}>
-                  Narrow if you're sure, wide if you're not — but a bracket that misses the truth scores zero.
+                  Keep it tight if you are sure, widen it if you are not. A bracket that misses the true onset scores zero.
                 </div>
               </>
             ) : (
@@ -168,7 +169,7 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
               </>
             )}
             <Button variant="danger" full disabled={q1 === null} onClick={lock} style={{ marginTop: 16 }}>
-              Commit predictions — run it
+              Lock predictions and run
             </Button>
           </>
         )}
@@ -188,24 +189,25 @@ export function PredictRun({ onScore }: { onScore: (n: number) => void }) {
           <div style={{ marginTop: 12, borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
             <div className="mono" style={{ fontSize: 13, marginBottom: 4, color: q1Right ? C.ok : C.alert }}>
               {q1Right ? '✓' : '✗'} First past 80%: <b>{r.q1.opts[firstIdx]}</b>{' '}
-              {q1Right ? '— you called it' : `(you said ${r.q1.opts[q1!]})`}
+              {q1Right ? '(you called it)' : `(you picked ${r.q1.opts[q1!]})`}
             </div>
             {r.ci ? (
               <div className="mono" style={{ fontSize: 13, marginBottom: 10, color: q2Pts >= 60 ? C.ok : C.alert }}>
-                {contained ? '✓' : '✗'} Errors begin ≈ <b>{fmtNum(r.q2.ans)}/s</b> — your bracket {fmtNum(ciLo)}–{fmtNum(ciHi)}{' '}
-                {contained ? (q2Pts === 100 ? 'brackets it, tightly' : 'brackets it, but wide') : 'missed it'} ({q2Pts} pts)
+                {contained ? '✓' : '✗'} Errors start around <b>{fmtNum(r.q2.ans)}/s</b>. Your bracket ({fmtNum(ciLo)} to{' '}
+                {fmtNum(ciHi)}){' '}
+                {contained ? (q2Pts === 100 ? 'caught it tightly' : 'caught it, though wide') : 'missed it'} ({q2Pts} pts)
               </div>
             ) : (
               <div className="mono" style={{ fontSize: 13, marginBottom: 10, color: q2Pts >= 60 ? C.ok : C.alert }}>
-                {q2Pts >= 60 ? '✓' : '✗'} Errors begin ≈ <b>{fmtNum(r.q2.ans)}/s</b> — you predicted {fmtNum(guess)}/s{' '}
-                {q2Pts === 100 ? '(dead on)' : q2Pts === 60 ? '(close)' : ''}
+                {q2Pts >= 60 ? '✓' : '✗'} Errors start around <b>{fmtNum(r.q2.ans)}/s</b>. You called {fmtNum(guess)}/s
+                {q2Pts === 100 ? ' (spot on)' : q2Pts === 60 ? ' (close)' : ''}
               </div>
             )}
             <div style={{ fontSize: 13.5, lineHeight: 1.6, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 12px' }}>
               {r.lesson}
             </div>
             <Button onClick={next} style={{ marginTop: 12 }}>
-              {ri === PREDICT_ROUNDS.length - 1 ? 'Round 1 again (beat your score)' : 'Next round →'}
+              {ri === PREDICT_ROUNDS.length - 1 ? 'Run Round 1 again' : 'Next round →'}
             </Button>
           </div>
         )}

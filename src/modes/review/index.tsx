@@ -130,8 +130,8 @@ function JudgmentSummary() {
                 padding: '5px 10px',
               }}
             >
-              {JUDG_LABEL[cat]} · {a === null ? '—' : `${a}%`}
-              {isWeak && a !== null && <span style={{ color: C.alert }}> ← weakest</span>}
+              {JUDG_LABEL[cat]} · {a === null ? 'n/a' : `${a}%`}
+              {isWeak && a !== null && <span style={{ color: C.alert }}> ← focus here</span>}
             </div>
           )
         })}

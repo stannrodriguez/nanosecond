@@ -40,19 +40,19 @@ export function DailyIncidentCard() {
         <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>
           {played
             ? played.solved
-              ? "Cleared today's incident — back tomorrow"
-              : "Today's incident got you — back tomorrow"
-            : 'A production design is failing. Find the flaw.'}
+              ? "Cleared today's incident. New one tomorrow."
+              : "Today's incident slipped past. Fresh one tomorrow."
+            : 'A production design is failing. Spot the flaw.'}
         </div>
         <div className="mono" style={{ fontSize: 11, color: C.dim, marginTop: 3 }}>
-          🔥 {streak}-day streak{!played && ' · one shot, date-seeded — same puzzle for everyone today'}
+          🔥 {streak}-day streak{!played && ' · one shot, same daily puzzle for everyone'}
         </div>
       </div>
       <div
         className="mono"
         style={{ fontSize: 12, fontWeight: 700, color: C.bg, background: C.gold, borderRadius: 8, padding: '8px 14px', whiteSpace: 'nowrap' }}
       >
-        {played ? 'Review →' : 'Face it →'}
+        {played ? 'Review →' : 'Inspect it →'}
       </div>
     </button>
   )

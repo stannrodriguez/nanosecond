@@ -95,7 +95,7 @@ function LadderCard({ onClick }: { onClick: () => void }) {
         </span>
       </div>
       <div style={{ fontSize: 13.5, color: C.dim, lineHeight: 1.5, marginTop: 6, maxWidth: 620 }}>
-        Every latency number, each derived from a physical limit — re-derive them, rung by rung.
+        Every latency number on the ladder comes from a physical limit. Work your way up and re-derive them, rung by rung.
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
         {RUNGS.map((r) => (
@@ -221,7 +221,7 @@ function ReferenceSection({ focusTerm }: { focusTerm?: string }) {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '12px 0 0', maxWidth: 620 }}>
-        Every dotted term in one place, defined. Scroll it, or ctrl-F it.
+        Every dotted term in the library, laid out in the open. Scroll through or use ctrl-F to jump straight to one.
       </p>
       {REFERENCE_GROUPS.map((g) => {
         const col = REF_GROUP_COLOR[g.id] ?? C.net
@@ -309,7 +309,7 @@ function TermsPanel({ s }: { s: ManualSection }) {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <Eyebrow color={col}>THE TERMS</Eyebrow>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: C.dim, whiteSpace: 'nowrap' }}>
-          {group.keys.length} terms · say each out loud
+          {group.keys.length} terms · try each out loud
         </span>
       </div>
       <div style={{ marginTop: 6 }}>
@@ -425,7 +425,7 @@ function SayItCard({ s }: { s: ManualSection }) {
   return (
     <LiftCard
       accent={C.net}
-      ariaLabel={`SAY IT — ${deck.length} questions an interviewer would ask`}
+      ariaLabel={`SAY IT: ${deck.length} questions an interviewer would ask`}
       onClick={() => navigate(`/manual/briefings/${s.id}/say-it`)}
       style={{ width: '100%', borderRadius: 10, padding: '14px 16px', marginTop: 16 }}
     >
@@ -437,11 +437,11 @@ function SayItCard({ s }: { s: ManualSection }) {
           {deck.length} questions an interviewer would ask
         </span>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11.5, color: due > 0 ? C.net : C.faint, whiteSpace: 'nowrap' }}>
-          {due > 0 ? `${due} due · practice →` : 'all scheduled · again →'}
+          {due > 0 ? `${due} due · practice →` : 'all caught up · run again →'}
         </span>
       </div>
       <div style={{ fontSize: 12.5, color: C.faint, marginTop: 5, lineHeight: 1.5 }}>
-        Answer out loud, flip, grade yourself. Blanked cards come back daily.
+        Say your answer out loud, flip the card, and grade yourself honestly. Any card you blank on comes straight back.
       </div>
     </LiftCard>
   )
@@ -542,19 +542,19 @@ function SayItPage({ s }: { s: ManualSection }) {
     return (
       <div style={{ maxWidth: 640 }}>
         <div style={{ marginBottom: 24 }}>
-          <GhostButton onClick={() => navigate(`/manual/briefings/${s.id}`)}>← the briefing</GhostButton>
+          <GhostButton onClick={() => navigate(`/manual/briefings/${s.id}`)}>← back to briefing</GhostButton>
         </div>
         <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: '22px 24px' }}>
           <Eyebrow color={C.net}>SAY IT · LOCKED</Eyebrow>
           <p style={{ fontSize: 15, lineHeight: 1.6, margin: '10px 0 0' }}>
-            Read the briefing first — these cards test what it teaches, and the deck grades you against its sentences.
+            Read the briefing first. These cards test the ideas from that page, and you will grade your answers against its core lines.
           </p>
           <Link
             to={`/manual/briefings/${s.id}`}
             className="mono"
             style={{ display: 'inline-block', marginTop: 12, color: C.net, fontSize: 12.5, fontWeight: 600 }}
           >
-            open {s.title.toLowerCase()} →
+            read {s.title.toLowerCase()} →
           </Link>
         </div>
       </div>
@@ -581,7 +581,7 @@ function ConceptLibrary({ focusTerm }: { focusTerm?: string }) {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
-        Short briefings, each led by a visualization you can poke. Dotted words are clickable everywhere.
+        Focused briefings, each built around a live diagram you can experiment with. Tap any dotted term for its definition.
       </p>
       <div
         style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 32, marginTop: 40 }}
@@ -655,7 +655,7 @@ function NamedTechStrip() {
         NAMED TECHNOLOGIES
       </div>
       <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 3 }}>
-        the products interviewers name — each page collects what the library teaches about one
+        the systems interviewers bring up by name, each gathering everything this library teaches about it
       </div>
       <div
         style={{
@@ -687,8 +687,9 @@ function Ladder() {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14, marginTop: 4, marginBottom: 20, lineHeight: 1.5 }}>
-        Nine numbers, each derived from a physical limit. Don't memorize them — re-derive them. The bar shows how far light
-        travels in that time; the right column shows the wait if one nanosecond were one second.
+        Nine numbers, each anchored to a physical limit. Skip the memorization and re-derive them from first principles. Each
+        bar shows how far light travels in that time, and the right column translates the wait as if one nanosecond lasted one
+        second.
       </p>
       {RUNGS.map((r, i) => {
         const frac = (Math.log10(r.ns) - minLog) / (maxLog - minLog)
@@ -757,10 +758,10 @@ function Ladder() {
         )
       })}
       <div style={{ color: C.faint, fontSize: 12.5, marginTop: 14, lineHeight: 1.6 }}>
-        The pattern to internalize: <span style={{ color: C.mem }}>memory</span> is bounded by wire length and leaking charge,{' '}
-        <span style={{ color: C.storage }}>storage</span> by sensing physics and moving metal,{' '}
-        <span style={{ color: C.net }}>networks</span> by the speed of light, and <span style={{ color: C.compute }}>compute</span>{' '}
-        by heat. Every architecture is a negotiation between these four walls.
+        Keep these four walls in view: <span style={{ color: C.mem }}>memory</span> hits wire length and leaking charge,{' '}
+        <span style={{ color: C.storage }}>storage</span> hits sensing physics and moving metal,{' '}
+        <span style={{ color: C.net }}>networks</span> hit the speed of light, and <span style={{ color: C.compute }}>compute</span>{' '}
+        hits heat. Every system architecture is a trade negotiated between them.
       </div>
     </div>
   )
@@ -810,7 +811,7 @@ export default function Manual() {
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-          <GhostButton onClick={() => navigate('/manual/briefings')}>← the library</GhostButton>
+          <GhostButton onClick={() => navigate('/manual/briefings')}>← back to library</GhostButton>
           <h1 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.3, margin: 0 }}>THE LADDER</h1>
         </div>
         <Ladder />
@@ -824,7 +825,7 @@ export default function Manual() {
     return (
       <div>
         <div style={{ marginBottom: 24 }}>
-          <GhostButton onClick={() => navigate('/manual/briefings')}>← the library</GhostButton>
+          <GhostButton onClick={() => navigate('/manual/briefings')}>← back to library</GhostButton>
         </div>
         <SectionView s={open} />
       </div>

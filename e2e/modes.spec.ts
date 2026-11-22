@@ -242,7 +242,7 @@ test('say it: the deck is L2-gated, flips, grades, and reaches the tally (spec 0
   await expect(page.getByText('Read the briefing first', { exact: false })).toBeVisible()
   // opening the briefing satisfies law L2; the entry card leads in
   await page.goto('/#/manual/briefings/networking')
-  await page.getByRole('button', { name: /SAY IT — 6 questions an interviewer would ask/ }).click()
+  await page.getByRole('button', { name: /SAY IT: 6 questions an interviewer would ask/ }).click()
   await expect(page).toHaveURL(/#\/manual\/briefings\/networking\/say-it$/)
   await expect(page.getByText('INTERVIEWER', { exact: true })).toBeVisible()
   await expect(page.getByText('Say your answer out loud.')).toBeVisible()

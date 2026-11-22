@@ -55,10 +55,10 @@ function EncounterCard({
   const name = e
     ? e.name.replace('ELITE · ', '').replace('BOSS · ', '')
     : node.kind === 'shop'
-      ? 'Buy patterns & capacity'
+      ? 'Buy patterns or run a retro'
       : node.kind === 'rest'
-        ? 'Recover trust or raise funds'
-        : 'Something needs a decision'
+        ? 'Rebuild trust or raise funds'
+        : 'A call needs your decision'
   const border = active ? (h ? C.net : C.net + '88') : h && !past ? col + '77' : C.line
   return (
     <button
@@ -146,12 +146,13 @@ export default function OnCall() {
         addScar({
           mode: 'oncall',
           theme: enc.name.replace('ELITE · ', '').replace('BOSS · ', ''),
-          what: `${g.cfg.app} app · ${g.cfg.cache} cache · ${g.cfg.shards} shard(s) · ${g.cfg.replicas} repl${g.cfg.queue ? ` · queue+${g.cfg.workers}w` : ''}`,
-          truth: `−${total} error budget${strandedLag ? ' (incl. stranded backlog)' : ''}`,
-          lesson: enc.secret ?? 'The stack had no headroom for this traffic shape — buy capacity or buy time before taking it.',
+          what: `${g.cfg.app} app · ${g.cfg.cache} cache · ${g.cfg.shards} ${g.cfg.shards === 1 ? 'shard' : 'shards'} · ${g.cfg.replicas} ${g.cfg.replicas === 1 ? 'replica' : 'replicas'}${g.cfg.queue ? ` · queue+${g.cfg.workers}w` : ''}`,
+          truth: `−${total} error budget${strandedLag ? ' (including stranded backlog)' : ''}`,
+          lesson: enc.secret ?? 'Your stack ran out of headroom for this traffic shape. Buy capacity or buy time before taking the hit.',
         })
       if (hp <= 0) {
-        upd({ hp: 0, over: { win: false, why: `${enc.name} burned through your remaining error budget. Users lost faith.` } })
+        const cleanName = enc.name.replace('ELITE · ', '').replace('BOSS · ', '')
+        upd({ hp: 0, over: { win: false, why: `${cleanName} burned through your remaining error budget. Users lost faith.` } })
       } else {
         const reward = enc.boss ? 0 : enc.elite ? RUN.eliteReward : RUN.fightReward
         setResult({ dmg: total, lagNote: strandedLag > 0, reward, boss: !!enc.boss })
@@ -328,16 +329,16 @@ export default function OnCall() {
       <div>
         {header}
         <Card title="SPRINT BREAK" col={C.mem}>
-          <p style={{ fontSize: 14, lineHeight: 1.6 }}>A quiet week. The pager is silent. You can invest it one way:</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6 }}>A quiet week and a silent pager. Pick where to invest it:</p>
           <Choice
             onClick={() => finishNode({ hp: clampHp(g.hp + RUN.restHp) })}
             title={`Reliability sprint · error budget +${RUN.restHp}`}
-            sub="Fix the flaky retries, add the missing timeouts. Trust is rebuilt one boring fix at a time."
+            sub="Fix the flaky retries and add the missing timeouts. Trust comes back one unglamorous fix at a time."
           />
           <Choice
             onClick={() => finishNode({ gold: g.gold + RUN.restGold })}
             title={`Pitch investors · +$${RUN.restGold}`}
-            sub="A crisp demo, a bigger cheque. The reliability debt stays where it is."
+            sub="Deliver a crisp demo and walk out with fresh runway. The reliability debt stays put."
           />
         </Card>
       </div>
@@ -376,7 +377,7 @@ export default function OnCall() {
       <div>
         {header}
         <Card title="VENDOR EXPO" col={C.gold}>
-          <p style={{ fontSize: 14, color: C.dim }}>Patterns are permanent for the run. Capacity you can also buy right before any encounter.</p>
+          <p style={{ fontSize: 14, color: C.dim }}>Patterns stay with you for the whole run. You can buy raw capacity right before any encounter.</p>
           {forSale.map((k) => {
             const p = PATTERNS[k]
             if (patternLocked(k))
@@ -399,7 +400,7 @@ export default function OnCall() {
             disabled={g.gold < RUN.shopHealCost || g.hp >= 100}
             onClick={() => upd({ hp: clampHp(g.hp + RUN.shopHealAmount), gold: g.gold - RUN.shopHealCost })}
             title={`Incident retro workshop · $${RUN.shopHealCost} · error budget +${RUN.shopHealAmount}`}
-            sub="A blameless postmortem turns last week's outage into next week's safeguard."
+            sub="A blameless postmortem turns last week’s outage into next week’s guardrail."
           />
           <button
             onClick={() => finishNode()}
@@ -443,7 +444,7 @@ export default function OnCall() {
         >
           {showSecret
             ? `◎ CHAOS DRILLS INTEL: ${enc.secret}`
-            : '??? — monitoring is vague about what this will actually do. (Chaos Drills would tell you.)'}
+            : 'Unknown modifier. Monitoring is vague about what this wave will actually do. (Chaos Drills reveals it.)'}
         </div>
       )}
 
@@ -515,8 +516,8 @@ export default function OnCall() {
         <div style={{ flex: '1 1 300px', minWidth: 0, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 14, minHeight: 260 }}>
           {!frame && !result && (
             <div style={{ color: C.faint, fontSize: 13.5, lineHeight: 1.6 }}>
-              Configure, then take the traffic. Damage to your error budget comes from dropped requests and (unless you degrade
-              gracefully) blown p99s.
+              Tune your stack, then take the traffic. Dropped requests eat your error budget, and so do missed p99 targets unless
+              Graceful Degradation is active.
             </div>
           )}
           {frame && (
@@ -544,11 +545,11 @@ export default function OnCall() {
           {result && (
             <div style={{ borderTop: frame ? `1px solid ${C.line}` : 'none', paddingTop: 12, marginTop: 6 }}>
               <div className="mono" style={{ fontSize: 15, fontWeight: 700, color: result.dmg > 25 ? C.alert : result.dmg > 0 ? C.compute : C.ok }}>
-                {result.dmg === 0 ? 'FLAWLESS — no error budget spent' : `Survived · error budget −${result.dmg}`}
+                {result.dmg === 0 ? 'FLAWLESS · zero error budget spent' : `Survived · error budget −${result.dmg}`}
               </div>
               {result.lagNote && (
                 <div style={{ fontSize: 12.5, color: C.compute, marginTop: 4 }}>
-                  Backlog left stranded in the queue — late data cost you extra trust. Size the drain, not just the intake.
+                  Backlog was still sitting in the queue when the wave ended, and late data cost extra trust. Size the drain, not just the intake.
                 </div>
               )}
               {!result.boss && (
@@ -597,7 +598,7 @@ export default function OnCall() {
                           finishNode()
                         }}
                         title={`+$${d.amt} funding`}
-                        sub="Cash keeps options open. Patterns keep systems up."
+                        sub="Cash keeps your options open. Patterns keep the system standing."
                       />
                     ),
                   )}

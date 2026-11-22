@@ -70,8 +70,8 @@ function QuietLink({ children, onClick }: { children: React.ReactNode; onClick: 
 function Empty() {
   return (
     <div style={{ background: C.panel, border: `1px dashed ${C.line}`, borderRadius: 10, padding: 24, color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
-      No scars yet. Go miss something — drills you fumble, flaws you mis-accuse, builds that fall over all land here with
-      their lesson attached. Misses are the curriculum.
+      No scars yet. Go break something. Every drill you miss, flaw you misdiagnose, and build that tips over lands here
+      with its lesson attached. Your misses are the real curriculum.
     </div>
   )
 }
@@ -117,7 +117,7 @@ export default function Journal() {
           groupByTheme(scars).map((g) => (
             <div key={g.theme} style={{ marginBottom: 18 }}>
               <div className="mono" style={{ fontSize: 11, letterSpacing: 1.5, color: C.compute, marginBottom: 8 }}>
-                {g.theme.toUpperCase()} — MISSED {g.scars.length}×
+                {g.theme.toUpperCase()} · MISSED {g.scars.length}×
               </div>
               {[...g.scars].reverse().map((s, i) => (
                 <ScarCard key={i} s={s} />
@@ -138,9 +138,13 @@ export default function Journal() {
         </div>
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 10 }}>
-              5 SHAKIEST NUMBERS — re-derive these tonight
+              5 SHAKIEST NUMBERS · derive these again tonight
             </div>
-            {briefing.shakiest.length === 0 && <div style={{ color: C.dim, fontSize: 13.5 }}>Answer some drills first.</div>}
+            {briefing.shakiest.length === 0 && (
+              <div style={{ color: C.dim, fontSize: 13.5 }}>
+                No drill attempts yet. Run a few drills and your widest misses will surface here.
+              </div>
+            )}
             {briefing.shakiest.map((s) => (
               <div key={s.drillId} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '7px 0', borderBottom: `1px solid ${C.line}`, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, flex: '1 1 320px', lineHeight: 1.45 }}>{s.q}</span>
@@ -156,9 +160,13 @@ export default function Journal() {
 
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
             <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.compute, marginBottom: 10 }}>
-              3 RECURRING BLIND SPOTS
+              3 RECURRING BLIND SPOTS · themes that keep tripping you up
             </div>
-            {briefing.blindSpots.length === 0 && <div style={{ color: C.dim, fontSize: 13.5 }}>No repeated miss themes yet.</div>}
+            {briefing.blindSpots.length === 0 && (
+              <div style={{ color: C.dim, fontSize: 13.5 }}>
+                No misses logged yet. As scars add up, the themes that catch you most often will rank here.
+              </div>
+            )}
             {briefing.blindSpots.map((t) => (
               <div key={t.theme} style={{ fontSize: 13.5, padding: '5px 0' }}>
                 <span style={{ color: C.text }}>{t.theme}</span>
@@ -171,9 +179,13 @@ export default function Journal() {
 
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 14 }}>
             <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.mem, marginBottom: 10 }}>
-              SOUNDBITES YOU'VE EARNED — say these out loud
+              SOUNDBITES YOU'VE EARNED · practice saying these out loud
             </div>
-            {soundbites.length === 0 && <div style={{ color: C.dim, fontSize: 13.5 }}>Solve flaw puzzles to collect interview-ready lines.</div>}
+            {soundbites.length === 0 && (
+              <div style={{ color: C.dim, fontSize: 13.5 }}>
+                None collected yet. Solve flaw puzzles and interrogations in Design Review to collect crisp, speakable lines.
+              </div>
+            )}
             {soundbites.map((s, i) => (
               <div key={i} style={{ fontSize: 13, color: C.dim, fontStyle: 'italic', borderLeft: `3px solid ${C.net}`, paddingLeft: 10, marginBottom: 8, lineHeight: 1.5 }}>
                 {s}
@@ -183,21 +195,22 @@ export default function Journal() {
 
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 14 }}>
             <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.gold, marginBottom: 10 }}>
-              TEACH-BACKS — you explained it out loud, the real test
+              TEACH-BACKS · explaining it out loud is the real test
             </div>
             {teachBacks.length === 0 && (
               <div style={{ color: C.dim, fontSize: 13.5 }}>
-                None yet. After a Design Review solve, take the 60-second teach-back — narrating the fix is what makes it stick.
+                None yet. After you solve a Design Review challenge, take the 60-second teach-back. Talking through the fix
+                out loud is what makes the reasoning stick.
               </div>
             )}
             {teachBacks.length > 0 && (
               <>
                 <div style={{ fontSize: 13.5, color: C.text, marginBottom: 8 }}>
-                  {teachBacks.length} logged · avg{' '}
+                  {teachBacks.length} logged · averaging{' '}
                   <b style={{ color: C.mem }}>
                     {(teachBacks.reduce((a, t) => a + t.score, 0) / teachBacks.length).toFixed(1)}/3
                   </b>{' '}
-                  on the mechanism / tradeoff / number rubric
+                  across mechanism, tradeoff, and number
                 </div>
                 {[...teachBacks]
                   .slice(-5)
@@ -218,7 +231,7 @@ export default function Journal() {
             onClick={exportPack}
             style={{ padding: '12px 24px', background: C.net, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
           >
-            {copied ? '✓ Copied + downloaded' : 'Export context pack (.md for LLM mock interviews)'}
+            {copied ? '✓ Copied and downloaded' : 'Export context pack (.md for an LLM mock interview)'}
           </button>
       </div>
     )
@@ -237,7 +250,8 @@ export default function Journal() {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '16px 0 0', maxWidth: 620 }}>
-        Every miss, logged with its lesson. Misses are the curriculum.
+        Every miss across Practice and the Lab lands here with its lesson attached. Review these before an interview so
+        the same blind spot does not catch you twice.
       </p>
 
       <div style={{ marginTop: 32 }}>
@@ -249,14 +263,14 @@ export default function Journal() {
               <ScarCard key={scars.length - i} s={s} />
             ))}
             <p className="mono" style={{ fontSize: 11, color: C.faint, margin: '20px 0 0', maxWidth: 640, lineHeight: 1.6 }}>
-              misses land here automatically — drills you fumble, flaws you mis-accuse, builds that fall over.
+              misses land here automatically: missed drills, misdiagnosed flaws, wrong calls, and builds that tip over.
             </p>
           </>
         )}
       </div>
 
       <div className="mono" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'baseline', marginTop: 28 }}>
-        <span style={{ fontSize: 10, letterSpacing: 1.5, color: C.faint }}>ALSO</span>
+        <span style={{ fontSize: 10, letterSpacing: 1.5, color: C.faint }}>VIEWS</span>
         <QuietLink onClick={() => navigate('/journal/themes')}>blind spots by theme</QuietLink>
         <QuietLink onClick={() => navigate('/journal/brief')}>pre-interview briefing</QuietLink>
       </div>

@@ -61,9 +61,10 @@ export function TheQueue({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        One server, requests arriving at random. Intuition says a server at 90% utilization is "fine — it has 10% spare." The
-        queue disagrees. Because arrivals are <i>random</i>, they clump — and near full utilization there's no slack left to
-        absorb a clump. Drag the slider and watch waiting time, not throughput.
+        One server, handling requests that arrive at random. On paper, 90% utilization sounds comfortable, with 10% spare
+        capacity left over. The line out front tells a different story. Because arrivals are <i>random</i>, they clump together,
+        and once the server stays nearly busy, it has no breathing room left to drain a clump before the next one lands. Slide
+        the rate up and watch wait time, not throughput.
       </p>
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
@@ -145,24 +146,24 @@ export function TheQueue({ onComplete }: { onComplete: () => void }) {
             fontSize={11}
             fontFamily="'IBM Plex Mono', monospace"
           >
-            80% — the knee
+            80%: the knee
           </text>
           <circle cx={curX} cy={curY} r={6} fill={util >= 0.8 ? C.alert : C.ok} />
           <text x={PAD} y={H - 6} fill={C.faint} fontSize={10} fontFamily="'IBM Plex Mono', monospace">
             utilization →
           </text>
           <text x={PAD + 4} y={22} fill={C.faint} fontSize={10} fontFamily="'IBM Plex Mono', monospace">
-            waiting time (theory: ~1/(1−ρ))
+            wait time (theory: ~1/(1−ρ))
           </text>
         </svg>
       </div>
 
       <Punchline color={C.net}>
-        Sit at 60% for a while, then drag to 92% and wait ten seconds. <b>Throughput barely changed; waiting exploded.</b> That's
-        the whole secret: delay grows like 1/(1−utilization), a curve with a knee near 80%. Now re-read your cheat sheet — CPU
-        &gt; 70%, memory &gt; 80%, throughput near 80% of max — every scale trigger is the same knee, on the same curve, for the
-        same reason. And in an interview, "I'd provision to keep steady-state utilization near 60–70%" is a sentence that shows
-        you know <i>why</i>, not just <i>what</i>.
+        Let it run at 60% for a moment, then pull the slider to 92% and give it ten seconds. <b>Throughput barely budges, while
+        wait time goes vertical.</b> Delay scales like 1/(1−utilization), which bends sharply into a knee near 80%. Look back at
+        the classic scaling triggers: CPU &gt; 70%, memory &gt; 80%, throughput near 80% of max. Every one of them is guarding
+        against the same knee on the same curve. When you say, "I'd provision for 60 to 70% steady-state utilization," you are
+        leaving the exact slack needed to keep bursts from turning into a backlog.
       </Punchline>
     </div>
   )

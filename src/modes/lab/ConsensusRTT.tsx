@@ -59,9 +59,10 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
       <p style={{ color: C.dim, fontSize: 14, lineHeight: 1.55, marginTop: 4 }}>
-        A strongly-consistent write isn't done when the leader has it — a <b>majority</b> must confirm, so no crash or network
-        split can un-happen it. The happy path costs two round trips: <i>propose → acks</i>, <i>commit → acks</i>. The protocol
-        is identical everywhere. The only variable is where the replicas live.
+        A strongly consistent write is not finished the moment the leader accepts it. A <b>majority</b> has to agree first so a
+        crash or network split cannot roll it back. Even on the happy path, agreement takes two round trips:{' '}
+        <i>propose → acks</i>, then <i>commit → acks</i>. The protocol never changes. Pick where the replicas live and watch
+        distance set the bill.
       </p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
         {PLACES.map((p, i) => (
@@ -106,7 +107,7 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
             />
           )}
           <span className="mono" style={{ position: 'absolute', left: 60, top: 8, fontSize: 11, color: leg < 2 ? C.net : C.faint }}>
-            round 1 · propose {place.note && `— ${place.note}`}
+            round 1 · propose {place.note && `(${place.note})`}
           </span>
           <span className="mono" style={{ position: 'absolute', left: 60, bottom: 0, fontSize: 11, color: leg >= 2 ? C.mem : C.faint }}>
             round 2 · commit
@@ -117,7 +118,7 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
             {phase === 'running' ? 'agreeing…' : 'Commit one write'}
           </Button>
           <span style={{ color: C.dim }}>
-            write latency: <b style={{ color: phase === 'done' ? (totalMs > 50 ? C.alert : C.ok) : C.text, fontSize: 16 }}>{phase === 'done' ? `${totalMs.toFixed(totalMs < 10 ? 1 : 0)} ms` : '—'}</b>
+            write latency: <b style={{ color: phase === 'done' ? (totalMs > 50 ? C.alert : C.ok) : C.text, fontSize: 16 }}>{phase === 'done' ? `${totalMs.toFixed(totalMs < 10 ? 1 : 0)} ms` : '...'}</b>
             <span style={{ color: C.faint }}> = {ROUNDS} × {place.rttMs} ms RTT + 1 ms fsync</span>
           </span>
           {phase === 'done' && (
@@ -129,11 +130,11 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <Punchline color={C.net}>
-        Same protocol, four answers: 0.2 ms in a rack, ~1 ms in a datacenter, <b>141 ms</b> across the US, ~301 ms on a global
-        quorum — agreement is round trips, and round trips are geography. This is the entire price list behind consistency
-        debates: Spanner pays it with atomic clocks to shave rounds, most systems dodge it (async replication, leader-local
-        reads, eventual consistency), and "we need global strong consistency" is a sentence that costs 300 ms every time it's
-        true.
+        One protocol, four very different latencies: 0.2 ms inside a rack, ~1 ms across a datacenter, <b>141 ms</b> coast to
+        coast across the US, and ~301 ms across a global quorum. Agreement is round trips, and round trips are just geography.
+        That is the real price tag behind every consistency debate: Spanner uses atomic clocks to shave rounds, most systems
+        sidestep it with async replication, leader-local reads, or eventual consistency, and saying "we need global strong
+        consistency" writes a 300 ms check on every write.
       </Punchline>
     </div>
   )

@@ -324,14 +324,14 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
         </p>
         <p style={{ color: C.dim }}>
           Drag the replica count below. Read capacity climbs in a straight line while writes stay pinned flat, because
-          copies cannot share a single writer's lock. The catch is <T k="replag">replication lag</T>: every replica read
+          copies do not help writes. The catch is <T k="replag">replication lag</T>: every replica read
           looks slightly into the past, and if the primary crashes, <T k="failover">failover</T> pauses writes for
           seconds while a replica gets promoted.
         </p>
         <p>
           The A, C, and D in ACID come standard; the I is a dial you have to set. Your{' '}
           <T k="isolationlevel">isolation level</T> controls which concurrency anomalies a transaction can observe, and
-          most engines default to read committed rather than <T k="serializable">serializable</T>. That means subtle
+          the default is read committed, not <T k="serializable">serializable</T>. That means subtle
           races your code assumes are impossible are often still allowed unless you asked for stricter isolation.
           Turning that dial up costs either lock contention or aborts your client must retry, which is why "we use ACID,
           so it is safe" is a sentence worth retiring.
@@ -428,7 +428,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     simplifies:
       'Groups dozens of distinct engines into three archetypes. Real databases blur these borders: document stores add transactions and SQL databases store JSON.',
     related: { toys: ['hotpartition'], terms: ['nosql', 'join', 'acid', 'denormalization', 'shard', 'gsi', 'consistency'] },
-    feltIn: { note: <>Taste tests match SQL against NoSQL under concrete numbers and constraints.</>, to: '/review/taste', cta: 'try a Taste Test' },
+    feltIn: { note: <>Taste tests match SQL against NoSQL under stated requirements.</>, to: '/review/taste', cta: 'try a Taste Test' },
   },
   {
     id: 'blob-storage',
@@ -580,7 +580,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     simplifies:
       'Traces a linear happy path. Real gateways also transform requests and responses, steer canary traffic, emit telemetry, and need high availability of their own.',
     related: { toys: [], terms: ['apigateway', 'request', 'tls', 'ratelimit', 'breaker', 'lb'] },
-    feltIn: { note: <>On-Call runs put rate limiters and circuit breakers straight into your relic belt.</>, to: '/on-call', cta: 'start an On-Call run' },
+    feltIn: { note: <>On-Call runs hand you rate limiters and circuit breakers as relics.</>, to: '/on-call', cta: 'start an On-Call run' },
   },
   {
     id: 'load-balancer',
@@ -848,7 +848,7 @@ export const TECHNOLOGIES_SECTIONS: ManualSection[] = [
     simplifies:
       'Assumes evenly distributed keys and a flat 100k ops/s per node. Hot keys, oversized values, and NIC bandwidth shift real-world numbers.',
     related: { toys: ['stampede', 'dram'], terms: ['cache', 'consistenthash', 'stampede', 'hitrate'] },
-    feltIn: { note: <>The stampede toy shows what happens to your database the second a hot key expires.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
+    feltIn: { note: <>The stampede toy shows what a cold cache does to your database.</>, to: '/lab/stampede', cta: 'play TTL & STAMPEDE' },
   },
   {
     id: 'cdn',

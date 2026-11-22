@@ -242,7 +242,7 @@ export const PRODUCTS: Product[] = [
         <T k="checkpoint">checkpointed</T> state that keeps internal updates <T k="exactlyonce">exactly-once</T>. The
         first question it puts on the table is whether you need streaming at all: when a few minutes of delay are fine,
         a batch job is far simpler, so Flink earns its operational weight only when results must stay seconds fresh at
-        scale. Its running state is both its superpower and its sharpest edge, because everything it holds in memory has
+        scale. Its running state is both its superpower and its sharpest edge, because whatever it holds has
         to be restored after a crash and shifted during a rescale.
       </>
     ),

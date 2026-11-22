@@ -52,21 +52,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'light',
     label: 'placement challenge',
     setup:
-      'Your servers are in Virginia. They render a page in 10 ms. A user in Sydney waits 170 ms for it, every time, on a fast connection.',
-    question: 'Where does that 160 ms actually live — and what removes it?',
+      'Your servers sit in Virginia and render a page in 10 ms. A user in Sydney waits 170 ms for it every time, even on a fast connection.',
+    question: 'Where is that extra 160 ms coming from, and what actually removes it?',
     options: [
       {
-        text: 'In the distance. Only a copy of the bytes closer to Sydney removes it.',
+        text: 'Distance. Only putting a copy of the bytes closer to Sydney removes it.',
         ok: true,
-        why: 'Right. Sydney↔Virginia is ~16,000 km of fiber; light in glass covers it in ~80 ms one way, so ~160 ms round trip is the floor no amount of server tuning moves. The only lever is a shorter trip — a copy at the edge.',
+        why: 'Exactly. Sydney to Virginia is about 16,000 km of fiber, and light in glass takes around 80 ms one way. That puts a ~160 ms round-trip floor under every request that no server tuning can move. The only way to shorten the wait is to shorten the trip by serving a copy from the edge.',
       },
       {
-        text: 'In the render. Add app servers in Virginia so the 10 ms drops.',
-        why: 'The render is 10 ms of a 170 ms wait. Halve it and the user in Sydney saves 5 ms out of 170 — you optimized the 6% and left the 94% untouched.',
+        text: 'Server render time. Add more app servers in Virginia to bring the 10 ms down.',
+        why: 'Rendering only accounts for 10 ms of a 170 ms wait. Even if you cut render time in half, your user in Sydney saves 5 ms out of 170. You just spent your effort on 6% of the problem and left the other 94% untouched.',
       },
       {
-        text: 'In the payload. Compress the response so fewer bytes cross the ocean.',
-        why: 'Compression cuts transfer time, not the round trip. The first byte still cannot arrive before light does — a 1 KB page and a 100 KB page both wait out the same 160 ms of distance first.',
+        text: 'Payload size. Compress the response so fewer bytes have to cross the ocean.',
+        why: 'Compression shrinks transfer time, not the round trip. The very first byte still cannot outrun light, so a 1 KB page and a 100 KB page both pay the same 160 ms of distance before anything arrives.',
       },
     ],
     numberIds: ['cross-region-rtt'],
@@ -79,21 +79,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'disk',
     label: 'append challenge',
     setup:
-      'A write burst arrives: 40k writes/s for ninety seconds. The database behind it tops out around 5k writes/s. You put a queue in front, on the same hardware.',
-    question: 'Why can the queue swallow the burst that the database cannot?',
+      'A burst hits: 40k writes/s for ninety seconds. Your database tops out around 5k writes/s, so you put a queue in front of it on the exact same hardware.',
+    question: 'Why can the queue absorb a burst that knocks the database over?',
     options: [
       {
-        text: 'The queue only ever appends — one sequential stream. The database writes land at scattered offsets and pay for the jump.',
+        text: 'The queue only appends in one sequential stream, while database writes jump to scattered offsets and pay for every seek.',
         ok: true,
-        why: 'Right, and this is the 1000× from The Disk. An append is the one access pattern that never moves the arm: the head is already where the next byte goes. Index updates are random by definition — each one is a seek the queue never pays.',
+        why: 'Right, and that is the 1000× gap from The Disk. Appending is the one access pattern that keeps the disk head right where the next byte belongs. Database index updates land at scattered locations by nature, turning every write into a seek the queue never has to pay.',
       },
       {
-        text: 'The queue holds messages in memory, so no disk is involved during the burst.',
-        why: 'Durable queues fsync to disk — that is what makes them a safe place to park a write. Their speed is the access pattern, not the absence of disk; an in-memory queue that loses the burst on restart has not bought you anything.',
+        text: 'The queue keeps messages in memory, so it skips the disk entirely during the burst.',
+        why: 'Durable queues fsync straight to disk, because durability is the whole reason you can safely park a write there. Their speed comes from sequential access, not from skipping disk. An in-memory queue that drops the burst on restart has not saved you.',
       },
       {
-        text: 'The queue batches many writes into fewer, larger ones.',
-        why: 'Batching helps, but it is the smaller half of the story. Batch the same random writes and each batch still scatters. Sequential-vs-random is the 1000×; batching is the 2–5×.',
+        text: 'The queue batches small writes together into fewer, larger writes.',
+        why: 'Batching helps, but it is the smaller half of the win. If you batch random writes, the disk still has to jump between scattered offsets for each one. Sequential versus random is the 1000× gap; batching is more like 2 to 5×.',
       },
     ],
     numberIds: ['hdd-seek', 'hdd-iops'],
@@ -106,21 +106,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'stampede',
     label: 'hit-rate challenge',
     setup:
-      'Reads arrive at 50k/s. The database behind the cache serves about 10k reads/s before latency runs away. You have exactly one cache node in front of it.',
-    question: 'What hit rate does the cache have to hold?',
+      'Reads come in at 50k/s. The database behind your cache serves about 10k reads/s before latency runs away, and you have one cache node sitting in front of it.',
+    question: 'What hit rate does the cache need to hold?',
     options: [
       {
-        text: '80% — misses have to fall to 10k/s, so 40k of the 50k must be served from cache.',
+        text: '80%: misses have to drop to 10k/s, so the cache needs to serve 40k of the 50k reads.',
         ok: true,
-        why: 'Right: the number that matters is the miss rate, because misses are the load the database actually sees. 50k × 20% = 10k/s. Note how brittle that is — drop to 70% and the database gets 15k/s, half again over its ceiling.',
+        why: 'Spot on. Miss rate is the number that actually determines survival, because misses are what reach the database: 50k × 20% = 10k/s. Notice how thin that margin is, too. Slip from 80% to 70% and the database suddenly takes 15k/s, half again past its ceiling.',
       },
       {
-        text: '50% — half the reads served from memory is a healthy cache.',
-        why: '50% leaves 25k/s of misses hitting a 10k/s database — 2.5× over. "Healthy hit rate" is not a property of the cache; it is whatever number the tier behind it can survive.',
+        text: '50%: serving half your reads from memory is already a healthy cache.',
+        why: 'At 50%, 25k/s of misses still slam into a 10k/s database, which is 2.5× over its limit. A "healthy" hit rate is never a property of the cache alone; it is whatever number keeps the database behind it standing.',
       },
       {
-        text: '95% — always push the hit rate as high as it will go.',
-        why: 'Aiming higher is not wrong, it is unanchored. Without deriving the 80% you cannot tell whether 95% is comfortable headroom or an impossible target for this key distribution — and you cannot say what breaks when a TTL expiry drops you below it.',
+        text: '95%: push the hit rate as high as it can possibly go.',
+        why: 'Aiming high is fine, but without deriving the 80% floor you have no anchor. You cannot tell whether 95% is comfortable headroom or unrealistic for your key distribution, and you will not see the cliff coming when a TTL expiry dips you below 80%.',
       },
     ],
     numberIds: ['pg-reads', 'redis-ops'],
@@ -133,21 +133,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'queue',
     label: 'drain-sizing challenge',
     setup:
-      'Writes land in the queue at 12k/s and stay there for the full peak hour — not a spike, a plateau. Each worker drains 5k writes/s.',
-    question: 'How many workers do you run?',
+      'Writes arrive in the queue at 12k/s and hold steady for a full peak hour, not a brief spike. Each worker can drain 5k writes/s.',
+    question: 'How many workers do you need to run?',
     options: [
       {
-        text: 'Three. Two drain 10k/s against 12k/s of intake, so the backlog grows for the whole hour and never comes back.',
+        text: 'Three. Two workers only drain 10k/s against 12k/s coming in, so the backlog climbs all hour and never recovers.',
         ok: true,
-        why: 'Right. The queue buys time, not capacity: while drain < intake the backlog rises linearly — 2k/s × 3600 s = 7.2M stranded messages by the end of the hour. Sizing the drain above sustained intake is the only thing that makes a queue a solution instead of a delay.',
+        why: 'Exactly. A queue buys time, not capacity. As long as drain stays below intake, the backlog grows every second: 2k/s × 3600 s = 7.2M stranded messages by the end of the hour. Sizing your drain above sustained intake is what turns a queue into a real fix instead of a slow-motion outage.',
       },
       {
-        text: 'Two. 10k/s is close to 12k/s and the queue absorbs the difference.',
-        why: 'A queue absorbs a burst, which is finite, not a deficit, which is not. "Close" still means the backlog grows every second of the hour — you would be 7.2M messages behind when traffic finally drops.',
+        text: 'Two. 10k/s is close enough to 12k/s, and the queue can soak up the difference.',
+        why: 'Queues absorb finite bursts, not open-ended deficits. "Close enough" still leaves you falling behind by 2k/s every single second, adding up to 7.2M messages sitting in the backlog by the time traffic finally eases.',
       },
       {
-        text: 'One. The queue is the buffer; the worker just has to keep up on average.',
-        why: 'The average is 12k/s — that IS the sustained rate. One worker drains 5k/s, so you are shedding 7k/s into a backlog that only unwinds after peak, hours later, if ever.',
+        text: 'One. The queue acts as the buffer, so the worker only needs to keep up on average.',
+        why: 'For that peak hour, 12k/s IS the sustained average. A single worker draining 5k/s leaves 7k/s piling into the backlog, creating hours of catch-up work after peak ends, if the queue ever catches up at all.',
       },
     ],
     numberIds: ['kafka-msgs', 'queue-knee'],
@@ -160,21 +160,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'hotpartition',
     label: 'key-choice challenge',
     setup:
-      'Ticket sales. One primary can absorb about 5k writes/s; a stadium on-sale drives 30k writes/s, all of it for a single concert, in a two-minute window.',
+      'Concert ticket sales. One primary can absorb about 5k writes/s, and a stadium on-sale drives 30k writes/s for a single concert over two intense minutes.',
     question: 'Which shard key survives the on-sale?',
     options: [
       {
-        text: '(event_id, seat_block) — the hot concert is the problem, so split inside the event.',
+        text: '(event_id, seat_block): the hot concert is the bottleneck, so split traffic inside that event.',
         ok: true,
-        why: 'Right. Sharding only helps if the key spreads the load that is actually hot. Adding a second field the writes vary across turns one 30k/s partition into ten 3k/s partitions — each under the 5k/s ceiling.',
+        why: 'Right. Sharding only works when the key actually breaks up the hot load. Adding a second field that writes vary across turns one 30k/s hot partition into ten 3k/s partitions, keeping every shard comfortably under the 5k/s ceiling.',
       },
       {
-        text: 'event_id — every query already names an event, so no query ever crosses shards.',
-        why: 'This is the trap the Hot Partition toy exists to spring. It is the cleanest query plan and the worst write distribution: the on-sale is one event, so all 30k/s lands on one shard while the other nine idle. Sharding by the hot key is not sharding.',
+        text: 'event_id: every query already filters by event, so no query has to cross shards.',
+        why: 'That is the exact trap the Hot Partition toy exists to spring. You get the cleanest query plan and the worst write distribution: because the entire on-sale is one event, all 30k/s hits a single shard while the other nine sit idle. Sharding by the hot key is not sharding.',
       },
       {
-        text: 'user_id — users are numerous and evenly distributed, so writes spread perfectly.',
-        why: 'The writes do spread. But now the seat map for one concert is scattered across every shard, so the read every buyer issues fans out to all of them — you traded a hot partition for a fan-out on the hottest read in the system.',
+        text: 'user_id: users are plentiful and evenly spread, so writes distribute smoothly.',
+        why: 'Writes do spread evenly, but now the seat map for one concert is scattered across every shard in the fleet. Every buyer checking available seats triggers a fan-out read across all of them, trading a hot write partition for a painful fan-out on your hottest read.',
       },
     ],
     numberIds: ['partition-write-cap', 'pg-writes'],
@@ -187,21 +187,21 @@ export const FORGE: ForgeChallenge[] = [
     toyId: 'replag',
     label: 'failover challenge',
     setup:
-      'The primary dies mid-afternoon. Your replica is healthy and, per the lag graph, 400 ms behind. The runbook says promote.',
-    question: 'You promote it. What did you just decide?',
+      'Your primary dies mid-afternoon. The replica is healthy and, according to the lag graph, 400 ms behind. The runbook says to promote it.',
+    question: 'You promote the replica. What decision did you just make?',
     options: [
       {
-        text: 'That losing the last 400 ms of acknowledged writes costs less than staying down.',
+        text: 'That losing the last 400 ms of acknowledged writes hurts less than staying offline.',
         ok: true,
-        why: 'Right — and saying it out loud is the whole skill. Asynchronous replication means promotion is a data-loss event with a size you can estimate: 400 ms of writes, gone, already acknowledged to users. You take that trade knowingly, or you run synchronous replication and pay the latency instead.',
+        why: 'Right, and naming that tradeoff out loud is the real skill. With asynchronous replication, promoting a lagging replica is a data-loss event whose size you can calculate: 400 ms of writes, already acknowledged to users, now gone. Either you accept that loss knowingly, or you run synchronous replication and pay the latency cost up front.',
       },
       {
-        text: 'Nothing much — the new primary replays the rest of the old primary log after promotion.',
-        why: 'There is nothing to replay from. The dead primary is the only place those 400 ms of writes existed; that is what "asynchronous" means. If it never comes back, neither do they.',
+        text: 'Nothing drastic: the new primary will replay the rest of the old primary log once it comes up.',
+        why: 'There is nowhere to replay those writes from. The dead primary was the only machine holding that last 400 ms of data, which is what asynchronous replication means. If that machine does not come back, neither do those writes.',
       },
       {
-        text: 'That reads are stale for 400 ms after promotion, then consistent again.',
-        why: 'This describes replication lag during normal operation, not failover. After promotion the replica IS the truth — the missing writes are not late, they are lost, and the system will never notice they are gone.',
+        text: 'That reads will look stale for 400 ms after promotion, then settle back to consistent.',
+        why: 'That is how replication lag behaves during normal traffic, not during failover. Once you promote the replica, it becomes the source of truth. Those missing writes are not delayed; they are lost, and the system has no idea they ever existed.',
       },
     ],
     numberIds: ['same-dc-rtt', 'cross-region-rtt'],

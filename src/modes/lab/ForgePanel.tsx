@@ -69,7 +69,7 @@ export function ForgePanel({ f, toyDone, toyName }: { f: ForgeChallenge; toyDone
     else
       addScar({
         mode: 'lab',
-        theme: `${f.part} — ${f.label}`,
+        theme: `${f.part}: ${f.label}`,
         what: f.options[i].text,
         truth: f.options.find((o) => o.ok)!.text,
         lesson: f.options[i].why,
@@ -94,14 +94,14 @@ export function ForgePanel({ f, toyDone, toyName }: { f: ForgeChallenge; toyDone
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <Eyebrow color={won ? C.ok : C.gold}>⚒ THE FORGE · {f.label.toUpperCase()}</Eyebrow>
         <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, color: won ? C.ok : C.faint, whiteSpace: 'nowrap' }}>
-          {won ? `${f.part} forged` : `${f.part} — locked`}
+          {won ? `${f.part} forged` : `${f.part} · locked`}
         </span>
       </div>
 
       {!toyDone ? (
         <p style={{ fontSize: 13.5, color: C.dim, lineHeight: 1.6, margin: '10px 0 0' }}>
-          {toyName} forges the <b style={{ color: col }}>{f.part}</b> for the Builder and On-Call. Run the sim above until it
-          clicks — the challenge opens when it does.
+          {toyName} forges the <b style={{ color: col }}>{f.part}</b> for the Builder and On-Call. Play with the sim above until
+          the mechanism clicks, and this challenge will unlock.
         </p>
       ) : (
         <>
@@ -110,7 +110,7 @@ export function ForgePanel({ f, toyDone, toyName }: { f: ForgeChallenge; toyDone
 
           {already && picked === null ? (
             <div className="mono" style={{ fontSize: 12, color: C.ok, marginTop: 10 }}>
-              ✓ Answered — <b>{f.part}</b> is yours in the Builder and On-Call.
+              ✓ Forged. <b>{f.part}</b> is unlocked in the Builder and On-Call.
             </div>
           ) : (
             f.options.map((o, i) => (
@@ -138,8 +138,8 @@ export function ForgePanel({ f, toyDone, toyName }: { f: ForgeChallenge; toyDone
               <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: '6px 0 0' }}>{chosen.why}</p>
               {!chosen.ok && (
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: '10px 0 0', color: C.dim }}>
-                  The answer that forges it is highlighted above — and it's in the scar journal now, so you'll meet this one
-                  again. Re-run the sim, then reload this page to try it cold.
+                  The right answer is highlighted above, and we logged this one in your scar journal so you will see it again.
+                  Run the sim one more time, then reload the page when you want a fresh shot at it.
                 </p>
               )}
               {chosen.ok && (

@@ -213,7 +213,7 @@ test('manual: the networking briefing is a four-block deep briefing (spec 069)',
   // LayerStack: L4 starts open (block 2 deepens it); dim floors are not buttons
   const l4 = page.getByRole('button', { name: /L4 · Transport/ })
   await expect(l4).toHaveAttribute('aria-expanded', 'true')
-  await expect(page.getByRole('button', { name: /L5–6/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /L5-6/ })).toHaveCount(0)
   const l7 = page.getByRole('button', { name: /L7 · Application/ })
   await expect(l7).toHaveAttribute('aria-expanded', 'false')
   await l7.click()
@@ -224,8 +224,8 @@ test('manual: the networking briefing is a four-block deep briefing (spec 069)',
   await expect(page.getByText('2% of frames simply gone')).toBeVisible()
   // …and a clean wire makes both promises free
   await page.getByRole('slider', { name: 'packet loss' }).fill('0')
-  await expect(page.getByText('smooth — nothing to repair')).toBeVisible()
-  await expect(page.getByText('smooth — nothing to lose')).toBeVisible()
+  await expect(page.getByText('smooth, nothing to repair')).toBeVisible()
+  await expect(page.getByText('smooth, nothing to lose')).toBeVisible()
   // the worked example ends on the FIN/ACK teardown note
   const stepper = page.getByText('step 1 / 7')
   await expect(stepper).toBeVisible()
@@ -492,7 +492,7 @@ test('forge: parts start locked in the Builder, with the way out on every row', 
 test('forge: the challenge stays shut until the toy has clicked', async ({ page }) => {
   await page.goto('/#/lab/stampede')
   await expect(page.getByText(/forges the .* for the Builder and On-Call/)).toBeVisible()
-  await expect(page.getByText('Cache node — locked')).toBeVisible()
+  await expect(page.getByText('Cache node · locked')).toBeVisible()
 })
 
 test('forge: answering the hit-rate challenge unlocks the cache node in the Builder', async ({ page }) => {
@@ -505,7 +505,7 @@ test('forge: answering the hit-rate challenge unlocks the cache node in the Buil
   })
   await page.goto('/#/lab/stampede')
   await expect(page.getByText('⚒ THE FORGE · HIT-RATE CHALLENGE')).toBeVisible()
-  await page.getByRole('button', { name: /80% — misses have to fall/ }).click()
+  await page.getByRole('button', { name: /80%: misses have to drop/ }).click()
   await expect(page.getByText('FORGED', { exact: true })).toBeVisible()
   await expect(page.getByText('Cache node forged')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -528,10 +528,10 @@ test('forge: a wrong answer explains itself and lands in the scar journal', asyn
     )
   })
   await page.goto('/#/lab/hotpartition')
-  await page.getByRole('button', { name: /event_id — every query already names an event/ }).click()
+  await page.getByRole('button', { name: /event_id: every query already filters by event/ }).click()
   await expect(page.getByText('NOT YET')).toBeVisible()
   await expect(page.getByText(/Sharding by the hot key is not sharding/)).toBeVisible()
-  await expect(page.getByText('DB shard — locked')).toBeVisible()
+  await expect(page.getByText('DB shard · locked')).toBeVisible()
   await page.goto('/#/journal')
   await expect(page.getByText(/KEY-CHOICE CHALLENGE/).first()).toBeVisible()
 })
@@ -580,7 +580,7 @@ test('manual: the indexing briefing is a six-block deep briefing (spec 076)', as
   // BTreeWalk: the descent ends on the random heap fetch
   await expect(page.getByText('read 1 / 4')).toBeVisible()
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Next descent step' }).click()
-  await expect(page.getByText(/RANDOM read — the expensive half/)).toBeVisible()
+  await expect(page.getByText(/RANDOM read, the expensive half/)).toBeVisible()
   // …and fan-out is what sets the depth
   await page.getByRole('slider', { name: 'children per node' }).fill('16')
   await expect(page.getByText(/depth 7 for 100M rows/)).toBeVisible()

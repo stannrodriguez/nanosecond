@@ -23,10 +23,10 @@ export function Recap({
 }) {
   const w = g.over?.win
   const rows: { label: string; val: number }[] = [
-    { label: `${summary.actsCleared} act(s) cleared × ${SCORE.perAct}`, val: summary.actsCleared * SCORE.perAct },
+    { label: `${summary.actsCleared} ${summary.actsCleared === 1 ? 'act' : 'acts'} cleared × ${SCORE.perAct}`, val: summary.actsCleared * SCORE.perAct },
     { label: `${Math.max(0, g.hp)} error budget × ${SCORE.perHp}`, val: Math.max(0, g.hp) * SCORE.perHp },
     { label: `$${g.gold} unspent ÷ 100 × ${SCORE.perGoldHundred}`, val: Math.floor(Math.max(0, g.gold) / 100) * SCORE.perGoldHundred },
-    { label: `${g.pats.length} pattern(s) × ${SCORE.perPattern}`, val: g.pats.length * SCORE.perPattern },
+    { label: `${g.pats.length} ${g.pats.length === 1 ? 'pattern' : 'patterns'} × ${SCORE.perPattern}`, val: g.pats.length * SCORE.perPattern },
   ]
   if (w) rows.push({ label: 'survived to IPO', val: SCORE.survival })
 
@@ -37,7 +37,7 @@ export function Recap({
       </div>
       <p style={{ color: C.dim, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
         {w
-          ? `Three acts, three bosses, and the system held to the bell. Final error budget: ${g.hp}/100 with $${g.gold} unspent.`
+          ? `Three acts, three bosses, and your architecture held to the bell. Final error budget: ${g.hp}/100, with $${g.gold} left unspent.`
           : g.over?.why}
       </p>
 
@@ -59,7 +59,7 @@ export function Recap({
         {best > 0 && (
           <div className="mono" style={{ fontSize: 11.5, color: C.faint, marginTop: 6 }}>
             best so far: {Math.max(best, summary.score)}
-            {summary.score >= best && summary.score > 0 ? ' — new best ★' : ''}
+            {summary.score >= best && summary.score > 0 ? ' · new best ★' : ''}
           </div>
         )}
       </div>
@@ -69,7 +69,7 @@ export function Recap({
       {g.pats.length > 0 && (
         <div style={{ textAlign: 'left', background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginTop: 16 }}>
           <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.net, marginBottom: 10 }}>
-            PATTERNS YOU NOW KNOW — THESE ARE REAL
+            PATTERNS YOU USED · REAL IN PRODUCTION
           </div>
           {g.pats.map((k) => (
             <div key={k} style={{ marginBottom: 10 }}>

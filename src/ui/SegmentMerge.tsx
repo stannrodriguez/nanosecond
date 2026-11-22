@@ -25,7 +25,7 @@ const EVENTS: Event[] = [
   {
     label: 'index 3 documents',
     segs: [{ id: 'seg-1', live: 3, dead: 0 }],
-    note: 'The buffer flushes and three documents land as one file. Nothing in it will ever be modified — that is the deal the whole design is built on.',
+    note: 'The memory buffer flushes and three documents land in one immutable segment. Nothing in this file will ever be edited in place, and the entire storage engine builds on that rule.',
   },
   {
     label: 'index 3 more',
@@ -33,7 +33,7 @@ const EVENTS: Event[] = [
       { id: 'seg-1', live: 3, dead: 0 },
       { id: 'seg-2', live: 3, dead: 0 },
     ],
-    note: 'A second file, not an extension of the first. Every query now opens both and merges what they return — segment count is a cost you can watch grow.',
+    note: 'These land in a second file rather than extending the first. Every query now searches both segments and merges their matches, so segment count becomes a visible read tax.',
   },
   {
     label: 'update 1 document',
@@ -42,7 +42,7 @@ const EVENTS: Event[] = [
       { id: 'seg-2', live: 3, dead: 0 },
       { id: 'seg-3', live: 1, dead: 0 },
     ],
-    note: 'There is no in-place edit available. The old copy is marked deleted where it sits — still on disk, still read and filtered out — and the new version is written into a third file. One update, two costs, three files.',
+    note: 'Because segments cannot be edited, the engine marks the old copy deleted where it sits (still taking disk space, still filtered out at query time) and writes the updated version into a third file. One update, two pieces of work, three files.',
   },
   {
     label: 'delete 1 document',
@@ -51,12 +51,12 @@ const EVENTS: Event[] = [
       { id: 'seg-2', live: 2, dead: 1 },
       { id: 'seg-3', live: 1, dead: 0 },
     ],
-    note: 'The delete is also a write: a tombstone, and a document that keeps occupying space and a little read work on every query until someone reclaims it.',
+    note: 'Even a delete is a write. It records a tombstone while the old document keeps holding disk space and adding a bit of filter work to every query until a merge reclaims it.',
   },
   {
     label: 'merge',
     segs: [{ id: 'seg-4', live: 5, dead: 0 }],
-    note: 'The merge rewrites the live documents into one new file and drops the tombstoned ones for real. Queries get cheap again, and the disk gives the space back — hours after you asked for it, in background I/O you share with live traffic.',
+    note: 'Merging copies the surviving documents into one fresh segment and finally discards the tombstoned ones. Queries get fast again and disk space comes back, sometimes hours after the delete, paid for in background I/O shared with live traffic.',
   },
 ]
 
@@ -69,7 +69,7 @@ export function SegmentMerge({ accent = C.storage }: { accent?: string }) {
   return (
     <VizFrame accent={accent}>
       <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: 0.5, marginBottom: 10 }}>
-        nothing is ever edited — step through what that costs
+        nothing is ever edited in place · step through what that costs
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

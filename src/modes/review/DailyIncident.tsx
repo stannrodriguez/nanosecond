@@ -62,7 +62,7 @@ export function DailyIncident() {
         <div>
           <Eyebrow color={C.gold}>DAILY INCIDENT · #{n}</Eyebrow>
           <div style={{ fontSize: 17, fontWeight: 700, marginTop: 2 }}>
-            {already && phase === 'inspect' ? "Today's incident — already faced" : p.title}
+            {already && phase === 'inspect' ? "Today's incident, already played" : p.title}
           </div>
         </div>
         <StreakChip streak={streak} best={bestStreak} />
@@ -72,7 +72,7 @@ export function DailyIncident() {
       {already && phase === 'inspect' ? (
         <div style={{ marginTop: 12 }}>
           <div className="mono" style={{ fontSize: 14, fontWeight: 700, color: already.solved ? C.ok : C.alert }}>
-            {already.solved ? '✓ You caught it.' : '✗ It got you.'} Come back tomorrow for Incident #{n + 1}.
+            {already.solved ? '✓ You caught it.' : '✗ That one slipped past.'} Come back tomorrow for Incident #{n + 1}.
           </div>
           <Postmortem p={p} />
           <ShareRow onShare={share} copied={copied} text={shareString(today, already.solved, streak)} />
@@ -98,10 +98,10 @@ export function DailyIncident() {
           {phase === 'inspect' && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
               <Button variant="danger" disabled={!picked || picked === SOUND} onClick={() => commit(picked!)} style={{ padding: '11px 24px' }}>
-                {picked && picked !== SOUND ? 'Lock it in — one shot' : 'Click a component to accuse it'}
+                {picked && picked !== SOUND ? 'Lock it in (one shot)' : 'Pick a component to accuse'}
               </Button>
               <Button variant="ghost" onClick={() => commit(SOUND)} style={{ padding: '11px 20px' }}>
-                …or declare it sound — ship it ✓
+                Or declare it sound and ship it ✓
               </Button>
             </div>
           )}
@@ -113,7 +113,7 @@ export function DailyIncident() {
           {phase === 'done' && (
             <div style={{ marginTop: 14 }}>
               <div className="mono" style={{ fontSize: 15, fontWeight: 700, color: correct ? C.ok : C.alert }}>
-                {correct ? '✓ Caught it — streak intact.' : '✗ It got you. Streak reset — try again tomorrow.'}
+                {correct ? '✓ Caught it. Streak intact.' : '✗ That one slipped past. Streak reset, fresh incident tomorrow.'}
               </div>
               <Postmortem p={p} />
               <ShareRow onShare={share} copied={copied} text={shareString(today, solved, streak)} />

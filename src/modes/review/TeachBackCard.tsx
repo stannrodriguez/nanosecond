@@ -7,9 +7,9 @@ import { useScars, type ScarMode } from '../../state/scars'
 // then self-score a 3-item rubric — mechanism / tradeoff / number — logged to
 // the Scar Journal. Explaining is the strongest test that you actually own it.
 const RUBRIC = [
-  { k: 'mechanism' as const, label: 'I named the MECHANISM — how the fix actually works' },
-  { k: 'tradeoff' as const, label: 'I named the TRADEOFF — what the fix costs' },
-  { k: 'number' as const, label: 'I cited the NUMBER — the requirement that forced it' },
+  { k: 'mechanism' as const, label: 'I named the mechanism: how the fix actually works' },
+  { k: 'tradeoff' as const, label: 'I named the tradeoff: what the fix costs' },
+  { k: 'number' as const, label: 'I cited the number: the requirement that forced it' },
 ]
 
 export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }) {
@@ -36,7 +36,7 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
         onClick={() => setOpen(true)}
         style={{ marginTop: 12 }}
       >
-        ◈ Teach it back (60s) — the real test of understanding
+        ◈ Teach it back (60s): explain the fix out loud
       </Button>
     )
   }
@@ -44,7 +44,7 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
   return (
     <Panel accent={C.gold} style={{ marginTop: 12 }}>
       <div className="mono" style={{ fontSize: 10.5, letterSpacing: 1.5, color: C.gold, marginBottom: 8 }}>
-        TEACH IT BACK — narrate the fix out loud, then score yourself
+        TEACH IT BACK · explain the fix out loud, then score yourself
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <div
@@ -60,18 +60,18 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
         )}
         {running && secs > 0 && (
           <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-            talking… name the mechanism, the tradeoff, and the number
+            your floor. hit the mechanism, the tradeoff, and the number
           </span>
         )}
         {secs === 0 && (
           <span className="mono" style={{ fontSize: 12, color: C.alert }}>
-            time — how did you do?
+            time is up. how did it sound?
           </span>
         )}
       </div>
       {logged ? (
         <div className="mono" style={{ fontSize: 12.5, color: C.ok }}>
-          ✓ Logged to Scar Journal — {score}/3 this time
+          ✓ Logged to Scar Journal ({score}/3)
         </div>
       ) : (
         <>
@@ -97,7 +97,7 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
             }}
             style={{ marginTop: 10 }}
           >
-            Log {score}/3 to the Journal
+            Log {score}/3 to Scar Journal
           </Button>
         </>
       )}

@@ -60,7 +60,7 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
         )}
         {running && secs > 0 && (
           <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-            your floor. hit the mechanism, the tradeoff, and the number
+            You have the floor. Hit the mechanism, the tradeoff, and the number
           </span>
         )}
         {secs === 0 && (

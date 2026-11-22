@@ -22,7 +22,7 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
     if (pick !== q.ans)
       addScar({
         mode: 'taste',
-        theme: 'taste: fit the numbers',
+        theme: 'taste: fit over vibes',
         what: q[pick!].name,
         truth: q[q.ans].name,
         lesson: q.flip.split('. ')[0] + '.',

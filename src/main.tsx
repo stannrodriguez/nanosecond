@@ -9,6 +9,9 @@ import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './index.css'
 import App from './App'
+import { applyHashPathFallback } from './hashPathFallback'
+
+applyHashPathFallback()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

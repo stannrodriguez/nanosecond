@@ -123,3 +123,45 @@ test('about states the premise and links onward through the learning loop', asyn
   await page.getByRole('button', { name: /^LAB/ }).click()
   await expect(page).toHaveURL(/#\/lab$/)
 })
+
+test('direct paths without a hash rewrite to hash routes with no Back-button trap', async ({ page }) => {
+  await page.goto('/about')
+  await expect(page).toHaveURL(/\/#\/about$/)
+  await expect(page.getByRole('heading', { name: 'WHAT IS THIS?' })).toBeVisible()
+
+  // Navigate to a second direct path and verify Back returns to #/about without looping.
+  await page.goto('/practice')
+  await expect(page).toHaveURL(/\/#\/practice$/)
+  await expect(page.getByRole('heading', { name: 'PRACTICE' })).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(/\/#\/about$/)
+  await expect(page.getByRole('heading', { name: 'WHAT IS THIS?' })).toBeVisible()
+
+  await page.goto('/manual')
+  await expect(page).toHaveURL(/\/#\/manual\/briefings$/)
+  await expect(page.getByRole('heading', { name: 'CONCEPT LIBRARY' })).toBeVisible()
+
+  await page.goto('/manual/briefings')
+  await expect(page).toHaveURL(/\/#\/manual\/briefings$/)
+
+  await page.goto('/lab/light')
+  await expect(page).toHaveURL(/\/#\/lab\/light$/)
+  await expect(page.getByRole('button', { name: '← the journey' })).toBeVisible()
+
+  // Unknown direct path falls back cleanly to the app home rather than 404.
+  await page.goto('/does-not-exist')
+  await expect(page).toHaveURL(/\/#\/lab$/)
+  await expect(page.getByRole('heading', { name: 'INTUITION LAB' })).toBeVisible()
+
+  // In-app nav link for LIBRARY still lands on #/manual/briefings.
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'LIBRARY', exact: true }).click()
+  await expect(page).toHaveURL(/\/#\/manual\/briefings$/)
+})
+
+test('static assets in public/ still serve directly', async ({ request }) => {
+  for (const path of ['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/og-card.png', '/site.webmanifest']) {
+    const res = await request.get(path)
+    expect(res.status(), `expected 200 for ${path}`).toBe(200)
+    expect(res.headers()['content-type'] ?? '').not.toContain('text/html')
+  }
+})

@@ -14,7 +14,7 @@ const CARDS = [
     color: C.net,
     what: 'Estimate real system numbers and get scored by order of magnitude.',
     when: '2 minutes a day. A quick warm-up to make sure the Lab numbers stuck.',
-    stat: 'drill 1 · nothing overdue',
+    stat: '60 drills',
   },
   {
     to: '/builder',
@@ -30,9 +30,9 @@ const CARDS = [
     n: '3',
     name: 'REVIEW',
     color: C.storage,
-    what: "Someone else's design hides a single flaw. Find it before the clock runs out.",
+    what: "Inspect someone else's architecture, spot the bottleneck, or call it sound.",
     when: 'Try this after a few builds. Critiquing a design is its own interview skill.',
-    stat: 'puzzle 1/12',
+    stat: '12 puzzles',
   },
   {
     to: '/on-call',
@@ -40,8 +40,8 @@ const CARDS = [
     name: 'ON-CALL',
     color: C.alert,
     what: 'Keep a system upright through launch day, traffic spikes, and 3am pages.',
-    when: 'The boss level: everything above, now under live pressure.',
-    stat: 'act 1/3',
+    when: 'Combine everything above under live traffic and budget pressure.',
+    stat: '3 acts',
   },
 ] as const
 

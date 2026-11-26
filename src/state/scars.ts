@@ -145,7 +145,7 @@ export function exportContextPack(scars: Scar[], history: AnswerRecord[], soundb
     .join('\n')
 
   const lines: string[] = [
-    '# Nanosecond — play-history context pack',
+    '# Nanosecond: play-history context pack',
     '',
     'Paste this into an LLM mock interviewer so it can probe my actual weak spots.',
     '',
@@ -159,7 +159,7 @@ export function exportContextPack(scars: Scar[], history: AnswerRecord[], soundb
       : ['- (no drill history yet)']),
     '',
     '## Recurring blind spots',
-    ...(b.blindSpots.length ? b.blindSpots.map((t) => `- ${t.theme} — missed ${t.count}×`) : ['- (no misses logged yet)']),
+    ...(b.blindSpots.length ? b.blindSpots.map((t) => `- ${t.theme}: missed ${t.count}×`) : ['- (no misses logged yet)']),
     '',
     '## Drill calibration by category',
     catLine || '- (no drill history yet)',

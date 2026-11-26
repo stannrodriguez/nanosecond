@@ -216,7 +216,7 @@ function Stats() {
     { label: 'dead on (≤0.3 orders)', test: (e: number) => e <= 0.3, col: C.ok },
     { label: 'ballpark (0.3 to 0.6)', test: (e: number) => e > 0.3 && e <= 0.6, col: C.mem },
     { label: 'same universe (0.6 to 1)', test: (e: number) => e > 0.6 && e <= 1, col: C.compute },
-    { label: 'lost in space (>1 order)', test: (e: number) => e > 1, col: C.alert },
+    { label: 'off by >1 order', test: (e: number) => e > 1, col: C.alert },
   ].map((b) => ({ ...b, n: history.filter((r) => b.test(r.err)).length }))
   const maxBucket = Math.max(1, ...buckets.map((b) => b.n))
   const boxDist = [1, 2, 3, 4, 5].map((box) => ({ box, n: Object.values(cards).filter((c) => c.box === box).length }))
@@ -254,7 +254,7 @@ function Stats() {
 
       <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16 }}>
         <div className="mono" style={{ fontSize: 10, letterSpacing: 1.5, color: C.compute, marginBottom: 10 }}>
-          LOG-ERROR HISTOGRAM: how far off your misses land
+          LOG-ERROR HISTOGRAM: how close your estimates land
         </div>
         {buckets.map((b) => (
           <div key={b.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>

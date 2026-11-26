@@ -70,8 +70,8 @@ function QuietLink({ children, onClick }: { children: React.ReactNode; onClick: 
 function Empty() {
   return (
     <div style={{ background: C.panel, border: `1px dashed ${C.line}`, borderRadius: 10, padding: 24, color: C.dim, fontSize: 14, lineHeight: 1.6 }}>
-      No scars yet. Go break something. Every drill you miss, flaw you misdiagnose, and build that tips over lands here
-      with its lesson attached. Your misses are the real curriculum.
+      No scars yet. Miss a drill, misdiagnose a flaw, or overload a build in Practice, and it will land here with its
+      lesson attached. Your misses are the real curriculum.
     </div>
   )
 }
@@ -183,7 +183,7 @@ export default function Journal() {
             </div>
             {soundbites.length === 0 && (
               <div style={{ color: C.dim, fontSize: 13.5 }}>
-                None collected yet. Solve flaw puzzles and interrogations in Design Review to collect crisp, speakable lines.
+                No soundbites collected yet. Complete flaw puzzles and interrogations in Design Review to save speakable lines here.
               </div>
             )}
             {soundbites.map((s, i) => (
@@ -199,8 +199,8 @@ export default function Journal() {
             </div>
             {teachBacks.length === 0 && (
               <div style={{ color: C.dim, fontSize: 13.5 }}>
-                None yet. After you solve a Design Review challenge, take the 60-second teach-back. Talking through the fix
-                out loud is what makes the reasoning stick.
+                No teach-backs logged yet. After a Design Review puzzle, take the 60-second teach-back to practice explaining the
+                fix out loud.
               </div>
             )}
             {teachBacks.length > 0 && (

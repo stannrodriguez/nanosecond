@@ -257,7 +257,7 @@ export default function ProductPage({ p }: { p: Product }) {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <GhostButton onClick={() => navigate('/manual/briefings')}>← the library</GhostButton>
+        <GhostButton onClick={() => navigate('/manual/briefings')}>← back to library</GhostButton>
       </div>
       <article>
         <Eyebrow color={ACCENT}>NAMED TECHNOLOGY</Eyebrow>

@@ -1,7 +1,7 @@
 {
-  "name": "Nanosecond — Systems Design Intuition",
+  "name": "Nanosecond: Systems Design Intuition",
   "short_name": "Nanosecond",
-  "description": "Systems design, from the physics up.",
+  "description": "Learn systems design from the physics up through interactive simulations.",
   "start_url": "/#/lab",
   "scope": "/",
   "display": "standalone",

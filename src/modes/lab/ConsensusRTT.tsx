@@ -115,7 +115,7 @@ export function ConsensusRTT({ onComplete }: { onComplete: () => void }) {
         </div>
         <div className="mono" style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, marginTop: 8, alignItems: 'baseline' }}>
           <Button size="sm" disabled={phase === 'running'} onClick={run} style={{ padding: '9px 18px', fontSize: 13 }}>
-            {phase === 'running' ? 'agreeing…' : 'Commit one write'}
+            {phase === 'running' ? 'Agreeing…' : 'Commit one write'}
           </Button>
           <span style={{ color: C.dim }}>
             write latency: <b style={{ color: phase === 'done' ? (totalMs > 50 ? C.alert : C.ok) : C.text, fontSize: 16 }}>{phase === 'done' ? `${totalMs.toFixed(totalMs < 10 ? 1 : 0)} ms` : '...'}</b>

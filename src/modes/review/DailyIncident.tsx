@@ -62,7 +62,7 @@ export function DailyIncident() {
         <div>
           <Eyebrow color={C.gold}>DAILY INCIDENT · #{n}</Eyebrow>
           <div style={{ fontSize: 17, fontWeight: 700, marginTop: 2 }}>
-            {already && phase === 'inspect' ? "Today's incident, already played" : p.title}
+            {already && phase === 'inspect' ? "Today's incident (completed)" : p.title}
           </div>
         </div>
         <StreakChip streak={streak} best={bestStreak} />
@@ -98,7 +98,7 @@ export function DailyIncident() {
           {phase === 'inspect' && (
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
               <Button variant="danger" disabled={!picked || picked === SOUND} onClick={() => commit(picked!)} style={{ padding: '11px 24px' }}>
-                {picked && picked !== SOUND ? 'Lock it in (one shot)' : 'Pick a component to accuse'}
+                {picked && picked !== SOUND ? 'Lock in diagnosis (one shot)' : 'Select a component to flag'}
               </Button>
               <Button variant="ghost" onClick={() => commit(SOUND)} style={{ padding: '11px 20px' }}>
                 Or declare it sound and ship it ✓

@@ -59,10 +59,10 @@ describe('briefing + context pack', () => {
 
   it('context pack is valid markdown with the key sections', () => {
     const md = exportContextPack(scars, history, bites)
-    expect(md).toContain('# Nanosecond — play-history context pack')
+    expect(md).toContain('# Nanosecond: play-history context pack')
     expect(md).toContain('## Shakiest numbers')
     expect(md).toContain('## Recurring blind spots')
-    expect(md).toContain('- Network — missed 2×')
+    expect(md).toContain('- Network: missed 2×')
     expect(md).toContain('## Soundbites')
     expect(md).toContain(bites[0])
   })

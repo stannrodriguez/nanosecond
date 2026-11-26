@@ -316,7 +316,7 @@ export default function Builder() {
                 {verdict.diagnosis.length > 0 && (
                   <div style={{ background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: '10px 12px', marginTop: 10 }}>
                     <Eyebrow color={C.compute} style={{ marginBottom: 6 }}>
-                      POST-MORTEM
+                      POSTMORTEM
                     </Eyebrow>
                     {verdict.diagnosis.map((d, i) => (
                       <div key={i} style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 6 }}>

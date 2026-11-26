@@ -121,7 +121,7 @@ function LabIndex() {
 
       {/* Segmented progress: one cell per toy, in toy-number order, lit to its
           channel color when done. */}
-      <div style={{ display: 'flex', gap: 3, marginTop: 12 }} aria-label="progress">
+      <div style={{ display: 'flex', gap: 3, marginTop: 12 }} aria-label="Lab toy completion progress">
         {TOYS.map((t) => (
           <div
             key={t.id}
@@ -141,7 +141,7 @@ function LabIndex() {
         Tap "Post" and a single <T k="request">request</T> sets off; ~200 ms later, your comment sits safely on disks in
         three cities. The stations below follow that trip in order: across fiber, through a <T k="queue">queue</T>, onto a
         CPU, past a <T k="cache">cache</T>, down to a disk, and out to the <T k="replica">replicas</T>. Each toy isolates one
-        mechanism along the path as a live simulation. Push its control around until the behavior clicks.
+        mechanism along the path as a live simulation. Adjust its controls until the behavior clicks.
       </p>
 
       <div style={{ marginTop: 44, display: 'flex', flexDirection: 'column' }}>

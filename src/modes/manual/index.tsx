@@ -221,7 +221,7 @@ function ReferenceSection({ focusTerm }: { focusTerm?: string }) {
         </span>
       </div>
       <p style={{ color: C.dim, fontSize: 14.5, lineHeight: 1.6, margin: '12px 0 0', maxWidth: 620 }}>
-        Every dotted term in the library, laid out in the open. Scroll through or use ctrl-F to jump straight to one.
+        Every dotted term in the library, laid out on one page. Scroll through or search the page to jump to a term.
       </p>
       {REFERENCE_GROUPS.map((g) => {
         const col = REF_GROUP_COLOR[g.id] ?? C.net
@@ -655,7 +655,7 @@ function NamedTechStrip() {
         NAMED TECHNOLOGIES
       </div>
       <div className="mono" style={{ fontSize: 10.5, color: C.faint, marginTop: 3 }}>
-        the systems interviewers bring up by name, each gathering everything this library teaches about it
+        systems interviewers ask about by name, each collecting every related briefing, number, and term
       </div>
       <div
         style={{

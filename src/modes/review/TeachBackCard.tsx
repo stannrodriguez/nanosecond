@@ -60,12 +60,12 @@ export function TeachBackCard({ mode, topic }: { mode: ScarMode; topic: string }
         )}
         {running && secs > 0 && (
           <span className="mono" style={{ fontSize: 12, color: C.dim }}>
-            You have the floor. Hit the mechanism, the tradeoff, and the number
+            You have the floor. Cover the mechanism, the tradeoff, and the number.
           </span>
         )}
         {secs === 0 && (
           <span className="mono" style={{ fontSize: 12, color: C.alert }}>
-            time is up. how did it sound?
+            Time is up. How did it sound?
           </span>
         )}
       </div>

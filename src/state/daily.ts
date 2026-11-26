@@ -95,7 +95,7 @@ export const useDaily = create<DailyState>()(
  */
 export function shareString(dateStr: string, solved: boolean, streak: number): string {
   const n = incidentNumber(dateStr)
-  const mark = solved ? '🟩 caught it' : '🟥 got got'
+  const mark = solved ? '🟩 caught it' : '🟥 missed it'
   const fire = streak > 1 ? `  ·  🔥 ${streak}-day streak` : ''
   return `Nanosecond · Incident #${n}\n${mark}${fire}`
 }

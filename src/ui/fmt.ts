@@ -31,7 +31,7 @@ export const fmtBig = (n: number): string => {
 /** Human scale: 1 ns = 1 s. Input in ns, reads as seconds. */
 export const fmtHuman = (ns: number): string => {
   const s = ns
-  if (s < 1) return `${(s * 1000).toFixed(0)} ms — a camera flash`
+  if (s < 1) return `${(s * 1000).toFixed(0)} ms (a camera flash)`
   if (s < 60) return `${s.toPrecision(2)} s`
   if (s < 3600) return `${(s / 60).toPrecision(2)} min`
   if (s < 86400) return `${(s / 3600).toPrecision(2)} hours`

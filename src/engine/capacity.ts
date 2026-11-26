@@ -117,7 +117,7 @@ export function simTick(
     const uCache = util(reads, cfg.cache * CAP.cache.ops)
     if (uCache > 1 && reads > 0) readErr += ((reads - cfg.cache * CAP.cache.ops) / reads) * 0.5
     dbReads = reads * (1 - hit)
-    const tag = mods.hitRateOverride !== undefined ? ' — STAMPEDE' : mods.hitRateCap !== undefined && cfg.hitRate > (mods.hitRateCap ?? 1) ? ' — capped' : ''
+    const tag = mods.hitRateOverride !== undefined ? ', STAMPEDE' : mods.hitRateCap !== undefined && cfg.hitRate > (mods.hitRateCap ?? 1) ? ', capped' : ''
     comps.push({
       id: 'cache',
       label: `Cache ×${cfg.cache} (${Math.round(hit * 100)}% hit${tag})`,
@@ -223,10 +223,10 @@ export function worstTiers(frames: Frame[]): TierFrame[] {
 export function diagnoseTiers(frames: Frame[]): string[] {
   const lines: string[] = []
   for (const c of worstTiers(frames)) {
-    if (c.u >= 1) lines.push(`${c.label} hit ${(c.u * 100).toFixed(0)}% — beyond capacity, requests queue then die. (${c.note})`)
+    if (c.u >= 1) lines.push(`${c.label} hit ${(c.u * 100).toFixed(0)}%: beyond capacity, requests queue and fail. (${c.note})`)
     else if (c.u >= 0.8)
       lines.push(
-        `${c.label} peaked at ${(c.u * 100).toFixed(0)}% — past the ~80% knee, waiting time grows nonlinearly. It held, but one clump of traffic from failing.`,
+        `${c.label} peaked at ${(c.u * 100).toFixed(0)}%: past the ~80% knee, waiting time grows nonlinearly. It held, but it is one traffic spike away from failing.`,
       )
   }
   return lines

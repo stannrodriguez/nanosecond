@@ -23,7 +23,7 @@ it, and design decisions are scored the way an interviewer would score them.
 | Mode | What it trains | The trick |
 |---|---|---|
 | Intuition Lab | Where the numbers come from | Playable physics toys: race a photon, spin a disk, watch DRAM leak, saturate a queue |
-| Field Manual | Vocabulary and mental models | Plain-language briefings plus a tap-anything glossary |
+| Concept Library | Vocabulary and mental models | Interactive briefings, a latency ladder, and a tap-anything glossary |
 | Drills | Producing numbers on demand | Log-scale Fermi estimation, scored by order of magnitude, with spaced repetition |
 | The Builder | Story → numbers → architecture | Briefed scenarios run against a queueing-theory simulator |
 | Design Review | Judgment | Find the flaw · predict & run · A-vs-B taste tests · requirements interrogation |
@@ -38,8 +38,8 @@ blind spots.
 
 ```bash
 pnpm install
-pnpm dev        # play at localhost:5173
-pnpm verify     # typecheck + unit/balance tests + Playwright e2e
+pnpm dev            # play at localhost:5173
+./scripts/verify.sh # typecheck + unit/balance tests + Playwright e2e
 ```
 
 No backend, no accounts. Progress lives in localStorage.
@@ -50,13 +50,13 @@ Most of this project is written by Claude Code, with humans steering through
 playtesting. Because of that, the docs do a lot of the work you'd normally
 expect from a team:
 
-- **CLAUDE.md** — autonomy rules: verify, look at screenshots, commit per milestone
-- **GAME_SPEC.md** — the design: laws, modes, simulation math, design tokens
-- **ROADMAP.md** — the ordered work queue with acceptance criteria
-- **CONTENT_PIPELINE.md** — templates and the recipe for turning any reference design into flaw puzzles, taste tests, and drills
-- **SPEC_ADDENDUM.md** — post-review additions (ambiguity phase, scar journal, daily incident)
-- **DECISIONS.md** — the running log of decisions the spec was silent on
-- **reference/** — the original five prototypes; source of truth for look and voice
+- **CLAUDE.md**: autonomy rules (verify, look at screenshots, commit per milestone)
+- **docs/product-spec.md**: the design, pedagogical laws, and modes
+- **docs/architecture.md**: stack, repo layout, simulation math, balance suite, and theme
+- **docs/content-pipeline.md**: content templates and authoring recipes for puzzles, taste tests, briefings, and drills
+- **docs/decisions/**: architecture decision records for hard-to-reverse choices
+- **docs/reference/**: the original five prototypes (voice and feel reference)
+- **specs/README.md**: the ordered work queue and milestone status
 
 The piece that makes unsupervised development workable is the balance test
 suite. It encodes "the game teaches true things" as executable assertions: if
@@ -66,6 +66,6 @@ simulator, the build is broken.
 
 ## Status
 
-Pre-alpha, under active development. Check ROADMAP.md for the current
+Pre-alpha, under active development. Check `specs/README.md` for the current
 milestone. Playtest reactions are the most valuable contribution: file them as
 issues with the mode, what you expected, and what confused you.

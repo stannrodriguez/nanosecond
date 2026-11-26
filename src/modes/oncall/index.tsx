@@ -58,7 +58,7 @@ function EncounterCard({
       ? 'Buy patterns or run a retro'
       : node.kind === 'rest'
         ? 'Rebuild trust or raise funds'
-        : 'A call needs your decision'
+        : 'An incident needs your decision'
   const border = active ? (h ? C.net : C.net + '88') : h && !past ? col + '77' : C.line
   return (
     <button
@@ -508,7 +508,7 @@ export default function OnCall() {
             </div>
           )}
           <Button variant="danger" full disabled={running || !!result} onClick={startEnc} style={{ marginTop: 12 }}>
-            {running ? `t=${tick}/${enc.ticks}` : result ? 'Survived' : enc.boss ? 'FACE THE BOSS' : 'Take the traffic'}
+            {running ? `Running… t=${tick}/${enc.ticks}` : result ? 'Survived' : enc.boss ? 'FACE THE BOSS' : 'Take the traffic'}
           </Button>
         </div>
 
@@ -564,7 +564,7 @@ export default function OnCall() {
                     onClick={() => (isFinalLayer ? finishNode() : finishNode({ gold: g.gold + RUN.bossReward }))}
                     style={{ marginTop: 12, padding: '10px 20px', background: C.ok, color: C.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
                   >
-                    {isFinalLayer ? 'Ring the bell 🔔' : `Bank $${RUN.bossReward} & press on →`}
+                    {isFinalLayer ? 'Ring the IPO bell 🔔' : `Bank $${RUN.bossReward} & press on →`}
                   </button>
                 </div>
               ) : !g.draft ? (

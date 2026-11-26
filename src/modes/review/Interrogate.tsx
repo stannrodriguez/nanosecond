@@ -136,7 +136,7 @@ export function Interrogate({ id, onScore }: { id?: string; onScore: (n: number)
 
       {!done ? (
         <Button variant="danger" onClick={lock} disabled={asked.length === 0} style={{ marginTop: 12, padding: '11px 24px' }}>
-          Lock requirements and start building →
+          Lock requirements and see debrief →
         </Button>
       ) : (
         <>

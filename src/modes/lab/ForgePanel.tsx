@@ -138,8 +138,8 @@ export function ForgePanel({ f, toyDone, toyName }: { f: ForgeChallenge; toyDone
               <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: '6px 0 0' }}>{chosen.why}</p>
               {!chosen.ok && (
                 <p style={{ fontSize: 13.5, lineHeight: 1.6, margin: '10px 0 0', color: C.dim }}>
-                  The right answer is highlighted above, and we logged this one in your scar journal so you will see it again.
-                  Run the sim one more time, then reload the page when you want a fresh shot at it.
+                  The right answer is highlighted above, and this miss is logged in your Scar Journal. Run the sim again, then
+                  reload the page to retry.
                 </p>
               )}
               {chosen.ok && (

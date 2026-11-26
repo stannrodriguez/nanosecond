@@ -106,7 +106,7 @@ export function TasteTest({ onScore }: { onScore: (n: number) => void }) {
           ))}
           {!done ? (
             <Button variant="danger" disabled={why === null} onClick={submit} style={{ marginTop: 6, padding: '11px 24px' }}>
-              Defend your pick
+              Submit pick and reason
             </Button>
           ) : (
             <>
